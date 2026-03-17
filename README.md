@@ -1,6 +1,5 @@
-# -DZY-RISCV-32I-CPU
+# DZY-RV32I-CPU
+Board: xc7a100tcsg324-1 (Artix-7)
 
-架构改进中：
-1.DMEM使用Cache
-2.分支跳转
-3.指令融合
+
+***Version 3.12*** || CoreMark = **84 Iterations / sec** || **100MHz** || WHS **0.894ns**(Setup) **0.105ns(Hold)**
