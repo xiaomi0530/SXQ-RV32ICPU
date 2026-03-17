@@ -1,4 +1,4 @@
-# DZY-RV32I-CPU
+# SXQ-RV32I-CPU
 Board: xc7a100tcsg324-1 (Artix-7)
 
 
