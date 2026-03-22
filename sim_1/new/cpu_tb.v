@@ -26,18 +26,15 @@ module cpu_tb();
     reg  rst_n;
     wire [15:0] led;
 
-    // 直接实例化 cpu，绕过 PLL
     cpu u_cpu(
         .clk   (clk  ),
         .rst_n (rst_n),
         .led   (led  )
     );
 
-    // 10ns 周期 = 100MHz
     initial clk = 0;
     always #5 clk = ~clk;
 
-    // 复位：低有效，先拉低再释放
     initial begin
         rst_n = 0;
         #100;
@@ -79,29 +76,6 @@ module cpu_tb();
                 #100;
                 $finish;
             end
-        end
-    end
-
-    // ── 超时保护 ───────────────────────────────────────────
-    initial begin
-        #500000000; // 50ms = 5,000,000 cycles @ 100MHz
-        $display("TIMEOUT");
-        $finish;
-    end
-
-    always @(posedge clk) begin
-        if (u_cpu.u_mmio.uart_valid)
-            $write("%c", u_cpu.u_mmio.uart_data);
-    end
-    always @(posedge clk) begin
-        if (u_cpu.u_mmio.tohost) begin
-            $display("");
-            $display("LED = %04X", u_cpu.u_mmio.led);
-            if (u_cpu.u_mmio.led == 16'h0000)
-                $display(">>> PASSED <<<");
-            else
-                $display(">>> FAILED at sub-test %0d <<<", u_cpu.u_mmio.led);
-            $finish;
         end
     end
 
