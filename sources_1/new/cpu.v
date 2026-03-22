@@ -29,7 +29,7 @@ module cpu(
     wire pipeline_flush;
     
     //IF
-    wire [31:0] if_instr_addr;
+    (* mark_debug = "true" *) wire [31:0] if_instr_addr;
     pc u_pc(
         .clk            (clk   ),
         .rst_n          (rst_n ),
@@ -243,12 +243,12 @@ module cpu(
     wire [31:0] bus_s1_dat_o;
 
     // Slave 2
-    wire        bus_s2_stb;
-    wire        bus_s2_ack;
-    wire        bus_s2_we;
-    wire [31:0] bus_s2_addr;
-    wire [31:0] bus_s2_dat_i;
-    wire [31:0] bus_s2_dat_o;
+    (* mark_debug = "true", keep = "true" *) wire        bus_s2_stb;
+    (* mark_debug = "true", keep = "true" *) wire        bus_s2_ack;
+    (* mark_debug = "true", keep = "true" *) wire        bus_s2_we;
+    (* mark_debug = "true", keep = "true" *) wire [31:0] bus_s2_addr;
+    (* mark_debug = "true", keep = "true" *) wire [31:0] bus_s2_dat_i;
+    (* mark_debug = "true", keep = "true" *) wire [31:0] bus_s2_dat_o;
 
     wire [31:0] mem_dmem_r_data;
 

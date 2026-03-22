@@ -1,24 +1,88 @@
 set_property CFGBVS VCCO [current_design]
 set_property CONFIG_VOLTAGE 3.3 [current_design]
 
-set_property -dict { PACKAGE_PIN E3  IOSTANDARD LVCMOS33 } [get_ports { clk }];
-set_property -dict { PACKAGE_PIN C12 IOSTANDARD LVCMOS33 } [get_ports { rst_n }];
+set_property -dict {PACKAGE_PIN E3 IOSTANDARD LVCMOS33} [get_ports clk]
+set_property -dict {PACKAGE_PIN C12 IOSTANDARD LVCMOS33} [get_ports rst_n]
 set_false_path -from [get_ports rst_n]
 
-set_property -dict { PACKAGE_PIN H17   IOSTANDARD LVCMOS33 } [get_ports { led[0] }];
-set_property -dict { PACKAGE_PIN K15   IOSTANDARD LVCMOS33 } [get_ports { led[1] }];
-set_property -dict { PACKAGE_PIN J13   IOSTANDARD LVCMOS33 } [get_ports { led[2] }];
-set_property -dict { PACKAGE_PIN N14   IOSTANDARD LVCMOS33 } [get_ports { led[3] }];
-set_property -dict { PACKAGE_PIN R18   IOSTANDARD LVCMOS33 } [get_ports { led[4] }];
-set_property -dict { PACKAGE_PIN V17   IOSTANDARD LVCMOS33 } [get_ports { led[5] }];
-set_property -dict { PACKAGE_PIN U17   IOSTANDARD LVCMOS33 } [get_ports { led[6] }];
-set_property -dict { PACKAGE_PIN U16   IOSTANDARD LVCMOS33 } [get_ports { led[7] }];
-set_property -dict { PACKAGE_PIN V16   IOSTANDARD LVCMOS33 } [get_ports { led[8] }];
-set_property -dict { PACKAGE_PIN T15   IOSTANDARD LVCMOS33 } [get_ports { led[9] }];
-set_property -dict { PACKAGE_PIN U14   IOSTANDARD LVCMOS33 } [get_ports { led[10] }];
-set_property -dict { PACKAGE_PIN T16   IOSTANDARD LVCMOS33 } [get_ports { led[11] }];
-set_property -dict { PACKAGE_PIN V15   IOSTANDARD LVCMOS33 } [get_ports { led[12] }];
-set_property -dict { PACKAGE_PIN V14   IOSTANDARD LVCMOS33 } [get_ports { led[13] }];
-set_property -dict { PACKAGE_PIN V12   IOSTANDARD LVCMOS33 } [get_ports { led[14] }];
-set_property -dict { PACKAGE_PIN V11   IOSTANDARD LVCMOS33 } [get_ports { led[15] }];
+set_property -dict {PACKAGE_PIN H17 IOSTANDARD LVCMOS33} [get_ports {led[0]}]
+set_property -dict {PACKAGE_PIN K15 IOSTANDARD LVCMOS33} [get_ports {led[1]}]
+set_property -dict {PACKAGE_PIN J13 IOSTANDARD LVCMOS33} [get_ports {led[2]}]
+set_property -dict {PACKAGE_PIN N14 IOSTANDARD LVCMOS33} [get_ports {led[3]}]
+set_property -dict {PACKAGE_PIN R18 IOSTANDARD LVCMOS33} [get_ports {led[4]}]
+set_property -dict {PACKAGE_PIN V17 IOSTANDARD LVCMOS33} [get_ports {led[5]}]
+set_property -dict {PACKAGE_PIN U17 IOSTANDARD LVCMOS33} [get_ports {led[6]}]
+set_property -dict {PACKAGE_PIN U16 IOSTANDARD LVCMOS33} [get_ports {led[7]}]
+set_property -dict {PACKAGE_PIN V16 IOSTANDARD LVCMOS33} [get_ports {led[8]}]
+set_property -dict {PACKAGE_PIN T15 IOSTANDARD LVCMOS33} [get_ports {led[9]}]
+set_property -dict {PACKAGE_PIN U14 IOSTANDARD LVCMOS33} [get_ports {led[10]}]
+set_property -dict {PACKAGE_PIN T16 IOSTANDARD LVCMOS33} [get_ports {led[11]}]
+set_property -dict {PACKAGE_PIN V15 IOSTANDARD LVCMOS33} [get_ports {led[12]}]
+set_property -dict {PACKAGE_PIN V14 IOSTANDARD LVCMOS33} [get_ports {led[13]}]
+set_property -dict {PACKAGE_PIN V12 IOSTANDARD LVCMOS33} [get_ports {led[14]}]
+set_property -dict {PACKAGE_PIN V11 IOSTANDARD LVCMOS33} [get_ports {led[15]}]
 set_false_path -to [get_ports {led[*]}]
+
+set_property PACKAGE_PIN T10 [get_ports {seg[6]}]
+set_property PACKAGE_PIN R10 [get_ports {seg[5]}]
+set_property PACKAGE_PIN K16 [get_ports {seg[4]}]
+set_property PACKAGE_PIN K13 [get_ports {seg[3]}]
+set_property PACKAGE_PIN P15 [get_ports {seg[2]}]
+set_property PACKAGE_PIN T11 [get_ports {seg[1]}]
+set_property PACKAGE_PIN L18 [get_ports {seg[0]}]
+
+set_property IOSTANDARD LVCMOS33 [get_ports {seg[*]}]
+
+set_property PACKAGE_PIN J17 [get_ports {an[0]}]
+set_property PACKAGE_PIN J18 [get_ports {an[1]}]
+set_property PACKAGE_PIN T9 [get_ports {an[2]}]
+set_property PACKAGE_PIN J14 [get_ports {an[3]}]
+set_property PACKAGE_PIN P14 [get_ports {an[4]}]
+set_property PACKAGE_PIN T14 [get_ports {an[5]}]
+set_property PACKAGE_PIN K2 [get_ports {an[6]}]
+set_property PACKAGE_PIN U13 [get_ports {an[7]}]
+
+set_property IOSTANDARD LVCMOS33 [get_ports {an[*]}]
+
+create_debug_core u_ila_0 ila
+set_property ALL_PROBE_SAME_MU true [get_debug_cores u_ila_0]
+set_property ALL_PROBE_SAME_MU_CNT 1 [get_debug_cores u_ila_0]
+set_property C_ADV_TRIGGER false [get_debug_cores u_ila_0]
+set_property C_DATA_DEPTH 4096 [get_debug_cores u_ila_0]
+set_property C_EN_STRG_QUAL false [get_debug_cores u_ila_0]
+set_property C_INPUT_PIPE_STAGES 1 [get_debug_cores u_ila_0]
+set_property C_TRIGIN_EN false [get_debug_cores u_ila_0]
+set_property C_TRIGOUT_EN false [get_debug_cores u_ila_0]
+set_property port_width 1 [get_debug_ports u_ila_0/clk]
+connect_debug_port u_ila_0/clk [get_nets [list u_clk_main_100mhz/inst/clk_out1]]
+set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe0]
+set_property port_width 32 [get_debug_ports u_ila_0/probe0]
+connect_debug_port u_ila_0/probe0 [get_nets [list {u_cpu/bus_s2_dat_i[0]} {u_cpu/bus_s2_dat_i[1]} {u_cpu/bus_s2_dat_i[2]} {u_cpu/bus_s2_dat_i[3]} {u_cpu/bus_s2_dat_i[4]} {u_cpu/bus_s2_dat_i[5]} {u_cpu/bus_s2_dat_i[6]} {u_cpu/bus_s2_dat_i[7]} {u_cpu/bus_s2_dat_i[8]} {u_cpu/bus_s2_dat_i[9]} {u_cpu/bus_s2_dat_i[10]} {u_cpu/bus_s2_dat_i[11]} {u_cpu/bus_s2_dat_i[12]} {u_cpu/bus_s2_dat_i[13]} {u_cpu/bus_s2_dat_i[14]} {u_cpu/bus_s2_dat_i[15]} {u_cpu/bus_s2_dat_i[16]} {u_cpu/bus_s2_dat_i[17]} {u_cpu/bus_s2_dat_i[18]} {u_cpu/bus_s2_dat_i[19]} {u_cpu/bus_s2_dat_i[20]} {u_cpu/bus_s2_dat_i[21]} {u_cpu/bus_s2_dat_i[22]} {u_cpu/bus_s2_dat_i[23]} {u_cpu/bus_s2_dat_i[24]} {u_cpu/bus_s2_dat_i[25]} {u_cpu/bus_s2_dat_i[26]} {u_cpu/bus_s2_dat_i[27]} {u_cpu/bus_s2_dat_i[28]} {u_cpu/bus_s2_dat_i[29]} {u_cpu/bus_s2_dat_i[30]} {u_cpu/bus_s2_dat_i[31]}]]
+create_debug_port u_ila_0 probe
+set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe1]
+set_property port_width 32 [get_debug_ports u_ila_0/probe1]
+connect_debug_port u_ila_0/probe1 [get_nets [list {u_cpu/bus_s2_addr[0]} {u_cpu/bus_s2_addr[1]} {u_cpu/bus_s2_addr[2]} {u_cpu/bus_s2_addr[3]} {u_cpu/bus_s2_addr[4]} {u_cpu/bus_s2_addr[5]} {u_cpu/bus_s2_addr[6]} {u_cpu/bus_s2_addr[7]} {u_cpu/bus_s2_addr[8]} {u_cpu/bus_s2_addr[9]} {u_cpu/bus_s2_addr[10]} {u_cpu/bus_s2_addr[11]} {u_cpu/bus_s2_addr[12]} {u_cpu/bus_s2_addr[13]} {u_cpu/bus_s2_addr[14]} {u_cpu/bus_s2_addr[15]} {u_cpu/bus_s2_addr[16]} {u_cpu/bus_s2_addr[17]} {u_cpu/bus_s2_addr[18]} {u_cpu/bus_s2_addr[19]} {u_cpu/bus_s2_addr[20]} {u_cpu/bus_s2_addr[21]} {u_cpu/bus_s2_addr[22]} {u_cpu/bus_s2_addr[23]} {u_cpu/bus_s2_addr[24]} {u_cpu/bus_s2_addr[25]} {u_cpu/bus_s2_addr[26]} {u_cpu/bus_s2_addr[27]} {u_cpu/bus_s2_addr[28]} {u_cpu/bus_s2_addr[29]} {u_cpu/bus_s2_addr[30]} {u_cpu/bus_s2_addr[31]}]]
+create_debug_port u_ila_0 probe
+set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe2]
+set_property port_width 32 [get_debug_ports u_ila_0/probe2]
+connect_debug_port u_ila_0/probe2 [get_nets [list {u_cpu/bus_s2_dat_o[0]} {u_cpu/bus_s2_dat_o[1]} {u_cpu/bus_s2_dat_o[2]} {u_cpu/bus_s2_dat_o[3]} {u_cpu/bus_s2_dat_o[4]} {u_cpu/bus_s2_dat_o[5]} {u_cpu/bus_s2_dat_o[6]} {u_cpu/bus_s2_dat_o[7]} {u_cpu/bus_s2_dat_o[8]} {u_cpu/bus_s2_dat_o[9]} {u_cpu/bus_s2_dat_o[10]} {u_cpu/bus_s2_dat_o[11]} {u_cpu/bus_s2_dat_o[12]} {u_cpu/bus_s2_dat_o[13]} {u_cpu/bus_s2_dat_o[14]} {u_cpu/bus_s2_dat_o[15]} {u_cpu/bus_s2_dat_o[16]} {u_cpu/bus_s2_dat_o[17]} {u_cpu/bus_s2_dat_o[18]} {u_cpu/bus_s2_dat_o[19]} {u_cpu/bus_s2_dat_o[20]} {u_cpu/bus_s2_dat_o[21]} {u_cpu/bus_s2_dat_o[22]} {u_cpu/bus_s2_dat_o[23]} {u_cpu/bus_s2_dat_o[24]} {u_cpu/bus_s2_dat_o[25]} {u_cpu/bus_s2_dat_o[26]} {u_cpu/bus_s2_dat_o[27]} {u_cpu/bus_s2_dat_o[28]} {u_cpu/bus_s2_dat_o[29]} {u_cpu/bus_s2_dat_o[30]} {u_cpu/bus_s2_dat_o[31]}]]
+create_debug_port u_ila_0 probe
+set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe3]
+set_property port_width 32 [get_debug_ports u_ila_0/probe3]
+connect_debug_port u_ila_0/probe3 [get_nets [list {u_cpu/if_instr_addr[0]} {u_cpu/if_instr_addr[1]} {u_cpu/if_instr_addr[2]} {u_cpu/if_instr_addr[3]} {u_cpu/if_instr_addr[4]} {u_cpu/if_instr_addr[5]} {u_cpu/if_instr_addr[6]} {u_cpu/if_instr_addr[7]} {u_cpu/if_instr_addr[8]} {u_cpu/if_instr_addr[9]} {u_cpu/if_instr_addr[10]} {u_cpu/if_instr_addr[11]} {u_cpu/if_instr_addr[12]} {u_cpu/if_instr_addr[13]} {u_cpu/if_instr_addr[14]} {u_cpu/if_instr_addr[15]} {u_cpu/if_instr_addr[16]} {u_cpu/if_instr_addr[17]} {u_cpu/if_instr_addr[18]} {u_cpu/if_instr_addr[19]} {u_cpu/if_instr_addr[20]} {u_cpu/if_instr_addr[21]} {u_cpu/if_instr_addr[22]} {u_cpu/if_instr_addr[23]} {u_cpu/if_instr_addr[24]} {u_cpu/if_instr_addr[25]} {u_cpu/if_instr_addr[26]} {u_cpu/if_instr_addr[27]} {u_cpu/if_instr_addr[28]} {u_cpu/if_instr_addr[29]} {u_cpu/if_instr_addr[30]} {u_cpu/if_instr_addr[31]}]]
+create_debug_port u_ila_0 probe
+set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe4]
+set_property port_width 1 [get_debug_ports u_ila_0/probe4]
+connect_debug_port u_ila_0/probe4 [get_nets [list u_cpu/bus_s2_ack]]
+create_debug_port u_ila_0 probe
+set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe5]
+set_property port_width 1 [get_debug_ports u_ila_0/probe5]
+connect_debug_port u_ila_0/probe5 [get_nets [list u_cpu/bus_s2_stb]]
+create_debug_port u_ila_0 probe
+set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe6]
+set_property port_width 1 [get_debug_ports u_ila_0/probe6]
+connect_debug_port u_ila_0/probe6 [get_nets [list u_cpu/bus_s2_we]]
+set_property C_CLK_INPUT_FREQ_HZ 300000000 [get_debug_cores dbg_hub]
+set_property C_ENABLE_CLK_DIVIDER false [get_debug_cores dbg_hub]
+set_property C_USER_SCAN_CHAIN 1 [get_debug_cores dbg_hub]
+connect_debug_port dbg_hub/clk [get_nets clk_100mhz]

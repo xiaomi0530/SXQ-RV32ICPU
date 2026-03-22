@@ -36,6 +36,16 @@ module dmem(
     (* ram_style = "block" *) reg [7:0] dmem1 [0:8191];
     (* ram_style = "block" *) reg [7:0] dmem2 [0:8191];
     (* ram_style = "block" *) reg [7:0] dmem3 [0:8191];
+    
+    integer i;
+    initial begin
+        for (i = 0; i < 8192; i = i + 1) begin
+            dmem0[i] = 8'h0;
+            dmem1[i] = 8'h0;
+            dmem2[i] = 8'h0;
+            dmem3[i] = 8'h0;
+        end
+    end
 
     wire [12:0] word_addr = wr_addr[14:2];
     wire we = bus_stb && bus_we;
@@ -45,7 +55,6 @@ module dmem(
     reg bus_ack_r;
     reg re_r;
 
-    // ── 字节写使能：组合逻辑提前算好，保持简单 ───────────
     reg [3:0] byte_en;
     always @(*) begin
         byte_en = 4'b0000;
@@ -68,14 +77,12 @@ module dmem(
         end
     end
  
-    // 每个 bank 的写数据
     wire [7:0] wdata0 = w_data[7:0];
-    wire [7:0] wdata1 = wr_addr[1] ? w_data[7:0] : w_data[15:8];
-    wire [7:0] wdata2 = wr_addr[1] ? w_data[7:0] : w_data[23:16];
-    wire [7:0] wdata3 = w_data[31:24];
+    wire [7:0] wdata1 = (mem_op == 3'b000) ? w_data[7:0] : w_data[15:8];
+    wire [7:0] wdata2 = (mem_op == 3'b010) ? w_data[23:16] : w_data[7:0];
+    wire [7:0] wdata3 = (mem_op == 3'b010) ? w_data[31:24] :
+                        (mem_op == 3'b001) ? w_data[15:8]  : w_data[7:0];
  
-    // ── 写端口：每个 bank 独立简单写使能 ─────────────────
-    // 写使能 = byte_en[N]，条件足够简单，Vivado 推断为 BRAM
     always @(posedge clk) begin
         if (byte_en[0]) dmem0[word_addr] <= wdata0;
     end

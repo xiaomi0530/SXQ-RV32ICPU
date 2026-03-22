@@ -1,24 +1,7 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 2026/03/06 14:25:00
-// Design Name: 
-// Module Name: imem
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
-
+// imem.v — Instruction Memory (expanded to 32KB for CoreMark)
+//
+// CHANGE: 4096 → 8192 words, address index [14:2] instead of [13:2]
 
 module imem(
     input  wire        clk,
@@ -37,9 +20,9 @@ module imem(
     output reg  [31:0] r_data
 );
 
-    (* ram_style = "block" *) reg [31:0] imem [0:4095];
+    (* ram_style = "block" *) reg [31:0] imem [0:8191];
 
-    wire [11:0] word_addr = r_addr[13:2];
+    wire [12:0] word_addr = r_addr[14:2];
     wire re = bus_stb && !bus_we;
 
     always @(posedge clk) begin
@@ -47,7 +30,7 @@ module imem(
             instr_o <= 1'b0;
             instr_addr_o <= 32'b0;
         end else if(!pipeline_stall)begin
-            instr_o <= imem[instr_addr_i[13:2]];
+            instr_o <= imem[instr_addr_i[14:2]];
             instr_addr_o <= instr_addr_i; 
         end 
     end

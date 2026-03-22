@@ -48,15 +48,19 @@ module cpu_tb();
     always @(posedge clk) begin
         if (u_cpu.bus_m_stb && !u_cpu.bus_m_we
                 && u_cpu.bus_m_addr[31:28] == 4'hF) begin
-            $display("[%0t ns] MMIO READ   addr=%08x  data=%08x  ack=%b",
-                     $time, u_cpu.bus_m_addr,
-                     u_cpu.bus_m_dat_o, u_cpu.bus_m_ack);
+            $display("[%0t ns] MMIO READ  addr=%08x",
+                     $time, u_cpu.bus_m_addr);
+            #10;
+            $display("data=%08x ",
+                     u_cpu.bus_m_dat_o);
         end
         if (u_cpu.bus_m_stb && u_cpu.bus_m_we
                 && u_cpu.bus_m_addr[31:28] == 4'hF) begin
-            $display("[%0t ns] MMIO WRITE  addr=%08x  data=%08x  ack=%b",
-                     $time, u_cpu.bus_m_addr,
-                     u_cpu.bus_m_dat_i, u_cpu.bus_m_ack);
+            $display("[%0t ns] MMIO WRITE  addr=%08x",
+                     $time, u_cpu.bus_m_addr);
+            #10;
+            $display("data=%08x ",
+                     u_cpu.bus_m_dat_o);
         end
     end
 
@@ -80,9 +84,25 @@ module cpu_tb();
 
     // ── 超时保护 ───────────────────────────────────────────
     initial begin
-        #50000000; // 50ms = 5,000,000 cycles @ 100MHz
+        #500000000; // 50ms = 5,000,000 cycles @ 100MHz
         $display("TIMEOUT");
         $finish;
+    end
+
+    always @(posedge clk) begin
+        if (u_cpu.u_mmio.uart_valid)
+            $write("%c", u_cpu.u_mmio.uart_data);
+    end
+    always @(posedge clk) begin
+        if (u_cpu.u_mmio.tohost) begin
+            $display("");
+            $display("LED = %04X", u_cpu.u_mmio.led);
+            if (u_cpu.u_mmio.led == 16'h0000)
+                $display(">>> PASSED <<<");
+            else
+                $display(">>> FAILED at sub-test %0d <<<", u_cpu.u_mmio.led);
+            $finish;
+        end
     end
 
 endmodule
