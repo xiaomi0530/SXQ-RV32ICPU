@@ -1,24 +1,4 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 2026/03/16 17:34:07
-// Design Name: 
-// Module Name: bus_interconnect
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
-
 
 module bus_interconnect(
     input  wire clk,
@@ -100,16 +80,11 @@ module bus_interconnect(
             m_sel_s2_r <= 1'b0;
             status <= IDLE;
         end else if(bus_m_stb && status == IDLE) begin
-            // New transaction: latch which slave is selected
             m_sel_s0_r <= m_sel_s0;
             m_sel_s1_r <= m_sel_s1;
             m_sel_s2_r <= m_sel_s2;
             status <= BUSY;
         end else if(status == BUSY) begin
-            // *** FIX: After 1 cycle in BUSY, the slave has responded.
-            // If a new transaction is pending (stb still high),
-            // re-latch sel for the NEW slave (may be different).
-            // If no new transaction, return to IDLE.
             if(bus_m_stb) begin
                 m_sel_s0_r <= m_sel_s0;
                 m_sel_s1_r <= m_sel_s1;

@@ -1,23 +1,4 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 2026/03/06 19:14:17
-// Design Name: 
-// Module Name: ex
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
 
 module ex(
     input wire        clk,
@@ -39,7 +20,7 @@ module ex(
     output wire [31:0] ex_actual_jump_addr,
     output wire        ex_mul_busy
 );
-
+    
     wire [31:0] sub_res = ex_alu_num1 - ex_alu_num2;
     wire is_equal = (sub_res == 32'b0);
     wire is_less_signed = (ex_alu_num1[31] != ex_alu_num2[31]) ? ex_alu_num1[31] : sub_res[31];

@@ -1,31 +1,4 @@
 `timescale 1ns / 1ps
-// seg7_display.v — Nexys A7 eight-digit seven-segment display driver
-// Input: 32-bit value displayed as decimal on 8 digits
-//
-// Nexys A7 segment mapping (from schematic / reference manual):
-//   seg[6:0] = {CA, CB, CC, CD, CE, CF, CG}
-//            = { a,  b,  c,  d,  e,  f,  g}
-//   active low: 0 = segment ON, 1 = segment OFF
-//
-//      aaa
-//   f     b
-//   f     b
-//      ggg
-//   e     c
-//   e     c
-//      ddd
-//
-// Correct codes:
-//   0: abcdef ON, g OFF  -> {0,0,0,0,0,0,1} = 7'b0000001
-//   1: bc ON            -> {1,0,0,1,1,1,1} = 7'b1001111
-//   2: abdeg ON         -> {0,0,1,0,0,1,0} = 7'b0010010  (a,b,g,e,d)
-//   3: abcdg ON         -> {0,0,0,0,1,1,0} = 7'b0000110
-//   4: bcfg ON          -> {1,0,0,1,1,0,0} = 7'b1001100
-//   5: acdfg ON         -> {0,1,0,0,1,0,0} = 7'b0100100  (a,f,g,c,d)
-//   6: acdefg ON        -> {0,1,0,0,0,0,0} = 7'b0100000
-//   7: abc ON           -> {0,0,0,1,1,1,1} = 7'b0001111
-//   8: all ON           -> {0,0,0,0,0,0,0} = 7'b0000000
-//   9: abcdfg ON        -> {0,0,0,0,1,0,0} = 7'b0000100
 
 module seg7_display(
     input  wire        clk,       // 100MHz

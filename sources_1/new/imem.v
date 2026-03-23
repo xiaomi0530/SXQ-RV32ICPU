@@ -1,7 +1,4 @@
 `timescale 1ns / 1ps
-// imem.v — Instruction Memory (expanded to 32KB for CoreMark)
-//
-// CHANGE: 4096 → 8192 words, address index [14:2] instead of [13:2]
 
 module imem(
     input  wire        clk,

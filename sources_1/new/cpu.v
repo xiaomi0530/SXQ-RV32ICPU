@@ -1,23 +1,4 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 2026/03/06 14:25:00
-// Design Name: 
-// Module Name: cpu
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
 
 module cpu(
     input  wire        clk,
@@ -35,12 +16,12 @@ module cpu(
     //IF
     wire [31:0] if_instr_addr;
     pc u_pc(
-        .clk            (clk   ),
-        .rst_n          (rst_n ),
+        .clk            (clk                  ),
+        .rst_n          (rst_n                ),
         .jump_flag      (ex_actual_jump_flag  ),
         .jump_addr      (ex_actual_jump_addr  ),
-        .pipeline_stall (pipeline_block),
-        .pc_o           (if_instr_addr  )
+        .pipeline_stall (pipeline_block       ),
+        .pc_o           (if_instr_addr        )
     );
 
     wire [31:0] id_instr;
@@ -174,8 +155,8 @@ module cpu(
     assign pipeline_flush = ex_actual_jump_flag;
 
     ex u_ex(
-        .clk                (clk                ),
-        .rst_n              (rst_n              ),
+        .clk                   (clk                   ),
+        .rst_n                 (rst_n                 ),
         .ex_instr_addr         (ex_instr_addr         ),
         .ex_alu_num1           (ex_alu_num1           ),
         .ex_alu_num2           (ex_alu_num2           ),
@@ -188,7 +169,7 @@ module cpu(
         .ex_dmem_wr_addr       (ex_dmem_wr_addr       ),
         .ex_actual_jump_flag   (ex_actual_jump_flag   ),
         .ex_actual_jump_addr   (ex_actual_jump_addr   ),
-        .ex_mul_busy           (ex_mul_busy)
+        .ex_mul_busy           (ex_mul_busy           )
     );
     
     //EX_MEM
@@ -320,20 +301,20 @@ module cpu(
     wire       uart_overflow;
 
     mmio u_mmio(
-        .clk        (clk           ),
-        .rst_n      (rst_n         ),
-        .bus_stb    (bus_s2_stb    ),
-        .bus_ack    (bus_s2_ack    ),
-        .bus_we     (bus_s2_we     ),
-        .bus_addr   (bus_s2_addr   ),
-        .w_data     (bus_s2_dat_o  ),
-        .r_data     (bus_s2_dat_i  ),
-        .led        (led           ),
-        .uart_valid (uart_valid    ),
-        .uart_data  (uart_data     ),
-        .tohost     (tohost        ),
-        .uart_busy  (uart_busy     ),
-        .uart_ready (uart_ready    ),
+        .clk        (clk            ),
+        .rst_n      (rst_n          ),
+        .bus_stb    (bus_s2_stb     ),
+        .bus_ack    (bus_s2_ack     ),
+        .bus_we     (bus_s2_we      ),
+        .bus_addr   (bus_s2_addr    ),
+        .w_data     (bus_s2_dat_o   ),
+        .r_data     (bus_s2_dat_i   ),
+        .led        (led            ),
+        .uart_valid (uart_valid     ),
+        .uart_data  (uart_data      ),
+        .tohost     (tohost         ),
+        .uart_busy  (uart_busy      ),
+        .uart_ready (uart_ready     ),
         .uart_overflow (uart_overflow)
     );
     
