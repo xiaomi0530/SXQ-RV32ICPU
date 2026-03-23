@@ -25,7 +25,8 @@ module top(
     input  wire        rst_n,
     output wire [15:0] led,
     output wire [7:0]  an,    
-    output wire [6:0]  seg    
+    output wire [6:0]  seg,
+    output wire        uart_tx
 );
     
     wire locked;
@@ -40,9 +41,10 @@ module top(
  
     assign cpu_rst_n = locked; 
     cpu u_cpu(
-        .clk   (clk_100mhz  ),
-        .rst_n (cpu_rst_n   ),
-        .led   (led         )
+        .clk    (clk_100mhz ),
+        .rst_n  (cpu_rst_n  ),
+        .led    (led        ),
+        .uart_tx(uart_tx    )
     );
  
 

@@ -23,6 +23,7 @@
 module ex_mem(
     input wire clk,
     input wire rst_n,
+    input wire pipeline_hold,
 
     input wire        ex_regs_we,
     input wire [4:0]  ex_regs_w_addr,
@@ -48,7 +49,7 @@ module ex_mem(
             mem_regs_we <= 1'b0;
             mem_dmem_we <= 1'b0;
             mem_dmem_re <= 1'b0;
-        end else begin
+        end else if (!pipeline_hold) begin
             mem_regs_we <= ex_regs_we;
             mem_dmem_we <= ex_dmem_we;
             mem_dmem_re <= ex_dmem_re;
@@ -56,11 +57,13 @@ module ex_mem(
     end
 
     always @(posedge clk) begin
-        mem_regs_w_addr      <= ex_regs_w_addr;
-        mem_regs_w_data <= ex_regs_w_data;
-        mem_dmem_wr_addr <= ex_dmem_wr_addr;
-        mem_dmem_w_data <= ex_dmem_w_data;
-        mem_mem_op           <= ex_mem_op;
+        if(!pipeline_hold) begin
+            mem_regs_w_addr  <= ex_regs_w_addr;
+            mem_regs_w_data  <= ex_regs_w_data;
+            mem_dmem_wr_addr <= ex_dmem_wr_addr;
+            mem_dmem_w_data  <= ex_dmem_w_data;
+            mem_mem_op       <= ex_mem_op;
+        end
     end
 
 endmodule

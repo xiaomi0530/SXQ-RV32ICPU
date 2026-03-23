@@ -23,6 +23,7 @@ module id_ex(
     input  wire        clk,
     input  wire        rst_n,
     input  wire        pipeline_stall,
+    input  wire        pipeline_hold,
     input  wire        pipeline_flush,
 
     input  wire [31:0] id_instr_addr,
@@ -55,13 +56,19 @@ module id_ex(
 );
 
     always @(posedge clk) begin
-        if (rst_n == `RST_ENABLE || pipeline_stall || pipeline_flush) begin
+        if (rst_n == `RST_ENABLE || pipeline_flush) begin
             ex_regs_we     <= 1'b0;
             ex_dmem_we     <= 1'b0;
             ex_dmem_re     <= 1'b0;
             ex_branch_flag <= 1'b0;
             ex_jump_flag   <= 1'b0;
-        end else begin
+        end else if (pipeline_stall) begin
+            ex_regs_we     <= 1'b0;
+            ex_dmem_we     <= 1'b0;
+            ex_dmem_re     <= 1'b0;
+            ex_branch_flag <= 1'b0;
+            ex_jump_flag   <= 1'b0;
+        end else if (!pipeline_hold) begin
             ex_regs_we     <= id_regs_we;
             ex_dmem_we     <= id_dmem_we;
             ex_dmem_re     <= id_dmem_re;
@@ -71,14 +78,23 @@ module id_ex(
     end
 
     always @(posedge clk) begin
-        if(!pipeline_stall)begin
-            ex_instr_addr  <= id_instr_addr;
-            ex_alu_num1    <= id_alu_num1;
-            ex_alu_num2    <= id_alu_num2;
-            ex_alu_op      <= id_alu_op;
-            ex_regs_w_addr <= id_regs_w_addr;
-            ex_mem_op      <= id_mem_op;
-            ex_dmem_w_data <= id_dmem_w_data;
+        if (rst_n == `RST_ENABLE || pipeline_flush) begin
+            ex_instr_addr       <= 32'b0;
+            ex_alu_num1         <= 32'b0;
+            ex_alu_num2         <= 32'b0;
+            ex_alu_op           <= 4'b0;
+            ex_regs_w_addr      <= 5'b0;
+            ex_mem_op           <= 3'b0;
+            ex_dmem_w_data      <= 32'b0;
+            ex_branch_jump_addr <= 32'b0;
+        end else if(!(pipeline_stall || pipeline_hold))begin
+            ex_instr_addr       <= id_instr_addr;
+            ex_alu_num1         <= id_alu_num1;
+            ex_alu_num2         <= id_alu_num2;
+            ex_alu_op           <= id_alu_op;
+            ex_regs_w_addr      <= id_regs_w_addr;
+            ex_mem_op           <= id_mem_op;
+            ex_dmem_w_data      <= id_dmem_w_data;
             ex_branch_jump_addr <= id_branch_jump_addr;
         end
     end

@@ -1,10 +1,12 @@
 `timescale 1ns / 1ps
 
-//   0xF0000000  cycle_cnt_lo  只读，64位计数器低32位
-//   0xF0000004  cycle_cnt_hi  只读，64位计数器高32位（锁存值）
-//   0xF0000008  tohost        只写，写1表示程序结束
-//   0xF000000C  led           只写，低16位驱动 LED
-//   0xF0000010  uart          只写，低8位输出一个字符
+// Register map (base = 0xF0000000)
+//   0x00  cycle_cnt_lo   [RO] 64-bit cycle counter low word
+//   0x04  cycle_cnt_hi   [RO] 64-bit cycle counter high word
+//   0x08  tohost         [WO] bit0=1 indicates program completed
+//   0x0C  led            [WO] drive LED[15:0]
+//   0x10  uart_tx_data   [WO] enqueue one byte to UART
+//   0x14  uart_status    [RO] {overflow, busy, ready}
 
 module mmio(
     input  wire        clk,
@@ -20,7 +22,10 @@ module mmio(
     output reg  [15:0] led,
     output reg         uart_valid,
     output reg  [7:0]  uart_data,
-    output reg         tohost
+    output reg         tohost,
+    input  wire        uart_busy,
+    input  wire        uart_ready,
+    input  wire        uart_overflow
 );
 
     reg [63:0] cycle_cnt;
@@ -55,8 +60,9 @@ module mmio(
 
     always @(posedge clk) begin
         case (bus_addr[5:0])
-            6'h00:   r_data <= cycle_cnt[31:0];   // timer 低32位
-            6'h04:   r_data <= cycle_cnt[63:32];  // timer 高32位
+            6'h00:   r_data <= cycle_cnt[31:0];
+            6'h04:   r_data <= cycle_cnt[63:32];
+            6'h14:   r_data <= {29'd0, uart_overflow, uart_busy, uart_ready};
             default: r_data <= 32'h0;
         endcase
     end

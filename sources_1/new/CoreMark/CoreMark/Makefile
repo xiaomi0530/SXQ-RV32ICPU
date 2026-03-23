@@ -1,5 +1,5 @@
 # ===========================================================================
-# Makefile — CoreMark 1.0 for RV32I 裸机 CPU
+# Makefile - CoreMark 1.0 for RV32IM soft CPU
 # ===========================================================================
 
 TOOLCHAIN  := riscv64-unknown-elf
@@ -7,11 +7,13 @@ CC         := $(TOOLCHAIN)-gcc
 OBJCOPY    := $(TOOLCHAIN)-objcopy
 OBJDUMP    := $(TOOLCHAIN)-objdump
 SIZE       := $(TOOLCHAIN)-size
-PYTHON     := python3
+PYTHON     ?= python3
 
-ARCH_FLAGS := -march=rv32i -mabi=ilp32 -mstrict-align
+.DEFAULT_GOAL := all
 
-CM_CFLAGS_MACRO := '"-march=rv32i -mabi=ilp32 -mstrict-align -O2"'
+ARCH_FLAGS := -march=rv32im -mabi=ilp32 -mstrict-align -mno-div
+
+CM_CFLAGS_MACRO := '"-march=rv32im -mabi=ilp32 -mstrict-align -mno-div -O2"'
 
 CFLAGS := $(ARCH_FLAGS)                              \
           -O2                                         \
@@ -23,11 +25,11 @@ CFLAGS := $(ARCH_FLAGS)                              \
           -Wno-unused-parameter                       \
           -I.                                         \
           -Icoremark                                  \
-          -DITERATIONS=20000                              \
+          -DITERATIONS=5000                           \
           -DSEED_METHOD=SEED_VOLATILE                 \
           -DMEM_METHOD=MEM_STATIC                     \
           -DMULTITHREAD=1                             \
-          -DHAS_FLOAT=0                               \
+          -DHAS_FLOAT=1                               \
           -DHAS_TIME_H=0                              \
           -DUSE_CLOCK=0                               \
           -DHAS_STDIO=0                               \
@@ -59,11 +61,10 @@ PORT_SRCS := core_portme.c
 ALL_SRCS  := $(COREMARK_SRCS) $(PORT_SRCS)
 OBJS      := $(ALL_SRCS:.c=.o) crt0.o
 
-# ---------------------------------------------------------------------------
-# CFLAGS 变化时自动重编所有 .o
-# (注意: %.o 规则写两遍——带stamp和不带stamp各一条——是因为 make 的模式规则
-#  不支持多个同级依赖覆盖，用 FORCE 配合 .PHONY 实现同样效果)
-# ---------------------------------------------------------------------------
+# Ensure macro changes in this Makefile (e.g. HAS_FLOAT) trigger full rebuild
+# to avoid ABI-mismatched mixed objects.
+$(OBJS): Makefile
+
 CFLAGS_HASH  := $(shell echo '$(CFLAGS)' | md5sum | cut -c1-8)
 CFLAGS_STAMP := .cflags_$(CFLAGS_HASH)
 
@@ -77,19 +78,24 @@ $(CFLAGS_STAMP): FORCE
 	fi
 
 # ===========================================================================
-all: $(TARGET).mem
+all: imem.mem
 
-$(TARGET).mem: $(TARGET).elf
-	$(PYTHON) gen_mem.py $< imem.mem
+# Canonical memory image for Vivado $readmemh
+imem.mem: $(TARGET).elf
+	$(PYTHON) gen_mem.py $< $@
 	@echo ""
 	@echo "=============================================="
-	@echo "  生成完成: imem.mem"
-	@echo "  将 imem.mem 放入 Vivado 仿真/综合目录即可。"
+	@echo "  Generated: $@"
+	@echo "  Copy $@ into your Vivado simulation/synthesis run directory."
 	@echo "=============================================="
+
+# Backward-compatible alias target
+$(TARGET).mem: imem.mem
+	@cp -f $< $@
 
 $(TARGET).elf: $(CFLAGS_STAMP) $(OBJS) link.ld
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) -lgcc
-	@echo "链接完成: $@"
+	@echo "Linked: $@"
 	@$(MAKE) --no-print-directory size
 
 crt0.o: crt0.S
@@ -99,19 +105,19 @@ crt0.o: crt0.S
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 size: $(TARGET).elf
-	@echo "---------- 段大小 ----------"
+	@echo "---------- Section Size ----------"
 	@$(SIZE) $(TARGET).elf
-	@echo "IMEM 预算: 32768 字节 (.text + .data LMA)"
-	@echo "DMEM 预算: 32768 字节 (.data VMA + .bss + stack)"
+	@echo "IMEM budget: 32768 bytes (.text + .data LMA)"
+	@echo "DMEM budget: 32768 bytes (.data VMA + .bss + stack)"
 
 dump: $(TARGET).elf
 	$(OBJDUMP) -d -S $(TARGET).elf > $(TARGET).dump
-	@echo "反汇编 → $(TARGET).dump"
+	@echo "Disassembly: $(TARGET).dump"
 
 fetch:
-	@echo "从 GitHub 下载 CoreMark 源码..."
+	@echo "Fetching CoreMark source from GitHub..."
 	@if [ -d coremark ] && [ -f coremark/coremark.h ]; then \
-	    echo "coremark/ 已存在，跳过。如需重新下载请先 rm -rf coremark/"; \
+	    echo "coremark/ already exists; skip. Remove it first to re-fetch."; \
 	else \
 	    git clone --depth=1 https://github.com/eembc/coremark.git _cm_tmp; \
 	    mkdir -p coremark; \
@@ -122,16 +128,16 @@ fetch:
 	    cp _cm_tmp/core_util.c      coremark/; \
 	    cp _cm_tmp/coremark.h       coremark/; \
 	    rm -rf _cm_tmp; \
-	    echo "CoreMark 源码已提取到 coremark/"; \
+	    echo "CoreMark source extracted to coremark/"; \
 	fi
 
 clean:
 	rm -f $(OBJS) .cflags_*
-	rm -f $(TARGET).elf $(TARGET).map $(TARGET).dump imem.mem
+	rm -f $(TARGET).elf $(TARGET).map $(TARGET).dump imem.mem $(TARGET).mem
 
 help:
-	@echo "  make fetch  下载 CoreMark 官方源码"
-	@echo "  make        编译 → imem.mem"
-	@echo "  make size   检查段大小"
-	@echo "  make dump   反汇编"
-	@echo "  make clean  清理"
+	@echo "  make fetch  Download official CoreMark source"
+	@echo "  make        Build and generate imem.mem"
+	@echo "  make size   Show section sizes"
+	@echo "  make dump   Generate disassembly"
+	@echo "  make clean  Remove build outputs"

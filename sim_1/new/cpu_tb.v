@@ -78,5 +78,20 @@ module cpu_tb();
             end
         end
     end
+       always @(posedge clk) begin
+        if (u_cpu.u_mmio.uart_valid)
+            $write("%c", u_cpu.u_mmio.uart_data);
+    end
+    always @(posedge clk) begin
+        if (u_cpu.u_mmio.tohost) begin
+            $display("");
+            $display("LED = %04X", u_cpu.u_mmio.led);
+            if (u_cpu.u_mmio.led == 16'h0000)
+                $display(">>> PASSED <<<");
+            else
+                $display(">>> FAILED at sub-test %0d <<<", u_cpu.u_mmio.led);
+            $finish;
+        end
+    end
 
 endmodule

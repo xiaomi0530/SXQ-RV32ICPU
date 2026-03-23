@@ -33,7 +33,17 @@ typedef struct core_portable_s {
  * --------------------------------------------------------------------- */
 typedef ee_u32 CORETIMETYPE;
 typedef ee_u32 CORE_TICKS;
+
+#ifndef HAS_FLOAT
+#define HAS_FLOAT 0
+#endif
+
+#if HAS_FLOAT
+typedef double secs_ret;
+#else
 typedef ee_u32 secs_ret;
+#endif
+#define CORE_PORTME_SECSRET_DEFINED
 
 /* -----------------------------------------------------------------------
  * 4. MMIO
@@ -43,6 +53,12 @@ typedef ee_u32 secs_ret;
 #define MMIO_CYCLE_HI  (*(volatile ee_u32 *)(MMIO_BASE + 0x04U))
 #define MMIO_TOHOST    (*(volatile ee_u32 *)(MMIO_BASE + 0x08U))
 #define MMIO_LED       (*(volatile ee_u32 *)(MMIO_BASE + 0x0CU))
+#define MMIO_UART_TX   (*(volatile ee_u32 *)(MMIO_BASE + 0x10U))
+#define MMIO_UART_STAT (*(volatile ee_u32 *)(MMIO_BASE + 0x14U))
+
+#define UART_STATUS_TX_READY    (1u << 0)
+#define UART_STATUS_TX_BUSY     (1u << 1)
+#define UART_STATUS_TX_OVERFLOW (1u << 2)
 
 /* -----------------------------------------------------------------------
  * 5. 计时宏
@@ -56,7 +72,9 @@ typedef ee_u32 secs_ret;
 /* -----------------------------------------------------------------------
  * 6. 平台能力开关
  * --------------------------------------------------------------------- */
+#ifndef HAS_FLOAT
 #define HAS_FLOAT    0
+#endif
 #define HAS_TIME_H   0
 #define USE_CLOCK    0
 #define HAS_STDIO    0
@@ -108,7 +126,11 @@ extern volatile ee_s32 memblock_volatile;
 extern void       start_time(void);
 extern void       stop_time(void);
 extern CORE_TICKS get_time(void);
-extern secs_ret   time_in_secs(CORE_TICKS ticks);
+#if HAS_FLOAT
+extern double     time_in_secs(CORE_TICKS ticks);
+#else
+extern ee_u32     time_in_secs(CORE_TICKS ticks);
+#endif
 
 /* 堆接口（MEM_STATIC 下不调用，但链接时必须存在） */
 extern void *portable_malloc(ee_size_t size);

@@ -81,8 +81,26 @@ module id(
     assign alu_num1 = (type_u_auipc | type_j_jal) ? id_instr_addr : (type_u_lui ? 32'b0 : rs1_data);
     assign alu_num2 = (type_r | type_b) ? rs2_data : imm;
 
+    wire rv32m_any = type_r && (funct7 == 7'b0000001);
+    wire rv32m_mul = rv32m_any && (funct3[2] == 1'b0);
+
+    localparam [3:0] ALU_OP_MUL     = 4'b1001;
+    localparam [3:0] ALU_OP_MULH    = 4'b1010;
+    localparam [3:0] ALU_OP_MULHSU  = 4'b1011;
+    localparam [3:0] ALU_OP_MULHU   = 4'b1111;
+
     always @(*) begin 
-        if (type_r || type_i_alu) begin
+        if (rv32m_mul) begin
+            case (funct3)
+                3'b000: alu_op = ALU_OP_MUL;
+                3'b001: alu_op = ALU_OP_MULH;
+                3'b010: alu_op = ALU_OP_MULHSU;
+                3'b011: alu_op = ALU_OP_MULHU;
+                default: alu_op = 4'b0000;
+            endcase
+        end else if (rv32m_any) begin
+            alu_op = 4'b0000;
+        end else if (type_r || type_i_alu) begin
             alu_op = { ( (type_r && funct7[5]) || (type_i_alu && funct3==3'b101 && funct7[5]) ), funct3 };
         end else if (type_b) begin
             alu_op = 4'b1000;

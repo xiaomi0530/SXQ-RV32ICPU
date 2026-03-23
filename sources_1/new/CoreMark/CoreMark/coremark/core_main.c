@@ -85,6 +85,69 @@ ee_s32 get_seed_32(int i);
 ee_u8 static_memblk[TOTAL_DATA_SIZE];
 #endif
 char *mem_name[3] = { "Static", "Heap", "Stack" };
+
+#define COREMARK_FIXED_SCALE 1000000ULL
+
+static ee_u64
+coremark_u64_divmod_u32(ee_u64 num, ee_u32 den, ee_u32 *rem_out)
+{
+    ee_u64 q = 0;
+    ee_u64 r = 0;
+    int    bit;
+
+    if (den == 0U)
+    {
+        if (rem_out)
+            *rem_out = 0;
+        return 0;
+    }
+
+    for (bit = 63; bit >= 0; bit--)
+    {
+        r = (r << 1) | ((num >> bit) & 1ULL);
+        if (r >= (ee_u64)den)
+        {
+            r -= (ee_u64)den;
+            q |= (1ULL << bit);
+        }
+    }
+
+    if (rem_out)
+        *rem_out = (ee_u32)r;
+    return q;
+}
+
+static void
+coremark_div_to_fixed6(ee_u64 num, ee_u64 den, ee_u32 *int_part, ee_u32 *frac_part)
+{
+    ee_u64 q64;
+    ee_u32 r32;
+    ee_u64 frac;
+    ee_u32 frac_rem_ignored;
+
+    if (den == 0)
+    {
+        *int_part  = 0;
+        *frac_part = 0;
+        return;
+    }
+
+    q64  = coremark_u64_divmod_u32(num, (ee_u32)den, &r32);
+    frac = coremark_u64_divmod_u32(
+        ((ee_u64)r32 * COREMARK_FIXED_SCALE) + (((ee_u64)den) >> 1),
+        (ee_u32)den,
+        &frac_rem_ignored); /* rounded */
+
+    if (frac >= COREMARK_FIXED_SCALE)
+    {
+        q64++;
+        frac -= COREMARK_FIXED_SCALE;
+    }
+
+    *int_part  = (ee_u32)q64;
+    *frac_part = (ee_u32)frac;
+}
+
 /* Function: main
         Main entry routine for the benchmark.
         This function is responsible for the following steps:
@@ -119,6 +182,9 @@ main(int argc, char *argv[])
     ee_s16       known_id = -1, total_errors = 0;
     ee_u16       seedcrc = 0;
     CORE_TICKS   total_time;
+    ee_u64       total_iterations = 0;
+    ee_u32       total_secs_int = 0, total_secs_frac = 0;
+    ee_u32       ips_int = 0, ips_frac = 0;
     core_results results[MULTITHREAD];
 #if (MEM_METHOD == MEM_STACK)
     ee_u8 stack_memblock[TOTAL_DATA_SIZE * MULTITHREAD];
@@ -241,23 +307,22 @@ for (i = 0; i < MULTITHREAD; i++)
     /* automatically determine number of iterations if not set */
     if (results[0].iterations == 0)
     {
-        secs_ret secs_passed = 0;
-        ee_u32   divisor;
+        CORE_TICKS ticks_passed = 0;
+        ee_u32     divisor;
         results[0].iterations = 1;
-        while (secs_passed < (secs_ret)1)
+        while (ticks_passed < (CORE_TICKS)EE_TICKS_PER_SEC)
         {
             results[0].iterations *= 10;
             start_time();
             iterate(&results[0]);
             stop_time();
-            secs_passed = time_in_secs(get_time());
+            ticks_passed = get_time();
         }
         /* now we know it executes for at least 1 sec, set actual run time at
          * about 10 secs */
-        divisor = (ee_u32)secs_passed;
-        if (divisor == 0) /* some machines cast float to int as 0 since this
-                             conversion is not defined by ANSI, but we know at
-                             least one second passed */
+        divisor = (ee_u32)coremark_u64_divmod_u32(
+            (ee_u64)ticks_passed, (ee_u32)EE_TICKS_PER_SEC, NULL);
+        if (divisor == 0)
             divisor = 1;
         results[0].iterations *= 1 + 10 / divisor;
     }
@@ -286,6 +351,21 @@ for (i = 0; i < MULTITHREAD; i++)
 #endif
     stop_time();
     total_time = get_time();
+    total_iterations
+        = (ee_u64)default_num_contexts * (ee_u64)results[0].iterations;
+    coremark_div_to_fixed6((ee_u64)total_time,
+                           (ee_u64)EE_TICKS_PER_SEC,
+                           &total_secs_int,
+                           &total_secs_frac);
+    if (total_time > 0)
+    {
+        coremark_div_to_fixed6(
+            total_iterations * (ee_u64)EE_TICKS_PER_SEC,
+            (ee_u64)total_time,
+            &ips_int,
+            &ips_frac);
+    }
+
     /* get a function of the input to report */
     seedcrc = crc16(results[0].seed1, seedcrc);
     seedcrc = crc16(results[0].seed2, seedcrc);
@@ -360,20 +440,14 @@ for (i = 0; i < MULTITHREAD; i++)
     /* and report results */
     ee_printf("CoreMark Size    : %lu\n", (long unsigned)results[0].size);
     ee_printf("Total ticks      : %lu\n", (long unsigned)total_time);
-#if HAS_FLOAT
-    ee_printf("Total time (secs): %f\n", time_in_secs(total_time));
-    if (time_in_secs(total_time) > 0)
-        ee_printf("Iterations/Sec   : %f\n",
-                  default_num_contexts * results[0].iterations
-                      / time_in_secs(total_time));
-#else
-    ee_printf("Total time (secs): %d\n", time_in_secs(total_time));
-    if (time_in_secs(total_time) > 0)
-        ee_printf("Iterations/Sec   : %d\n",
-                  default_num_contexts * results[0].iterations
-                      / time_in_secs(total_time));
-#endif
-    if (time_in_secs(total_time) < 10)
+    ee_printf("Total time (secs): %lu.%06lu\n",
+              (long unsigned)total_secs_int,
+              (long unsigned)total_secs_frac);
+    if (total_time > 0)
+        ee_printf("Iterations/Sec   : %lu.%06lu\n",
+                  (long unsigned)ips_int,
+                  (long unsigned)ips_frac);
+    if (total_time < (CORE_TICKS)(10UL * EE_TICKS_PER_SEC))
     {
         ee_printf(
             "ERROR! Must execute for at least 10 secs for a valid result!\n");
@@ -406,12 +480,11 @@ for (i = 0; i < MULTITHREAD; i++)
         ee_printf(
             "Correct operation validated. See README.md for run and reporting "
             "rules.\n");
-#if HAS_FLOAT
-        if (known_id == 3)
+        if ((known_id == 3) && (total_time > 0))
         {
-            ee_printf("CoreMark 1.0 : %f / %s %s",
-                      default_num_contexts * results[0].iterations
-                          / time_in_secs(total_time),
+            ee_printf("CoreMark 1.0 : %lu.%06lu / %s %s",
+                      (long unsigned)ips_int,
+                      (long unsigned)ips_frac,
                       COMPILER_VERSION,
                       COMPILER_FLAGS);
 #if defined(MEM_LOCATION) && !defined(MEM_LOCATION_UNSPEC)
@@ -425,7 +498,6 @@ for (i = 0; i < MULTITHREAD; i++)
 #endif
             ee_printf("\n");
         }
-#endif
     }
     if (total_errors > 0)
         ee_printf("Errors detected\n");

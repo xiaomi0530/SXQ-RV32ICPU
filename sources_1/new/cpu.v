@@ -22,11 +22,15 @@
 module cpu(
     input  wire        clk,
     input  wire        rst_n,
-    output wire [15:0] led
+    output wire [15:0] led,
+    output wire        uart_tx
 );
     
     wire pipeline_stall;
     wire pipeline_flush;
+    wire ex_mul_busy;
+    wire pipeline_hold = ex_mul_busy;
+    wire pipeline_block = pipeline_stall | pipeline_hold;
     
     //IF
     wire [31:0] if_instr_addr;
@@ -35,7 +39,7 @@ module cpu(
         .rst_n          (rst_n ),
         .jump_flag      (ex_actual_jump_flag  ),
         .jump_addr      (ex_actual_jump_addr  ),
-        .pipeline_stall (pipeline_stall),
+        .pipeline_stall (pipeline_block),
         .pc_o           (if_instr_addr  )
     );
 
@@ -45,7 +49,7 @@ module cpu(
     imem u_imem(
         .clk            (clk           ),
         .rst_n          (rst_n         ),
-        .pipeline_stall (pipeline_stall),
+        .pipeline_stall (pipeline_block),
         .pipeline_flush (pipeline_flush),
         .instr_addr_i   (if_instr_addr ),
         .instr_o        (id_instr      ),
@@ -128,6 +132,7 @@ module cpu(
         .clk                 (clk                 ),
         .rst_n               (rst_n               ),
         .pipeline_stall      (pipeline_stall      ),
+        .pipeline_hold       (pipeline_hold       ),
         .pipeline_flush      (pipeline_flush      ),
 
         .id_instr_addr       (id_instr_addr       ),
@@ -169,6 +174,8 @@ module cpu(
     assign pipeline_flush = ex_actual_jump_flag;
 
     ex u_ex(
+        .clk                (clk                ),
+        .rst_n              (rst_n              ),
         .ex_instr_addr         (ex_instr_addr         ),
         .ex_alu_num1           (ex_alu_num1           ),
         .ex_alu_num2           (ex_alu_num2           ),
@@ -180,7 +187,8 @@ module cpu(
         .ex_regs_w_data        (ex_regs_w_data        ),
         .ex_dmem_wr_addr       (ex_dmem_wr_addr       ),
         .ex_actual_jump_flag   (ex_actual_jump_flag   ),
-        .ex_actual_jump_addr   (ex_actual_jump_addr   )
+        .ex_actual_jump_addr   (ex_actual_jump_addr   ),
+        .ex_mul_busy           (ex_mul_busy)
     );
     
     //EX_MEM
@@ -197,6 +205,7 @@ module cpu(
     ex_mem u_ex_mem(
         .clk                    (clk                    ),
         .rst_n                  (rst_n                  ),
+        .pipeline_hold          (pipeline_hold          ),
         .ex_regs_we             (ex_regs_we             ),
         .ex_regs_w_addr         (ex_regs_w_addr         ),
         .ex_regs_w_data         (ex_regs_w_data         ),
@@ -304,7 +313,11 @@ module cpu(
 
     wire uart_valid;
     wire [7:0] uart_data;
-    wire tohost;
+    wire       tohost;
+    wire       uart_line;
+    wire       uart_busy;
+    wire       uart_ready;
+    wire       uart_overflow;
 
     mmio u_mmio(
         .clk        (clk           ),
@@ -318,8 +331,28 @@ module cpu(
         .led        (led           ),
         .uart_valid (uart_valid    ),
         .uart_data  (uart_data     ),
-        .tohost     (tohost        )
+        .tohost     (tohost        ),
+        .uart_busy  (uart_busy     ),
+        .uart_ready (uart_ready    ),
+        .uart_overflow (uart_overflow)
     );
+    
+    uart_tx #(
+        .CLK_FREQ   (100_000_000),
+        .BAUD_RATE  (115200),
+        .FIFO_DEPTH (128)
+    ) u_uart_tx (
+        .clk       (clk          ),
+        .rst_n     (rst_n        ),
+        .tx_valid  (uart_valid   ),
+        .tx_data   (uart_data    ),
+        .tx_busy   (uart_busy    ),
+        .tx_ready  (uart_ready   ),
+        .tx        (uart_line    ),
+        .overflow  (uart_overflow)
+    );
+
+    assign uart_tx = uart_line;
     
     
     //WB
