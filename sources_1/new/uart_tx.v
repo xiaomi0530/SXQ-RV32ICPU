@@ -11,7 +11,7 @@
 module uart_tx #(
     parameter integer CLK_FREQ   = 100_000_000,
     parameter integer BAUD_RATE  = 115_200,
-    parameter integer FIFO_DEPTH = 128
+    parameter integer FIFO_DEPTH = 4
 )(
     input  wire       clk,
     input  wire       rst_n,

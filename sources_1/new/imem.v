@@ -5,9 +5,13 @@ module imem(
     input  wire        rst_n,
     input  wire        pipeline_stall,
     input  wire        pipeline_flush,
-    input  wire [31:0] instr_addr_i,
-    output reg  [31:0] instr_o,
-    output reg  [31:0] instr_addr_o,
+    input  wire [31:0] preif_pc_addr_i,
+    output reg  [31:0] if_instr_o,
+    output reg  [31:0] if_instr_addr_o,
+    
+    input  wire        preif_valid_i,
+    output wire [31:0] if_pre_instr_o,
+    output reg  [31:0] if_pre_instr_addr_o,
 
     input  wire        bus_stb,
     output reg         bus_ack,
@@ -19,18 +23,23 @@ module imem(
 
     (* ram_style = "block" *) reg [31:0] imem [0:8191];
 
-    wire [12:0] word_addr = r_addr[14:2];
-    wire re = bus_stb && !bus_we;
+    wire bus_re = bus_stb && !bus_we;
+    wire [31:0] if_pre_instr_addr = {preif_pc_addr_i[31:2] + 30'd1, 2'b00};
+    wire if_pre_re = (preif_valid_i == 1'b1) && !pipeline_stall && !pipeline_flush && !bus_re;
+
+    wire [12:0] bus_word_addr = r_addr[14:2];
+    wire [12:0] if_pre_word_addr = preif_pc_addr_i[14:2] + 13'd1;
 
     always @(posedge clk) begin
         if(rst_n == `RST_ENABLE || pipeline_flush)begin
-            instr_o <= 1'b0;
-            instr_addr_o <= 32'b0;
+            if_instr_o <= 1'b0;
+            if_instr_addr_o <= 32'b0;
         end else if(!pipeline_stall)begin
-            instr_o <= imem[instr_addr_i[14:2]];
-            instr_addr_o <= instr_addr_i; 
+            if_instr_o <= imem[preif_pc_addr_i[14:2]];
+            if_instr_addr_o <= preif_pc_addr_i; 
         end 
     end
+
     
     initial begin
         $readmemh("imem.mem",imem);
@@ -38,49 +47,72 @@ module imem(
 
     reg [2:0]   mem_op_r;
     reg [1:0]   r_addr_r;
-    reg         re_r;
+    reg         bus_re_r;
     reg [31:0]  word_data;
+    reg         if_pre_re_r;
 
     always@(posedge clk) begin
-        bus_ack <= 1'b0;
-        if(re)begin
-            word_data <= imem[word_addr];  
-            bus_ack <= 1'b1;
+        if (rst_n == `RST_ENABLE) begin
+            bus_ack         <= 1'b0;
+            if_pre_re_r <= 1'b0;
+            if_pre_instr_addr_o<= 32'b0;
+            mem_op_r        <= 3'b0;
+            r_addr_r        <= 2'b0;
+            bus_re_r        <= 1'b0;
+            word_data       <= 32'b0;
+        end else begin
+            bus_ack <= 1'b0;
+            bus_re_r <= bus_re;
+            if (bus_re || if_pre_re) begin
+                if (bus_re) begin
+                    mem_op_r <= mem_op;
+                    r_addr_r <= r_addr[1:0];
+                    bus_ack <= 1'b1;
+                end else begin
+                    if_pre_re_r <= if_pre_re;
+                    if_pre_instr_addr_o <= if_pre_instr_addr;
+                end
+            end
         end
-        mem_op_r <= mem_op;
-        r_addr_r <= r_addr[1:0];
-        re_r <= re;
     end
 
+    reg  [31:0] portb_read_data;
+    wire [12:0] portb_read_addr = bus_re? bus_word_addr : if_pre_word_addr;
+    always @(posedge clk) begin
+        portb_read_data <= imem[portb_read_addr];
+    end
+    assign if_pre_instr_o = if_pre_re_r ? portb_read_data : 32'h0;
+
     always @(*) begin
-        if(re_r)begin
+        if(bus_re_r)begin
+            word_data = portb_read_data;
             case (mem_op_r)
-                3'b000: // LB
+                3'b000:
                     case (r_addr_r[1:0])
                         2'b00: r_data = {{24{word_data[7]}},  word_data[7:0]};
                         2'b01: r_data = {{24{word_data[15]}}, word_data[15:8]};
                         2'b10: r_data = {{24{word_data[23]}}, word_data[23:16]};
                         2'b11: r_data = {{24{word_data[31]}}, word_data[31:24]};
                     endcase
-                3'b001: // LH
+                3'b001:
                     case (r_addr_r[1])
                         1'b0: r_data = {{16{word_data[15]}}, word_data[15:0]};
                         1'b1: r_data = {{16{word_data[31]}}, word_data[31:16]};
                     endcase
-                3'b010: r_data = word_data; // LW
-                3'b100: // LBU
+                3'b010: r_data = word_data;
+                3'b100:
                     case (r_addr_r[1:0])
                         2'b00: r_data = {24'b0, word_data[7:0]};
                         2'b01: r_data = {24'b0, word_data[15:8]};
                         2'b10: r_data = {24'b0, word_data[23:16]};
                         2'b11: r_data = {24'b0, word_data[31:24]};
                     endcase
-                3'b101: // LHU
+                3'b101:
                     case (r_addr_r[1])
                         1'b0: r_data = {16'b0, word_data[15:0]};
                         1'b1: r_data = {16'b0, word_data[31:16]};
                     endcase
-                default: r_data = word_data; //LW
+                default: r_data = word_data;
             endcase
         end else begin
             r_data = 32'h0;

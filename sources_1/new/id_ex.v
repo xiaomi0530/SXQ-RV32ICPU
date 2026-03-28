@@ -8,6 +8,7 @@ module id_ex(
     input  wire        pipeline_flush,
 
     input  wire [31:0] id_instr_addr,
+
     input  wire [31:0] id_alu_num1,
     input  wire [31:0] id_alu_num2,
     input  wire [3:0]  id_alu_op,

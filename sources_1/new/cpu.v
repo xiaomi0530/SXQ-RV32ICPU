@@ -12,36 +12,68 @@ module cpu(
     wire ex_mul_busy;
     wire pipeline_hold = ex_mul_busy;
     wire pipeline_block = pipeline_stall | pipeline_hold;
+    wire preif_valid;
+    reg  if_pre_valid;
     
-    //IF
-    wire [31:0] if_instr_addr;
+    //PREIF
+    wire [31:0] preif_pc_addr;
     pc u_pc(
         .clk            (clk                  ),
         .rst_n          (rst_n                ),
         .jump_flag      (ex_actual_jump_flag  ),
         .jump_addr      (ex_actual_jump_addr  ),
         .pipeline_stall (pipeline_block       ),
-        .pc_o           (if_instr_addr        )
+        .pc_o           (preif_pc_addr        ),
+        .preif_valid_o  (preif_valid          )
     );
 
-    wire [31:0] id_instr;
-    wire [31:0] id_instr_addr; 
+    wire [31:0] if_instr;
+    wire [31:0] if_instr_addr;
+    wire [31:0] id_instr_reg;
+    wire [31:0] id_instr_addr_reg;
+    wire [31:0] if_pre_instr;
+    wire [31:0] if_pre_instr_addr;
+
+    always @(posedge clk) begin
+        if (rst_n == `RST_ENABLE)
+            if_pre_valid <= 1'b0;
+        else
+            if_pre_valid <= preif_valid;
+    end
 
     imem u_imem(
-        .clk            (clk           ),
-        .rst_n          (rst_n         ),
-        .pipeline_stall (pipeline_block),
-        .pipeline_flush (pipeline_flush),
-        .instr_addr_i   (if_instr_addr ),
-        .instr_o        (id_instr      ),
-        .instr_addr_o   (id_instr_addr ),
+        .clk                (clk               ),
+        .rst_n              (rst_n             ),
+        .pipeline_stall     (pipeline_block    ),
+        .pipeline_flush     (pipeline_flush    ),
+        .preif_pc_addr_i    (preif_pc_addr     ),
+        .if_instr_o         (if_instr          ),
+        .if_instr_addr_o    (if_instr_addr     ),
+        .preif_valid_i      (preif_valid       ),
+        .if_pre_instr_o     (if_pre_instr      ),
+        .if_pre_instr_addr_o(if_pre_instr_addr ),
         
-        .bus_stb        (bus_s0_stb    ),
-        .bus_ack        (bus_s0_ack    ),
-        .r_addr         (bus_s0_addr   ),
-        .bus_we         (bus_s0_we     ),
-        .mem_op         (mem_mem_op    ),
-        .r_data         (bus_s0_dat_i  )
+        .bus_stb            (bus_s0_stb        ),
+        .bus_ack            (bus_s0_ack        ),
+        .r_addr             (bus_s0_addr       ),
+        .bus_we             (bus_s0_we         ),
+        .mem_op             (mem_mem_op        ),
+        .r_data             (bus_s0_dat_i      )
+    );
+
+    if_id u_if_id(
+        .clk             (clk             ),
+        .rst_n           (rst_n           ),
+        .pipeline_stall  (pipeline_stall  ),
+        .pipeline_hold   (pipeline_hold   ),
+        .pipeline_flush  (pipeline_flush  ),
+        .if_instr_i      (if_instr        ),
+        .if_instr_addr_i (if_instr_addr   ),
+        .if_pre_instr_i  (if_pre_instr    ),
+        .if_pre_instr_addr_i(if_pre_instr_addr),
+        .if_pre_valid_i  (if_pre_valid    ),
+        .id_instr_o      (id_instr_reg        ),
+        .id_instr_addr_o (id_instr_addr_reg   )
     );
 
     //ID
@@ -70,28 +102,34 @@ module cpu(
     wire [31:0] id_branch_jump_addr;
     wire        id_jump_flag;
 
+    wire [31:0] id_instr;
+    wire [31:0] id_instr_addr;
+    wire [31:0] if_instr_fwd = if_instr; // fanout split helper
+    assign id_instr = if_pre_valid? if_instr_fwd : id_instr_reg;
+    assign id_instr_addr = if_pre_valid? if_instr_addr : id_instr_addr_reg;
+
     id u_id(
         .clk                (clk                ),
         .rst_n              (rst_n              ),
         .id_instr_addr      (id_instr_addr      ),
         .id_instr           (id_instr           ),
-        .regs_re            (id_regs_re         ),
-        .rs1_addr           (id_rs1_addr        ),
-        .rs2_addr           (id_rs2_addr        ),
-        .rs1_data           (id_rs1_data_fwd    ),
-        .rs2_data           (id_rs2_data_fwd    ),
-        .rd_addr            (id_regs_w_addr     ),
-        .regs_we            (id_regs_we         ),
-        .alu_op             (id_alu_op          ),
-        .alu_num1           (id_alu_num1        ),
-        .alu_num2           (id_alu_num2        ),
-        .mem_op             (id_mem_op          ),
-        .dmem_we            (id_dmem_we         ),
-        .dmem_re            (id_dmem_re         ),
-        .dmem_w_data        (id_dmem_w_data     ),
-        .branch_flag        (id_branch_flag     ),
-        .branch_jump_addr   (id_branch_jump_addr),
-        .jump_flag          (id_jump_flag       )
+        .id_regs_re         (id_regs_re         ),
+        .id_rs1_addr        (id_rs1_addr        ),
+        .id_rs2_addr        (id_rs2_addr        ),
+        .id_rs1_data        (id_rs1_data_fwd    ),
+        .id_rs2_data        (id_rs2_data_fwd    ),
+        .id_rd_addr         (id_regs_w_addr     ),
+        .id_regs_we         (id_regs_we         ),
+        .id_alu_op          (id_alu_op          ),
+        .id_alu_num1        (id_alu_num1        ),
+        .id_alu_num2        (id_alu_num2        ),
+        .id_mem_op          (id_mem_op          ),
+        .id_dmem_we         (id_dmem_we         ),
+        .id_dmem_re         (id_dmem_re         ),
+        .id_dmem_w_data     (id_dmem_w_data     ),
+        .id_branch_flag     (id_branch_flag     ),
+        .id_branch_jump_addr(id_branch_jump_addr),
+        .id_jump_flag       (id_jump_flag       )
     );
     
     //ID_EX
@@ -321,7 +359,7 @@ module cpu(
     uart_tx #(
         .CLK_FREQ   (100_000_000),
         .BAUD_RATE  (115200),
-        .FIFO_DEPTH (128)
+        .FIFO_DEPTH (4)
     ) u_uart_tx (
         .clk       (clk          ),
         .rst_n     (rst_n        ),

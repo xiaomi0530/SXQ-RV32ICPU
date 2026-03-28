@@ -104,7 +104,11 @@ module mul_unit(
     wire signed [63:0] term_lh = ({{30{pp_lh[33]}}, pp_lh}) <<< 16;
     wire signed [63:0] term_hl = ({{30{pp_hl[33]}}, pp_hl}) <<< 16;
     wire signed [63:0] term_hh = ({{30{pp_hh[33]}}, pp_hh}) <<< 32;
-    wire signed [63:0] product_sum = term_ll + term_lh + term_hl + term_hh;
+
+    // balanced adder tree to reduce logic depth
+    wire signed [63:0] sum_lo = term_ll + term_lh;
+    wire signed [63:0] sum_hi = term_hl + term_hh;
+    wire signed [63:0] product_sum = sum_lo + sum_hi;
 
     assign result = product_sum;
 

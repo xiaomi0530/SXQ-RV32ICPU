@@ -30,18 +30,29 @@ module forwarding(
     wire when_mem_rs2 = mem_regs_we && (mem_regs_w_addr  != 0) && (id_rs2_addr == mem_regs_w_addr);
     wire when_wb_rs2  = wb_regs_we  && (wb_regs_w_addr   != 0) && (id_rs2_addr == wb_regs_w_addr);
 
+    wire [1:0] sel1 = when_ex_rs1  ? 2'b00 :
+                      when_mem_rs1 ? 2'b01 :
+                      when_wb_rs1  ? 2'b10 : 2'b11;
+    wire [1:0] sel2 = when_ex_rs2  ? 2'b00 :
+                      when_mem_rs2 ? 2'b01 :
+                      when_wb_rs2  ? 2'b10 : 2'b11;
+
     always @(*) begin
-        if      (when_ex_rs1)  id_rs1_data_fwd = ex_regs_w_data;
-        else if (when_mem_rs1) id_rs1_data_fwd = mem_regs_w_data;
-        else if (when_wb_rs1)  id_rs1_data_fwd = wb_actual_regs_w_data;
-        else                   id_rs1_data_fwd = id_rs1_data;
+        case (sel1)
+            2'b00: id_rs1_data_fwd = ex_regs_w_data;
+            2'b01: id_rs1_data_fwd = mem_regs_w_data;
+            2'b10: id_rs1_data_fwd = wb_actual_regs_w_data;
+            default: id_rs1_data_fwd = id_rs1_data;
+        endcase
     end
 
     always @(*) begin
-        if      (when_ex_rs2)  id_rs2_data_fwd = ex_regs_w_data;
-        else if (when_mem_rs2) id_rs2_data_fwd = mem_regs_w_data;
-        else if (when_wb_rs2)  id_rs2_data_fwd = wb_actual_regs_w_data;
-        else                   id_rs2_data_fwd = id_rs2_data;
+        case (sel2)
+            2'b00: id_rs2_data_fwd = ex_regs_w_data;
+            2'b01: id_rs2_data_fwd = mem_regs_w_data;
+            2'b10: id_rs2_data_fwd = wb_actual_regs_w_data;
+            default: id_rs2_data_fwd = id_rs2_data;
+        endcase
     end
 
 endmodule
