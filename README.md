@@ -11,5 +11,6 @@ Board: xc7a100tcsg324-1 (Artix-7)
 ———CoreMark 1.0 : 209.575247 / riscv64-unknown-elf-gcc -march=rv32im -mabi=ilp32 -mstrict-align -mno-div -O2 / STATIC\
 ———1.增加基于DSP48E1的乘法器。2.增加带有128深度FIFO的UART_TX。3.修正CoreMark移植程序。
 
+
 ***Version 3.29*** || CoreMark = **209.6 Iterations / sec** || **100MHz** || WNS **0.930ns** WHS **0.022ns** || LUT: **2078**\
 ———1.增加preif逻辑，动态调节流水线深度，使得在if阶段便可取得instruction。2.优化时序，将WNS拉回0.930ns。
