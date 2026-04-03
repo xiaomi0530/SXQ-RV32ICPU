@@ -14,3 +14,6 @@ Board: xc7a100tcsg324-1 (Artix-7)
 
 ***Version 3.29*** || CoreMark = **209.6 Iterations / sec** || **100MHz** || WNS **0.930ns** WHS **0.022ns** || LUT: **2078**\
 ———1.增加preif逻辑，动态调节流水线深度，使得在if阶段便可取得instruction。2.优化时序，将WNS拉回0.930ns。
+
+***Version 4.03*** || CoreMark = **222.6 Iterations / sec** || **100MHz** || WNS **0.348ns** WHS **0.111ns** || LUT: **2017**\
+———1.将MEM阶段的信号输入不经过寄存器打拍直接从EX连线，使得读写操作在MEM阶段可以完成，更改pipeline stall机制以适配。2.优化时序。
