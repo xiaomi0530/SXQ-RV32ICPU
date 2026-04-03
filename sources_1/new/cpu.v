@@ -41,11 +41,15 @@ module cpu(
             if_pre_valid <= preif_valid;
     end
 
+    (* keep = "true", max_fanout = 32 *) wire pipeline_flush_imem  = pipeline_flush;
+    (* keep = "true", max_fanout = 32 *) wire pipeline_flush_if_id = pipeline_flush;
+    (* keep = "true", max_fanout = 32 *) wire pipeline_flush_id_ex = pipeline_flush;
+
     imem u_imem(
         .clk                (clk               ),
         .rst_n              (rst_n             ),
         .pipeline_stall     (pipeline_block    ),
-        .pipeline_flush     (pipeline_flush    ),
+        .pipeline_flush     (pipeline_flush_imem),
         .preif_pc_addr_i    (preif_pc_addr     ),
         .if_instr_o         (if_instr          ),
         .if_instr_addr_o    (if_instr_addr     ),
@@ -66,7 +70,7 @@ module cpu(
         .rst_n           (rst_n           ),
         .pipeline_stall  (pipeline_stall  ),
         .pipeline_hold   (pipeline_hold   ),
-        .pipeline_flush  (pipeline_flush  ),
+        .pipeline_flush  (pipeline_flush_if_id),
         .if_instr_i      (if_instr        ),
         .if_instr_addr_i (if_instr_addr   ),
         .if_pre_instr_i  (if_pre_instr    ),
@@ -152,7 +156,7 @@ module cpu(
         .rst_n               (rst_n               ),
         .pipeline_stall      (pipeline_stall      ),
         .pipeline_hold       (pipeline_hold       ),
-        .pipeline_flush      (pipeline_flush      ),
+        .pipeline_flush      (pipeline_flush_id_ex),
 
         .id_instr_addr       (id_instr_addr       ),
         .id_alu_num1         (id_alu_num1         ),

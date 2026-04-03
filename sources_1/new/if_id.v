@@ -18,7 +18,10 @@ module if_id(
 );
 
     always @(posedge clk) begin
-        if (rst_n == `RST_ENABLE || pipeline_flush) begin
+        if (rst_n == `RST_ENABLE) begin
+            id_instr_o      <= 32'b0;
+            id_instr_addr_o <= 32'b0;
+        end else if (pipeline_flush) begin
             id_instr_o      <= 32'b0;
             id_instr_addr_o <= 32'b0;
         end else if (!(pipeline_stall || pipeline_hold)) begin

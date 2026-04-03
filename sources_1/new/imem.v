@@ -31,7 +31,10 @@ module imem(
     wire [12:0] if_pre_word_addr = preif_pc_addr_i[14:2] + 13'd1;
 
     always @(posedge clk) begin
-        if(rst_n == `RST_ENABLE || pipeline_flush)begin
+        if(rst_n == `RST_ENABLE)begin
+            if_instr_o <= 1'b0;
+            if_instr_addr_o <= 32'b0;
+        end else if (pipeline_flush) begin
             if_instr_o <= 1'b0;
             if_instr_addr_o <= 32'b0;
         end else if(!pipeline_stall)begin

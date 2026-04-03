@@ -38,7 +38,13 @@ module id_ex(
 );
 
     always @(posedge clk) begin
-        if (rst_n == `RST_ENABLE || pipeline_flush) begin
+        if (rst_n == `RST_ENABLE) begin
+            ex_regs_we     <= 1'b0;
+            ex_dmem_we     <= 1'b0;
+            ex_dmem_re     <= 1'b0;
+            ex_branch_flag <= 1'b0;
+            ex_jump_flag   <= 1'b0;
+        end else if (pipeline_flush) begin
             ex_regs_we     <= 1'b0;
             ex_dmem_we     <= 1'b0;
             ex_dmem_re     <= 1'b0;
@@ -60,7 +66,16 @@ module id_ex(
     end
 
     always @(posedge clk) begin
-        if (rst_n == `RST_ENABLE || pipeline_flush) begin
+        if (rst_n == `RST_ENABLE) begin
+            ex_instr_addr       <= 32'b0;
+            ex_alu_num1         <= 32'b0;
+            ex_alu_num2         <= 32'b0;
+            ex_alu_op           <= 4'b0;
+            ex_regs_w_addr      <= 5'b0;
+            ex_mem_op           <= 3'b0;
+            ex_dmem_w_data      <= 32'b0;
+            ex_branch_jump_addr <= 32'b0;
+        end else if (pipeline_flush) begin
             ex_instr_addr       <= 32'b0;
             ex_alu_num1         <= 32'b0;
             ex_alu_num2         <= 32'b0;
