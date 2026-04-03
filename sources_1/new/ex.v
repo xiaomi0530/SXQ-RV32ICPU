@@ -128,6 +128,6 @@ module ex(
             ex_regs_w_data = alu_out;
     end
 
-    assign ex_dmem_wr_addr = alu_out;
+    assign ex_dmem_wr_addr = ex_alu_num1 + ex_alu_num2;
 
 endmodule

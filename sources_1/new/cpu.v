@@ -57,7 +57,7 @@ module cpu(
         .bus_ack            (bus_s0_ack        ),
         .r_addr             (bus_s0_addr       ),
         .bus_we             (bus_s0_we         ),
-        .mem_op             (mem_mem_op        ),
+        .mem_op             (ex_mem_op         ),
         .r_data             (bus_s0_dat_i      )
     );
 
@@ -280,10 +280,10 @@ module cpu(
 
     wire [31:0] mem_dmem_r_data;
 
-    assign bus_m_stb = mem_dmem_we || mem_dmem_re;
-    assign bus_m_we = mem_dmem_we;
-    assign bus_m_dat_i = mem_dmem_w_data;
-    assign bus_m_addr = mem_dmem_wr_addr;
+    assign bus_m_stb = ex_dmem_we || ex_dmem_re;
+    assign bus_m_we = ex_dmem_we;
+    assign bus_m_dat_i = ex_dmem_w_data;
+    assign bus_m_addr = ex_dmem_wr_addr;
     assign mem_dmem_r_data = bus_m_dat_o;
 
     bus_interconnect u_bus_interconnect(
@@ -326,7 +326,7 @@ module cpu(
         .w_data  (bus_s1_dat_o   ),
         .wr_addr (bus_s1_addr    ),
         .bus_we  (bus_s1_we      ),
-        .mem_op  (mem_mem_op     ),
+        .mem_op  (ex_mem_op      ),
         .r_data  (bus_s1_dat_i   )
     );
 
@@ -386,7 +386,7 @@ module cpu(
         .mem_dmem_re     (mem_dmem_re     ),
         .mem_regs_we     (mem_regs_we     ),
         .mem_regs_w_addr (mem_regs_w_addr ),
-        .mem_regs_w_data (mem_regs_w_data ),
+        .mem_regs_w_data (mem_dmem_re ? mem_dmem_r_data : mem_regs_w_data),
         .wb_dmem_re      (wb_dmem_re      ),
         .wb_regs_we      (wb_regs_we      ),
         .wb_regs_w_addr  (wb_regs_w_addr  ),
@@ -394,7 +394,7 @@ module cpu(
     );
     
     wire [31:0] wb_actual_regs_w_data;
-    assign wb_actual_regs_w_data = (wb_dmem_re==1'b1)? mem_dmem_r_data : wb_regs_w_data;
+    assign wb_actual_regs_w_data = wb_regs_w_data;
     
     //REGS
     regs u_regs(
@@ -423,7 +423,7 @@ module cpu(
 
         .mem_regs_we           (mem_regs_we           ),
         .mem_regs_w_addr       (mem_regs_w_addr       ),
-        .mem_regs_w_data       (mem_regs_w_data       ),
+        .mem_regs_w_data       (mem_dmem_re ? mem_dmem_r_data : mem_regs_w_data),
 
         .wb_regs_we            (wb_regs_we            ),
         .wb_regs_w_addr        (wb_regs_w_addr        ),

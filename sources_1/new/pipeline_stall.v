@@ -13,14 +13,8 @@ module pipeline_stall(
     output wire        pipeline_stall
 );
 
-    wire when_ex  = ex_dmem_re
-                    && (ex_regs_w_addr != 0)
-                    && (id_rs1_addr == ex_regs_w_addr || id_rs2_addr == ex_regs_w_addr);
-
-    wire when_mem = mem_dmem_re
-                    && (mem_regs_w_addr != 0)
-                    && (id_rs1_addr == mem_regs_w_addr || id_rs2_addr == mem_regs_w_addr);
-
-    assign pipeline_stall = when_ex || when_mem;
+    assign pipeline_stall = ex_dmem_re
+                            && (ex_regs_w_addr != 0)
+                            && (id_rs1_addr == ex_regs_w_addr || id_rs2_addr == ex_regs_w_addr);
 
 endmodule

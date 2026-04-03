@@ -18,8 +18,8 @@ module forwarding(
     input  wire [4:0]  wb_regs_w_addr,
     input  wire [31:0] wb_actual_regs_w_data,
 
-    output reg  [31:0] id_rs1_data_fwd,
-    output reg  [31:0] id_rs2_data_fwd
+    output wire [31:0] id_rs1_data_fwd,
+    output wire [31:0] id_rs2_data_fwd
 );
 
     wire when_ex_rs1  = ex_regs_we  && (ex_regs_w_addr  != 0) && (id_rs1_addr == ex_regs_w_addr);
@@ -30,29 +30,14 @@ module forwarding(
     wire when_mem_rs2 = mem_regs_we && (mem_regs_w_addr  != 0) && (id_rs2_addr == mem_regs_w_addr);
     wire when_wb_rs2  = wb_regs_we  && (wb_regs_w_addr   != 0) && (id_rs2_addr == wb_regs_w_addr);
 
-    wire [1:0] sel1 = when_ex_rs1  ? 2'b00 :
-                      when_mem_rs1 ? 2'b01 :
-                      when_wb_rs1  ? 2'b10 : 2'b11;
-    wire [1:0] sel2 = when_ex_rs2  ? 2'b00 :
-                      when_mem_rs2 ? 2'b01 :
-                      when_wb_rs2  ? 2'b10 : 2'b11;
+    assign id_rs1_data_fwd = when_ex_rs1  ? ex_regs_w_data        :
+                             when_mem_rs1 ? mem_regs_w_data       :
+                             when_wb_rs1  ? wb_actual_regs_w_data :
+                                            id_rs1_data;
 
-    always @(*) begin
-        case (sel1)
-            2'b00: id_rs1_data_fwd = ex_regs_w_data;
-            2'b01: id_rs1_data_fwd = mem_regs_w_data;
-            2'b10: id_rs1_data_fwd = wb_actual_regs_w_data;
-            default: id_rs1_data_fwd = id_rs1_data;
-        endcase
-    end
-
-    always @(*) begin
-        case (sel2)
-            2'b00: id_rs2_data_fwd = ex_regs_w_data;
-            2'b01: id_rs2_data_fwd = mem_regs_w_data;
-            2'b10: id_rs2_data_fwd = wb_actual_regs_w_data;
-            default: id_rs2_data_fwd = id_rs2_data;
-        endcase
-    end
+    assign id_rs2_data_fwd = when_ex_rs2  ? ex_regs_w_data        :
+                             when_mem_rs2 ? mem_regs_w_data       :
+                             when_wb_rs2  ? wb_actual_regs_w_data :
+                                            id_rs2_data;
 
 endmodule

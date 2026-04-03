@@ -41,9 +41,9 @@ module bus_interconnect(
     reg m_sel_s1_r;
     reg m_sel_s2_r;
  
-    assign m_sel_s0 = bus_m_stb && (bus_m_addr <= 32'h7FFC);                             //0x00000000 - 0x00007FFC 32KB IMEM
-    assign m_sel_s1 = bus_m_stb && (bus_m_addr <= 32'h1FFFC && bus_m_addr >= 32'h10000); //0x00010000 - 0x0001FFFC 32KB DMEM
-    assign m_sel_s2 = bus_m_stb && (bus_m_addr[31:28] == 4'hF);                          //0xF0000000                   MMIO
+    assign m_sel_s0 = (bus_m_addr[31:15] == 17'b0);                //0x00000000 - 0x00007FFF IMEM window
+    assign m_sel_s1 = (bus_m_addr[31:17] == 15'b0) && bus_m_addr[16]; //0x00010000 - 0x0001FFFF DMEM window
+    assign m_sel_s2 = (bus_m_addr[31:28] == 4'hF);                 //0xF0000000                   MMIO
  
     assign bus_s0_stb = bus_m_stb && m_sel_s0;
     assign bus_s1_stb = bus_m_stb && m_sel_s1;
