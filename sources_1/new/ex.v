@@ -4,6 +4,8 @@ module ex(
     input wire        clk,
     input wire        rst_n,
     input wire [31:0] ex_instr_addr, 
+    input wire        ex_pred_taken,
+    input wire [31:0] ex_pred_target,
     input wire [31:0] ex_alu_num1,   
     input wire [31:0] ex_alu_num2,  
 
@@ -18,6 +20,8 @@ module ex(
 
     output reg         ex_actual_jump_flag, 
     output wire [31:0] ex_actual_jump_addr,
+    output wire        ex_mispredict,
+    output wire [31:0] ex_redirect_addr,
     output wire        ex_mul_busy
 );
     
@@ -102,6 +106,10 @@ module ex(
     end
 
     assign ex_actual_jump_addr = ex_branch_flag? ex_branch_jump_addr : alu_out;
+    assign ex_redirect_addr = ex_actual_jump_flag ? ex_actual_jump_addr : (ex_instr_addr + 32'd4);
+    assign ex_mispredict = (ex_branch_flag || ex_jump_flag)
+                           && ((ex_pred_taken != ex_actual_jump_flag)
+                           || (ex_pred_taken && ex_actual_jump_flag && (ex_pred_target != ex_actual_jump_addr)));
 
     always @(*) begin
         if (ex_jump_flag) begin

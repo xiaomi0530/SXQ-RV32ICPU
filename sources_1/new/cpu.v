@@ -6,6 +6,12 @@ module cpu(
     output wire [15:0] led,
     output wire        uart_tx
 );
+
+`ifdef SYNTHESIS
+    localparam integer UART_BAUD_RATE = 115_200;
+`else
+    localparam integer UART_BAUD_RATE = 3_000_000;
+`endif
     
     wire pipeline_stall;
     wire pipeline_flush;
@@ -13,15 +19,67 @@ module cpu(
     wire pipeline_hold = ex_mul_busy;
     wire pipeline_block = pipeline_stall | pipeline_hold;
     wire preif_valid;
-    reg  if_pre_valid;
-    
-    //PREIF
+    wire if_pre_valid;
+    reg  if_pre_valid_q;
     wire [31:0] preif_pc_addr;
+
+    wire [31:0] ex_instr_addr;
+    wire        ex_branch_flag;
+    wire        ex_actual_jump_flag;
+    wire [31:0] ex_actual_jump_addr;
+    wire [2:0]  ex_mem_op;
+    wire        bus_s0_stb;
+    wire        bus_s0_ack;
+    wire        bus_s0_we;
+    wire [31:0] bus_s0_addr;
+    wire [31:0] bus_s0_dat_i;
+    wire [31:0] bus_s0_dat_o;
+    
+    wire        preif_pred_taken;
+    wire [31:0] preif_pred_target;
+    wire        preif_btb_hit;
+    wire        preif_next_pred_taken;
+    wire [31:0] preif_next_pred_target;
+    wire        preif_next_btb_hit;
+    wire        ex_mispredict;
+    wire [31:0] ex_redirect_addr;
+    wire        id_pred_taken_reg;
+    wire [31:0] id_pred_target_reg;
+    reg         if_pred_taken;
+    reg  [31:0] if_pred_target;
+    reg         if_pre_pred_taken;
+    reg  [31:0] if_pre_pred_target;
+    wire        slot1_pred_redirect = if_pre_valid && if_pre_pred_taken;
+    wire        frontend_redirect_flag = ex_mispredict | slot1_pred_redirect;
+    wire [31:0] frontend_redirect_addr = ex_mispredict ? ex_redirect_addr : if_pre_pred_target;
+
+    branch_predictor #(
+        .ENTRY_NUM  (16),
+        .INDEX_BITS (4)
+    ) u_branch_predictor (
+        .clk         (clk               ),
+        .rst_n       (rst_n             ),
+        .lookup_pc0  (preif_pc_addr     ),
+        .pred_taken0 (preif_pred_taken  ),
+        .pred_target0(preif_pred_target ),
+        .btb_hit0    (preif_btb_hit     ),
+        .lookup_pc1  (preif_pc_addr + 32'd4),
+        .pred_taken1 (preif_next_pred_taken ),
+        .pred_target1(preif_next_pred_target),
+        .btb_hit1    (preif_next_btb_hit),
+        .update_en   (ex_branch_flag    ),
+        .update_pc   (ex_instr_addr     ),
+        .update_taken(ex_actual_jump_flag),
+        .update_target(ex_actual_jump_addr)
+    );
+    //PREIF
     pc u_pc(
         .clk            (clk                  ),
         .rst_n          (rst_n                ),
-        .jump_flag      (ex_actual_jump_flag  ),
-        .jump_addr      (ex_actual_jump_addr  ),
+        .redirect_flag  (frontend_redirect_flag),
+        .redirect_addr  (frontend_redirect_addr),
+        .pred_taken     (preif_pred_taken     ),
+        .pred_target    (preif_pred_target    ),
         .pipeline_stall (pipeline_block       ),
         .pc_o           (preif_pc_addr        ),
         .preif_valid_o  (preif_valid          )
@@ -34,28 +92,25 @@ module cpu(
     wire [31:0] if_pre_instr;
     wire [31:0] if_pre_instr_addr;
 
-    always @(posedge clk) begin
-        if (rst_n == `RST_ENABLE)
-            if_pre_valid <= 1'b0;
-        else
-            if_pre_valid <= preif_valid;
-    end
-
     (* keep = "true", max_fanout = 32 *) wire pipeline_flush_imem  = pipeline_flush;
     (* keep = "true", max_fanout = 32 *) wire pipeline_flush_if_id = pipeline_flush;
     (* keep = "true", max_fanout = 32 *) wire pipeline_flush_id_ex = pipeline_flush;
+
+    wire if_pre_valid_imem;
 
     imem u_imem(
         .clk                (clk               ),
         .rst_n              (rst_n             ),
         .pipeline_stall     (pipeline_block    ),
         .pipeline_flush     (pipeline_flush_imem),
+        .predict_taken_i    (preif_pred_taken  ),
         .preif_pc_addr_i    (preif_pc_addr     ),
         .if_instr_o         (if_instr          ),
         .if_instr_addr_o    (if_instr_addr     ),
         .preif_valid_i      (preif_valid       ),
         .if_pre_instr_o     (if_pre_instr      ),
         .if_pre_instr_addr_o(if_pre_instr_addr ),
+        .if_pre_valid_o     (if_pre_valid_imem ),
         
         .bus_stb            (bus_s0_stb        ),
         .bus_ack            (bus_s0_ack        ),
@@ -65,19 +120,62 @@ module cpu(
         .r_data             (bus_s0_dat_i      )
     );
 
+    wire imem_bus_re = bus_s0_stb && !bus_s0_we;
+    assign if_pre_valid = if_pre_valid_q;
+
+    always @(posedge clk) begin
+        if (rst_n == `RST_ENABLE) begin
+            if_pre_valid_q    <= 1'b0;
+            if_pred_taken     <= 1'b0;
+            if_pred_target    <= 32'b0;
+            if_pre_pred_taken <= 1'b0;
+            if_pre_pred_target<= 32'b0;
+        end else if (slot1_pred_redirect) begin
+            if_pre_valid_q     <= 1'b0;
+            if_pred_taken      <= 1'b0;
+            if_pred_target     <= 32'b0;
+            if_pre_pred_taken  <= 1'b0;
+            if_pre_pred_target <= 32'b0;
+        end else if (pipeline_flush) begin
+            if_pre_valid_q     <= 1'b0;
+            if_pred_taken      <= 1'b0;
+            if_pred_target     <= 32'b0;
+            if_pre_pred_taken  <= 1'b0;
+            if_pre_pred_target <= 32'b0;
+        end else if (!pipeline_block) begin
+            if_pre_valid_q <= preif_valid && !preif_pred_taken && !imem_bus_re;
+            if_pred_taken  <= preif_pred_taken;
+            if_pred_target <= preif_pred_target;
+            if (preif_valid && !preif_pred_taken && !imem_bus_re) begin
+                if_pre_pred_taken  <= preif_next_pred_taken;
+                if_pre_pred_target <= preif_next_pred_target;
+            end else begin
+                if_pre_pred_taken  <= 1'b0;
+                if_pre_pred_target <= 32'b0;
+            end
+        end
+    end
+
     if_id u_if_id(
         .clk             (clk             ),
         .rst_n           (rst_n           ),
         .pipeline_stall  (pipeline_stall  ),
         .pipeline_hold   (pipeline_hold   ),
         .pipeline_flush  (pipeline_flush_if_id),
+        .frontend_kill   (slot1_pred_redirect),
         .if_instr_i      (if_instr        ),
         .if_instr_addr_i (if_instr_addr   ),
+        .if_pred_taken_i (if_pred_taken   ),
+        .if_pred_target_i(if_pred_target  ),
         .if_pre_instr_i  (if_pre_instr    ),
         .if_pre_instr_addr_i(if_pre_instr_addr),
+        .if_pre_pred_taken_i (if_pre_pred_taken),
+        .if_pre_pred_target_i(if_pre_pred_target),
         .if_pre_valid_i  (if_pre_valid    ),
         .id_instr_o      (id_instr_reg        ),
-        .id_instr_addr_o (id_instr_addr_reg   )
+        .id_instr_addr_o (id_instr_addr_reg   ),
+        .id_pred_taken_o (id_pred_taken_reg   ),
+        .id_pred_target_o(id_pred_target_reg  )
     );
 
     //ID
@@ -108,9 +206,13 @@ module cpu(
 
     wire [31:0] id_instr;
     wire [31:0] id_instr_addr;
+    wire        id_pred_taken;
+    wire [31:0] id_pred_target;
     wire [31:0] if_instr_fwd = if_instr; // fanout split helper
     assign id_instr = if_pre_valid? if_instr_fwd : id_instr_reg;
     assign id_instr_addr = if_pre_valid? if_instr_addr : id_instr_addr_reg;
+    assign id_pred_taken = if_pre_valid ? if_pred_taken : id_pred_taken_reg;
+    assign id_pred_target = if_pre_valid ? if_pred_target : id_pred_target_reg;
 
     id u_id(
         .clk                (clk                ),
@@ -137,17 +239,16 @@ module cpu(
     );
     
     //ID_EX
-    wire [31:0] ex_instr_addr;
+    wire        ex_pred_taken;
+    wire [31:0] ex_pred_target;
     wire [31:0] ex_alu_num1;
     wire [31:0] ex_alu_num2;
     wire [3:0]  ex_alu_op;
     wire [4:0]  ex_regs_w_addr;
     wire        ex_regs_we;
-    wire [2:0]  ex_mem_op;
     wire        ex_dmem_we;
     wire        ex_dmem_re;
     wire [31:0] ex_dmem_w_data; 
-    wire        ex_branch_flag;
     wire [31:0] ex_branch_jump_addr;
     wire        ex_jump_flag;
 
@@ -159,6 +260,8 @@ module cpu(
         .pipeline_flush      (pipeline_flush_id_ex),
 
         .id_instr_addr       (id_instr_addr       ),
+        .id_pred_taken       (id_pred_taken       ),
+        .id_pred_target      (id_pred_target      ),
         .id_alu_num1         (id_alu_num1         ),
         .id_alu_num2         (id_alu_num2         ),
         .id_alu_op           (id_alu_op           ),
@@ -173,6 +276,8 @@ module cpu(
         .id_jump_flag        (id_jump_flag        ),
 
         .ex_instr_addr       (ex_instr_addr       ),
+        .ex_pred_taken       (ex_pred_taken       ),
+        .ex_pred_target      (ex_pred_target      ),
         .ex_alu_num1         (ex_alu_num1         ),
         .ex_alu_num2         (ex_alu_num2         ),
         .ex_alu_op           (ex_alu_op           ),
@@ -191,15 +296,14 @@ module cpu(
     //EX
     wire [31:0] ex_regs_w_data; 
     wire [31:0] ex_dmem_wr_addr;
-    wire        ex_actual_jump_flag;
-    wire [31:0] ex_actual_jump_addr;
-
-    assign pipeline_flush = ex_actual_jump_flag;
+    assign pipeline_flush = ex_mispredict;
 
     ex u_ex(
         .clk                   (clk                   ),
         .rst_n                 (rst_n                 ),
         .ex_instr_addr         (ex_instr_addr         ),
+        .ex_pred_taken         (ex_pred_taken         ),
+        .ex_pred_target        (ex_pred_target        ),
         .ex_alu_num1           (ex_alu_num1           ),
         .ex_alu_num2           (ex_alu_num2           ),
         .ex_alu_op             (ex_alu_op             ),
@@ -211,6 +315,8 @@ module cpu(
         .ex_dmem_wr_addr       (ex_dmem_wr_addr       ),
         .ex_actual_jump_flag   (ex_actual_jump_flag   ),
         .ex_actual_jump_addr   (ex_actual_jump_addr   ),
+        .ex_mispredict         (ex_mispredict         ),
+        .ex_redirect_addr      (ex_redirect_addr      ),
         .ex_mul_busy           (ex_mul_busy           )
     );
     
@@ -257,14 +363,6 @@ module cpu(
     wire [31:0] bus_m_addr;
     wire [31:0] bus_m_dat_i;
     wire [31:0] bus_m_dat_o;
-
-    // Slave 0
-    wire        bus_s0_stb;
-    wire        bus_s0_ack;
-    wire        bus_s0_we;
-    wire [31:0] bus_s0_addr;
-    wire [31:0] bus_s0_dat_i;
-    wire [31:0] bus_s0_dat_o;
 
     // Slave 1
     wire        bus_s1_stb;
@@ -362,7 +460,7 @@ module cpu(
     
     uart_tx #(
         .CLK_FREQ   (100_000_000),
-        .BAUD_RATE  (115200),
+        .BAUD_RATE  (UART_BAUD_RATE),
         .FIFO_DEPTH (4)
     ) u_uart_tx (
         .clk       (clk          ),
