@@ -25,7 +25,9 @@ module ex(
     output wire        ex_mul_busy
 );
     
+    wire [31:0] add_res = ex_alu_num1 + ex_alu_num2;
     wire [31:0] sub_res = ex_alu_num1 - ex_alu_num2;
+    wire [31:0] ex_instr_addr_plus4 = ex_instr_addr + 32'd4;
     wire is_equal = (sub_res == 32'b0);
     wire is_less_signed = (ex_alu_num1[31] != ex_alu_num2[31]) ? ex_alu_num1[31] : sub_res[31];
     wire is_less_unsigned = (ex_alu_num1 < ex_alu_num2);
@@ -87,7 +89,7 @@ module ex(
 
     always @(*) begin
         case (ex_alu_op)
-            ALU_OP_ADD:    alu_out = ex_alu_num1 + ex_alu_num2;
+            ALU_OP_ADD:    alu_out = add_res;
             ALU_OP_SUB:    alu_out = sub_res;
             ALU_OP_AND:    alu_out = ex_alu_num1 & ex_alu_num2;
             ALU_OP_OR:     alu_out = ex_alu_num1 | ex_alu_num2;
@@ -105,11 +107,24 @@ module ex(
         endcase
     end
 
-    assign ex_actual_jump_addr = ex_branch_flag? ex_branch_jump_addr : alu_out;
-    assign ex_redirect_addr = ex_actual_jump_flag ? ex_actual_jump_addr : (ex_instr_addr + 32'd4);
-    assign ex_mispredict = (ex_branch_flag || ex_jump_flag)
-                           && ((ex_pred_taken != ex_actual_jump_flag)
-                           || (ex_pred_taken && ex_actual_jump_flag && (ex_pred_target != ex_actual_jump_addr)));
+    wire branch_taken;
+    wire branch_dir_mismatch;
+    wire branch_target_mismatch;
+    wire branch_mispredict;
+    wire jump_dir_mismatch;
+    wire jump_target_mismatch;
+    wire jump_mispredict;
+
+    assign ex_actual_jump_addr   = ex_jump_flag ? add_res : ex_branch_jump_addr;
+    assign ex_redirect_addr      = ex_actual_jump_flag ? ex_actual_jump_addr : ex_instr_addr_plus4;
+    assign branch_taken          = ex_actual_jump_flag;
+    assign branch_dir_mismatch   = ex_pred_taken ^ branch_taken;
+    assign branch_target_mismatch= ex_pred_taken && branch_taken && (ex_pred_target != ex_branch_jump_addr);
+    assign branch_mispredict     = ex_branch_flag && (branch_dir_mismatch || branch_target_mismatch);
+    assign jump_dir_mismatch     = !ex_pred_taken;
+    assign jump_target_mismatch  = ex_pred_taken && (ex_pred_target != add_res);
+    assign jump_mispredict       = ex_jump_flag && (jump_dir_mismatch || jump_target_mismatch);
+    assign ex_mispredict         = branch_mispredict || jump_mispredict;
 
     always @(*) begin
         if (ex_jump_flag) begin
@@ -136,6 +151,6 @@ module ex(
             ex_regs_w_data = alu_out;
     end
 
-    assign ex_dmem_wr_addr = ex_alu_num1 + ex_alu_num2;
+    assign ex_dmem_wr_addr = add_res;
 
 endmodule
