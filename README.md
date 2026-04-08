@@ -18,5 +18,5 @@ Board: xc7a100tcsg324-1 (Artix-7)
 ***Version 4.03*** || CoreMark = **222.6 Iterations / sec** || **100MHz** || WNS **0.637ns** WHS **0.086ns** || LUT: **2017**\
 ———1.将MEM阶段的信号输入不经过寄存器打拍直接从EX连线，使得读写操作在MEM阶段可以完成，更改pipeline stall机制以适配。2.优化时序。
 
-***Version 4.08*** || CoreMark = **249.4 Iterations / sec** || **100MHz** || WNS **0.004ns** WHS **0.105ns** || LUT: **2908**\
-———新增Bimodal分支预测（Entry = 16，Index = 4bits）
+***Version 4.08*** || CoreMark = **249.4 Iterations / sec** || **100MHz** || WNS **0.712ns** WHS **0.045ns** || LUT: **2785**\
+———1.新增Bimodal分支预测（Entry = 16，Index = 4bits）。2.优化时序。
