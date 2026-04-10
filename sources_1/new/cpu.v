@@ -12,57 +12,319 @@ module cpu(
 `else
     localparam integer UART_BAUD_RATE = 3_000_000;
 `endif
-    
-    wire pipeline_stall;
-    wire pipeline_flush;
-    wire ex_mul_busy;
-    wire pipeline_hold = ex_mul_busy;
-    wire pipeline_block = pipeline_stall | pipeline_hold;
-    wire preif_valid;
-    wire if_pre_valid;
-    reg  if_pre_valid_q;
+
+    // ------------------------------------------------------------------------
+    // Global control
+    // ------------------------------------------------------------------------
+    wire        pipeline_stall;
+    wire        pipeline_flush;
+    wire        ex_mul_busy;
+    wire        pipeline_hold         = ex_mul_busy;
+    wire        pipeline_block        = pipeline_stall | pipeline_hold;
+
+    // ------------------------------------------------------------------------
+    // PREIF
+    // ------------------------------------------------------------------------
+    wire        preif_valid;
     wire [31:0] preif_pc_addr;
 
+    wire        preif_pred_taken;
+    wire [31:0] preif_pred_target;
+    wire        preif_btb_hit;
+    wire        preif_jtb_hit;
+    wire [31:0] preif_jtb_target;
+    wire        preif_next_jtb_hit;
+    wire [31:0] preif_next_jtb_target;
+
+    wire        slot0_jump_redirect;
+    wire        slot0_jump_redirect_raw;
+    wire        slot0_jal_redirect;
+    wire        slot0_jalr_redirect;
+    wire        slot1_pred_redirect;
+    wire        slot1_pred_redirect_raw;
+    wire        frontend_redirect_flag;
+    wire [31:0] frontend_redirect_addr;
+
+    // ------------------------------------------------------------------------
+    // IF
+    // ------------------------------------------------------------------------
+    wire [31:0] if_instr;
+    wire [31:0] if_instr_addr;
+    wire [31:0] if_pre_instr;
+    wire [31:0] if_pre_instr_addr;
+    wire        if_pre_valid;
+    wire        if_pre_valid_imem;
+    reg         if_pre_valid_q;
+    reg         frontend_redirect_kill_q;
+
+    reg         if_pred_taken;
+    reg  [31:0] if_pred_target;
+    reg         if_jtb_hit;
+    reg  [31:0] if_jtb_target;
+
+    wire        if_is_b;
+    wire        if_is_jal;
+    wire        if_is_jalr;
+    wire        if_is_call;
+    wire        if_is_ret;
+    wire [31:0] if_jalr_pred_target;
+    wire        if_jalr_pred_hit;
+    wire [31:0] if_b_target;
+    wire [31:0] if_jal_target;
+    wire        if_pred_taken_eff;
+    wire [31:0] if_pred_target_eff;
+
+    wire        if_pre_is_b;
+    wire        if_pre_is_jal;
+    wire        if_pre_is_jalr;
+    wire        if_pre_is_call;
+    wire        if_pre_is_ret;
+    wire [31:0] if_pre_b_target;
+    wire [31:0] if_pre_jal_target;
+    wire        if_pre_jalr_pred_hit;
+    wire [31:0] if_pre_jalr_pred_target;
+    wire        if_pre_pred_taken_eff;
+    wire [31:0] if_pre_pred_target_eff;
+    wire        id_use_if_now;
+
+    wire        imem_bus_re;
+    wire        if_pre_capture_en;
+
+    // ------------------------------------------------------------------------
+    // ID
+    // ------------------------------------------------------------------------
+    wire [31:0] id_instr_reg;
+    wire [31:0] id_instr_addr_reg;
+    wire        id_pred_taken_reg;
+    wire [31:0] id_pred_target_reg;
+
+    wire [31:0] id_instr;
+    wire [31:0] id_instr_addr;
+    wire        id_pred_taken;
+    wire [31:0] id_pred_target;
+
+    wire        id_regs_re;
+    wire        id_regs_we;
+    wire [4:0]  id_rs1_addr;
+    wire [4:0]  id_rs2_addr;
+    wire [4:0]  id_regs_w_addr;
+    wire [31:0] id_rs1_data;
+    wire [31:0] id_rs2_data;
+    wire [31:0] id_rs1_data_fwd;
+    wire [31:0] id_rs2_data_fwd;
+
+    wire [3:0]  id_alu_op;
+    wire [31:0] id_alu_num1;
+    wire [31:0] id_alu_num2;
+
+    wire [2:0]  id_mem_op;
+    wire        id_dmem_we;
+    wire        id_dmem_re;
+    wire [31:0] id_dmem_w_data;
+
+    wire        id_branch_flag;
+    wire        id_jump_flag;
+    wire        id_jalr_flag;
+    wire        id_call_flag;
+    wire        id_ret_flag;
+    wire [31:0] id_branch_jump_addr;
+
+    wire [31:0] if_instr_fwd         = if_instr;
+
+    // ------------------------------------------------------------------------
+    // EX
+    // ------------------------------------------------------------------------
     wire [31:0] ex_instr_addr;
+    wire        ex_pred_taken;
+    wire [31:0] ex_pred_target;
+
+    wire [31:0] ex_alu_num1;
+    wire [31:0] ex_alu_num2;
+    wire [3:0]  ex_alu_op;
+
+    wire        ex_regs_we;
+    wire [4:0]  ex_regs_w_addr;
+    wire [31:0] ex_regs_w_data;
+
+    wire        ex_dmem_we;
+    wire        ex_dmem_re;
+    wire [31:0] ex_dmem_w_data;
+    wire [31:0] ex_dmem_wr_addr;
+    wire [2:0]  ex_mem_op;
+
     wire        ex_branch_flag;
+    wire        ex_jump_flag;
+    wire        ex_jalr_flag;
+    wire        ex_call_flag;
+    wire        ex_ret_flag;
+    wire [31:0] ex_branch_jump_addr;
+
     wire        ex_actual_jump_flag;
     wire [31:0] ex_actual_jump_addr;
-    wire [31:0] ex_branch_jump_addr;
-    wire [2:0]  ex_mem_op;
+    wire        ex_mispredict;
+    wire [31:0] ex_redirect_addr;
+
+    // ------------------------------------------------------------------------
+    // MEM
+    // ------------------------------------------------------------------------
+    wire        mem_regs_we;
+    wire [4:0]  mem_regs_w_addr;
+    wire [31:0] mem_regs_w_data;
+    wire [31:0] mem_actual_regs_w_data;
+
+    wire        mem_dmem_we;
+    wire        mem_dmem_re;
+    wire [31:0] mem_dmem_wr_addr;
+    wire [31:0] mem_dmem_w_data;
+    wire [31:0] mem_dmem_r_data;
+    wire [2:0]  mem_mem_op;
+
+    wire        bus_m_stb;
+    wire        bus_m_ack;
+    wire        bus_m_we;
+    wire [31:0] bus_m_addr;
+    wire [31:0] bus_m_dat_i;
+    wire [31:0] bus_m_dat_o;
+
     wire        bus_s0_stb;
     wire        bus_s0_ack;
     wire        bus_s0_we;
     wire [31:0] bus_s0_addr;
     wire [31:0] bus_s0_dat_i;
     wire [31:0] bus_s0_dat_o;
-    
-    wire        preif_pred_taken;
-    wire [31:0] preif_pred_target;
-    wire        preif_btb_hit;
-    wire        preif_next_pred_taken;
-    wire [31:0] preif_next_pred_target;
-    wire        preif_next_btb_hit;
-    wire        ex_mispredict;
-    wire [31:0] ex_redirect_addr;
-    wire        id_pred_taken_reg;
-    wire [31:0] id_pred_target_reg;
-    reg         if_pred_taken;
-    reg  [31:0] if_pred_target;
-    reg         if_pre_pred_taken;
-    reg  [31:0] if_pre_pred_target;
-    wire        slot1_pred_redirect = if_pre_valid && if_pre_pred_taken;
-    wire        frontend_redirect_flag = ex_mispredict | slot1_pred_redirect;
-    wire [31:0] frontend_redirect_addr = ex_mispredict ? ex_redirect_addr : if_pre_pred_target;
-    (* keep = "true", max_fanout = 16 *) wire pipeline_hold_if = pipeline_hold;
-    (* keep = "true", max_fanout = 16 *) wire pipeline_hold_id = pipeline_hold;
-    (* keep = "true", max_fanout = 16 *) wire pipeline_hold_exm = pipeline_hold;
-    (* keep = "true", max_fanout = 16 *) wire pipeline_block_pc = pipeline_block;
-    (* keep = "true", max_fanout = 16 *) wire pipeline_block_imem = pipeline_block;
-    (* keep = "true", max_fanout = 16 *) wire pipeline_block_if = pipeline_block;
-    (* keep = "true", max_fanout = 16 *) wire pipeline_flush_if = pipeline_flush;
-    (* keep = "true", max_fanout = 16 *) wire slot1_pred_redirect_if = slot1_pred_redirect;
-    (* keep = "true", max_fanout = 16 *) wire frontend_redirect_flag_pc = frontend_redirect_flag;
+
+    wire        bus_s1_stb;
+    wire        bus_s1_ack;
+    wire        bus_s1_we;
+    wire [31:0] bus_s1_addr;
+    wire [31:0] bus_s1_dat_i;
+    wire [31:0] bus_s1_dat_o;
+
+    wire        bus_s2_stb;
+    wire        bus_s2_ack;
+    wire        bus_s2_we;
+    wire [31:0] bus_s2_addr;
+    wire [31:0] bus_s2_dat_i;
+    wire [31:0] bus_s2_dat_o;
+
+    wire        uart_valid;
+    wire [7:0]  uart_data;
+    wire        tohost;
+    wire        uart_line;
+    wire        uart_busy;
+    wire        uart_ready;
+    wire        uart_overflow;
+
+    // ------------------------------------------------------------------------
+    // RAS
+    // ------------------------------------------------------------------------
+    localparam integer RAS_DEPTH = 8;
+    localparam integer RAS_PTR_W = 3;
+    reg  [31:0] ras_stack [0:RAS_DEPTH-1];
+    reg  [RAS_PTR_W-1:0] ras_sp;
+    reg  [RAS_PTR_W:0]   ras_count;
+    wire                 ras_valid;
+    wire [RAS_PTR_W-1:0] ras_top_idx;
+    wire [31:0]          ras_top_target;
+    wire                 ras_slot1_valid_shadow;
+    wire [RAS_PTR_W-1:0] ras_slot1_top_idx_shadow;
+    wire [31:0]          ras_slot1_top_target_shadow;
+
+    // ------------------------------------------------------------------------
+    // WB
+    // ------------------------------------------------------------------------
+    wire        wb_regs_we;
+    wire        wb_dmem_re;
+    wire [4:0]  wb_regs_w_addr;
+    wire [31:0] wb_actual_regs_w_data;
+
+    // ------------------------------------------------------------------------
+    // Timing helper / fanout split signals
+    // ------------------------------------------------------------------------
+    assign ras_valid            = (ras_count != 0);
+    assign ras_top_idx          = ras_sp - 1'b1;
+    assign ras_top_target       = ras_stack[ras_top_idx];
+    assign ras_slot1_valid_shadow = slot0_jump_redirect && if_is_ret
+                                  ? (ras_count > 1)
+                                  : (slot0_jump_redirect && if_is_call)
+                                  ? 1'b1
+                                  : ras_valid;
+    assign ras_slot1_top_idx_shadow = slot0_jump_redirect && if_is_ret
+                                    ? (ras_sp - 2'd2)
+                                    : ras_top_idx;
+    assign ras_slot1_top_target_shadow = (slot0_jump_redirect && if_is_call)
+                                       ? (if_instr_addr + 32'd4)
+                                       : ras_stack[ras_slot1_top_idx_shadow];
+
+    assign if_is_b               = (if_instr[6:0] == 7'b1100011);
+    assign if_is_jal             = (if_instr[6:0] == 7'b1101111);
+    assign if_is_jalr            = (if_instr[6:0] == 7'b1100111);
+    assign if_is_call            = (if_is_jal || if_is_jalr)
+                                 && ((if_instr[11:7] == 5'd1) || (if_instr[11:7] == 5'd5));
+    assign if_is_ret             = if_is_jalr
+                                 && (if_instr[11:7] == 5'd0)
+                                 && ((if_instr[19:15] == 5'd1) || (if_instr[19:15] == 5'd5))
+                                 && (if_instr[31:20] == 12'b0);
+    assign if_b_target           = if_instr_addr + {{20{if_instr[31]}}, if_instr[7], if_instr[30:25], if_instr[11:8], 1'b0};
+    assign if_jal_target         = if_instr_addr + {{12{if_instr[31]}}, if_instr[19:12], if_instr[20], if_instr[30:21], 1'b0};
+    assign if_jalr_pred_hit      = if_is_ret ? ras_valid : if_jtb_hit;
+    assign if_jalr_pred_target   = if_is_ret ? ras_top_target : if_jtb_target;
+    assign if_pred_taken_eff     = if_is_jal ? slot0_jump_redirect
+                                  : (if_is_jalr ? slot0_jump_redirect
+                                  : (if_is_b ? if_pred_taken : 1'b0));
+    assign if_pred_target_eff    = if_is_jal ? if_jal_target
+                                  : (if_is_jalr ? if_jalr_pred_target
+                                  : (if_is_b ? if_b_target : 32'b0));
+
+    assign if_pre_is_b           = (if_pre_instr[6:0] == 7'b1100011);
+    assign if_pre_is_jal         = (if_pre_instr[6:0] == 7'b1101111);
+    assign if_pre_is_jalr        = (if_pre_instr[6:0] == 7'b1100111);
+    assign if_pre_is_call        = if_pre_is_jalr
+                                 && ((if_pre_instr[11:7] == 5'd1) || (if_pre_instr[11:7] == 5'd5));
+    assign if_pre_is_ret         = if_pre_is_jalr
+                                 && (if_pre_instr[11:7] == 5'd0)
+                                 && ((if_pre_instr[19:15] == 5'd1) || (if_pre_instr[19:15] == 5'd5))
+                                 && (if_pre_instr[31:20] == 12'b0);
+    assign if_pre_b_target       = if_pre_instr_addr + {{20{if_pre_instr[31]}}, if_pre_instr[7], if_pre_instr[30:25], if_pre_instr[11:8], 1'b0};
+    assign if_pre_jal_target     = if_pre_instr_addr + {{12{if_pre_instr[31]}}, if_pre_instr[19:12], if_pre_instr[20], if_pre_instr[30:21], 1'b0};
+    assign if_pre_jalr_pred_hit  = if_pre_is_ret ? ras_slot1_valid_shadow
+                                  : (if_pre_is_call ? preif_next_jtb_hit : 1'b0);
+    assign if_pre_jalr_pred_target = if_pre_is_ret ? ras_slot1_top_target_shadow
+                                     : preif_next_jtb_target;
+    assign if_pre_pred_taken_eff = if_pre_is_jal ? 1'b1
+                                  : (if_pre_is_jalr ? if_pre_jalr_pred_hit : 1'b0);
+    assign if_pre_pred_target_eff= if_pre_is_jal ? if_pre_jal_target
+                                  : (if_pre_is_jalr ? if_pre_jalr_pred_target : 32'b0);
+
+    assign slot0_jal_redirect    = !pipeline_block_if && if_is_jal;
+    assign slot0_jalr_redirect   = !pipeline_block_if && if_is_jalr && if_jalr_pred_hit;
+    assign slot0_jump_redirect_raw = slot0_jal_redirect || slot0_jalr_redirect;
+    assign slot1_pred_redirect_raw = !pipeline_block_if && if_pre_valid && if_pre_pred_taken_eff;
+    assign slot0_jump_redirect   = slot0_jump_redirect_raw && !frontend_redirect_kill_q;
+    assign slot1_pred_redirect   = slot1_pred_redirect_raw && !frontend_redirect_kill_q;
+    assign frontend_redirect_flag = ex_mispredict | slot0_jump_redirect | slot1_pred_redirect;
+    assign frontend_redirect_addr = ex_mispredict    ? ex_redirect_addr
+                                  : slot0_jump_redirect ? if_pred_target_eff
+                                  : if_pre_pred_target_eff;
+    assign if_pre_valid          = if_pre_valid_q;
+    assign id_use_if_now         = if_pre_valid;
+    assign imem_bus_re           = bus_s0_stb && !bus_s0_we;
+    assign if_pre_capture_en     = preif_valid && !preif_pred_taken && !imem_bus_re;
+    assign mem_actual_regs_w_data = mem_dmem_re ? mem_dmem_r_data : mem_regs_w_data;
+
+    (* keep = "true", max_fanout = 16 *) wire        pipeline_hold_if          = pipeline_hold;
+    (* keep = "true", max_fanout = 16 *) wire        pipeline_hold_id          = pipeline_hold;
+    (* keep = "true", max_fanout = 16 *) wire        pipeline_hold_exm         = pipeline_hold;
+    (* keep = "true", max_fanout = 16 *) wire        pipeline_block_pc         = pipeline_block;
+    (* keep = "true", max_fanout = 16 *) wire        pipeline_block_imem       = pipeline_block;
+    (* keep = "true", max_fanout = 16 *) wire        pipeline_block_if         = pipeline_block;
+    (* keep = "true", max_fanout = 16 *) wire        pipeline_flush_if         = pipeline_flush;
+    (* keep = "true", max_fanout = 16 *) wire        slot1_pred_redirect_if    = slot1_pred_redirect;
+    (* keep = "true", max_fanout = 16 *) wire        frontend_redirect_flag_pc = frontend_redirect_flag;
     (* keep = "true", max_fanout = 16 *) wire [31:0] frontend_redirect_addr_pc = frontend_redirect_addr;
+    (* keep = "true", max_fanout = 32 *) wire        pipeline_flush_imem       = pipeline_flush;
+    (* keep = "true", max_fanout = 32 *) wire        pipeline_flush_if_id      = pipeline_flush;
+    (* keep = "true", max_fanout = 32 *) wire        pipeline_flush_id_ex      = pipeline_flush;
 
     branch_predictor #(
         .ENTRY_NUM  (16),
@@ -74,15 +336,48 @@ module cpu(
         .pred_taken0 (preif_pred_taken  ),
         .pred_target0(preif_pred_target ),
         .btb_hit0    (preif_btb_hit     ),
-        .lookup_pc1  (preif_pc_addr + 32'd4),
-        .pred_taken1 (preif_next_pred_taken ),
-        .pred_target1(preif_next_pred_target),
-        .btb_hit1    (preif_next_btb_hit),
         .update_en   (ex_branch_flag    ),
         .update_pc   (ex_instr_addr     ),
         .update_taken(ex_actual_jump_flag),
         .update_target(ex_branch_jump_addr)
     );
+
+    jump_target_buffer #(
+        .ENTRY_NUM  (8),
+        .INDEX_BITS (3)
+    ) u_jump_target_buffer (
+        .clk         (clk               ),
+        .rst_n       (rst_n             ),
+        .lookup_pc0  (preif_pc_addr     ),
+        .hit0        (preif_jtb_hit     ),
+        .target0     (preif_jtb_target  ),
+        .lookup_pc1  (preif_pc_addr + 32'd4),
+        .hit1        (preif_next_jtb_hit   ),
+        .target1     (preif_next_jtb_target),
+        .update_en   (ex_jalr_flag && !ex_ret_flag),
+        .update_pc   (ex_instr_addr     ),
+        .update_target(ex_actual_jump_addr)
+    );
+
+    always @(posedge clk) begin
+        if (rst_n == `RST_ENABLE) begin
+            ras_sp    <= {RAS_PTR_W{1'b0}};
+            ras_count <= {(RAS_PTR_W+1){1'b0}};
+        end else if (ex_jump_flag) begin
+            if (ex_ret_flag) begin
+                if (ras_count != 0) begin
+                    ras_sp    <= ras_sp - 1'b1;
+                    ras_count <= ras_count - 1'b1;
+                end
+            end else if (ex_call_flag) begin
+                ras_stack[ras_sp] <= ex_instr_addr + 32'd4;
+                ras_sp            <= ras_sp + 1'b1;
+                if (ras_count != RAS_DEPTH)
+                    ras_count <= ras_count + 1'b1;
+            end
+        end
+    end
+
     //PREIF
     pc u_pc(
         .clk            (clk                  ),
@@ -95,19 +390,6 @@ module cpu(
         .pc_o           (preif_pc_addr        ),
         .preif_valid_o  (preif_valid          )
     );
-
-    wire [31:0] if_instr;
-    wire [31:0] if_instr_addr;
-    wire [31:0] id_instr_reg;
-    wire [31:0] id_instr_addr_reg;
-    wire [31:0] if_pre_instr;
-    wire [31:0] if_pre_instr_addr;
-
-    (* keep = "true", max_fanout = 32 *) wire pipeline_flush_imem  = pipeline_flush;
-    (* keep = "true", max_fanout = 32 *) wire pipeline_flush_if_id = pipeline_flush;
-    (* keep = "true", max_fanout = 32 *) wire pipeline_flush_id_ex = pipeline_flush;
-
-    wire if_pre_valid_imem;
 
     imem u_imem(
         .clk                (clk               ),
@@ -131,36 +413,39 @@ module cpu(
         .r_data             (bus_s0_dat_i      )
     );
 
-    wire imem_bus_re = bus_s0_stb && !bus_s0_we;
-    wire if_pre_capture_en = preif_valid && !preif_pred_taken && !imem_bus_re;
-    assign if_pre_valid = if_pre_valid_q;
+    always @(posedge clk) begin
+        if (rst_n == `RST_ENABLE) begin
+            frontend_redirect_kill_q <= 1'b0;
+        end else if (pipeline_flush_if || slot0_jump_redirect || slot1_pred_redirect) begin
+            frontend_redirect_kill_q <= 1'b1;
+        end else if (!pipeline_block_if) begin
+            frontend_redirect_kill_q <= 1'b0;
+        end
+    end
 
     always @(posedge clk) begin
         if (rst_n == `RST_ENABLE) begin
             if_pre_valid_q    <= 1'b0;
             if_pred_taken     <= 1'b0;
             if_pred_target    <= 32'b0;
-            if_pre_pred_taken <= 1'b0;
-            if_pre_pred_target<= 32'b0;
-        end else if (slot1_pred_redirect_if) begin
+            if_jtb_hit        <= 1'b0;
+            if_jtb_target     <= 32'b0;
+        end else if (slot0_jump_redirect || slot1_pred_redirect_if) begin
             if_pre_valid_q     <= 1'b0;
             if_pred_taken      <= 1'b0;
-            if_pre_pred_taken  <= 1'b0;
+            if_jtb_hit         <= 1'b0;
+            if_jtb_target      <= 32'b0;
         end else if (pipeline_flush_if) begin
             if_pre_valid_q     <= 1'b0;
             if_pred_taken      <= 1'b0;
-            if_pre_pred_taken  <= 1'b0;
+            if_jtb_hit         <= 1'b0;
+            if_jtb_target      <= 32'b0;
         end else if (!pipeline_block_if) begin
             if_pre_valid_q <= if_pre_capture_en;
             if_pred_taken  <= preif_pred_taken;
             if_pred_target <= preif_pred_target;
-            if (if_pre_capture_en) begin
-                if_pre_pred_taken  <= preif_next_pred_taken;
-                if_pre_pred_target <= preif_next_pred_target;
-            end else begin
-                if_pre_pred_taken  <= 1'b0;
-                if_pre_pred_target <= 32'b0;
-            end
+            if_jtb_hit     <= preif_jtb_hit;
+            if_jtb_target  <= preif_jtb_target;
         end
     end
 
@@ -170,15 +455,16 @@ module cpu(
         .pipeline_stall  (pipeline_stall  ),
         .pipeline_hold   (pipeline_hold_if),
         .pipeline_flush  (pipeline_flush_if_id),
-        .frontend_kill   (slot1_pred_redirect_if),
+        .frontend_kill   (slot0_jump_redirect | slot1_pred_redirect_if),
+        .slot0_drop_buf  (if_pre_valid && slot0_jump_redirect),
         .if_instr_i      (if_instr        ),
         .if_instr_addr_i (if_instr_addr   ),
-        .if_pred_taken_i (if_pred_taken   ),
-        .if_pred_target_i(if_pred_target  ),
+        .if_pred_taken_i (if_pred_taken_eff),
+        .if_pred_target_i(if_pred_target_eff),
         .if_pre_instr_i  (if_pre_instr    ),
         .if_pre_instr_addr_i(if_pre_instr_addr),
-        .if_pre_pred_taken_i (if_pre_pred_taken),
-        .if_pre_pred_target_i(if_pre_pred_target),
+        .if_pre_pred_taken_i (if_pre_pred_taken_eff),
+        .if_pre_pred_target_i(if_pre_pred_target_eff),
         .if_pre_valid_i  (if_pre_valid    ),
         .id_instr_o      (id_instr_reg        ),
         .id_instr_addr_o (id_instr_addr_reg   ),
@@ -187,40 +473,10 @@ module cpu(
     );
 
     //ID
-    wire        id_regs_re;
-    wire [4:0]  id_rs1_addr;
-    wire [4:0]  id_rs2_addr;
-    wire [31:0] id_rs1_data;
-    wire [31:0] id_rs2_data;
-
-    wire [31:0] id_rs1_data_fwd;
-    wire [31:0] id_rs2_data_fwd;
-
-    wire        id_regs_we;
-    wire [4:0]  id_regs_w_addr;
-
-    wire [3:0]  id_alu_op;
-    wire [31:0] id_alu_num1;
-    wire [31:0] id_alu_num2;
-
-    wire [2:0]  id_mem_op;
-    wire        id_dmem_we;
-    wire        id_dmem_re;
-    wire [31:0] id_dmem_w_data;
-
-    wire        id_branch_flag;
-    wire [31:0] id_branch_jump_addr;
-    wire        id_jump_flag;
-
-    wire [31:0] id_instr;
-    wire [31:0] id_instr_addr;
-    wire        id_pred_taken;
-    wire [31:0] id_pred_target;
-    wire [31:0] if_instr_fwd = if_instr; // fanout split helper
-    assign id_instr = if_pre_valid? if_instr_fwd : id_instr_reg;
-    assign id_instr_addr = if_pre_valid? if_instr_addr : id_instr_addr_reg;
-    assign id_pred_taken = if_pre_valid ? if_pred_taken : id_pred_taken_reg;
-    assign id_pred_target = if_pre_valid ? if_pred_target : id_pred_target_reg;
+    assign id_instr       = id_use_if_now ? if_instr_fwd        : id_instr_reg;
+    assign id_instr_addr  = id_use_if_now ? if_instr_addr       : id_instr_addr_reg;
+    assign id_pred_taken  = id_use_if_now ? if_pred_taken_eff   : id_pred_taken_reg;
+    assign id_pred_target = id_use_if_now ? if_pred_target_eff  : id_pred_target_reg;
 
     id u_id(
         .clk                (clk                ),
@@ -243,22 +499,13 @@ module cpu(
         .id_dmem_w_data     (id_dmem_w_data     ),
         .id_branch_flag     (id_branch_flag     ),
         .id_branch_jump_addr(id_branch_jump_addr),
-        .id_jump_flag       (id_jump_flag       )
+        .id_jump_flag       (id_jump_flag       ),
+        .id_jalr_flag       (id_jalr_flag       ),
+        .id_call_flag       (id_call_flag       ),
+        .id_ret_flag        (id_ret_flag        )
     );
     
     //ID_EX
-    wire        ex_pred_taken;
-    wire [31:0] ex_pred_target;
-    wire [31:0] ex_alu_num1;
-    wire [31:0] ex_alu_num2;
-    wire [3:0]  ex_alu_op;
-    wire [4:0]  ex_regs_w_addr;
-    wire        ex_regs_we;
-    wire        ex_dmem_we;
-    wire        ex_dmem_re;
-    wire [31:0] ex_dmem_w_data; 
-    wire        ex_jump_flag;
-
     id_ex u_id_ex(
         .clk                 (clk                 ),
         .rst_n               (rst_n               ),
@@ -281,6 +528,9 @@ module cpu(
         .id_branch_flag      (id_branch_flag      ),
         .id_branch_jump_addr (id_branch_jump_addr ),
         .id_jump_flag        (id_jump_flag        ),
+        .id_jalr_flag        (id_jalr_flag        ),
+        .id_call_flag        (id_call_flag        ),
+        .id_ret_flag         (id_ret_flag         ),
 
         .ex_instr_addr       (ex_instr_addr       ),
         .ex_pred_taken       (ex_pred_taken       ),
@@ -296,13 +546,14 @@ module cpu(
         .ex_dmem_w_data      (ex_dmem_w_data      ),
         .ex_branch_flag      (ex_branch_flag      ),
         .ex_branch_jump_addr (ex_branch_jump_addr ),
-        .ex_jump_flag        (ex_jump_flag        )
+        .ex_jump_flag        (ex_jump_flag        ),
+        .ex_jalr_flag        (ex_jalr_flag        ),
+        .ex_call_flag        (ex_call_flag        ),
+        .ex_ret_flag         (ex_ret_flag         )
     );
     
 
     //EX
-    wire [31:0] ex_regs_w_data; 
-    wire [31:0] ex_dmem_wr_addr;
     assign pipeline_flush = ex_mispredict;
 
     ex u_ex(
@@ -328,16 +579,6 @@ module cpu(
     );
     
     //EX_MEM
-    wire        mem_regs_we;
-    wire [4:0]  mem_regs_w_addr;
-    wire [31:0] mem_regs_w_data; 
-
-    wire [31:0] mem_dmem_wr_addr;
-    wire [31:0] mem_dmem_w_data; 
-    wire        mem_dmem_we;
-    wire        mem_dmem_re;
-    wire [2:0]  mem_mem_op;
-    
     ex_mem u_ex_mem(
         .clk                    (clk                    ),
         .rst_n                  (rst_n                  ),
@@ -362,32 +603,6 @@ module cpu(
     );
     
     //MEM
-
-    // Master
-    wire        bus_m_stb;
-    wire        bus_m_ack;
-    wire        bus_m_we;
-    wire [31:0] bus_m_addr;
-    wire [31:0] bus_m_dat_i;
-    wire [31:0] bus_m_dat_o;
-
-    // Slave 1
-    wire        bus_s1_stb;
-    wire        bus_s1_ack;
-    wire        bus_s1_we;
-    wire [31:0] bus_s1_addr;
-    wire [31:0] bus_s1_dat_i;
-    wire [31:0] bus_s1_dat_o;
-
-    // Slave 2
-    wire        bus_s2_stb;
-    wire        bus_s2_ack;
-    wire        bus_s2_we;
-    wire [31:0] bus_s2_addr;
-    wire [31:0] bus_s2_dat_i;
-    wire [31:0] bus_s2_dat_o;
-
-    wire [31:0] mem_dmem_r_data;
 
     assign bus_m_stb = ex_dmem_we || ex_dmem_re;
     assign bus_m_we = ex_dmem_we;
@@ -439,14 +654,6 @@ module cpu(
         .r_data  (bus_s1_dat_i   )
     );
 
-    wire uart_valid;
-    wire [7:0] uart_data;
-    wire       tohost;
-    wire       uart_line;
-    wire       uart_busy;
-    wire       uart_ready;
-    wire       uart_overflow;
-
     mmio u_mmio(
         .clk        (clk            ),
         .rst_n      (rst_n          ),
@@ -484,26 +691,18 @@ module cpu(
     
     
     //WB
-    wire        wb_regs_we;
-    wire [4:0]  wb_regs_w_addr;
-    wire [31:0] wb_regs_w_data;
-    wire        wb_dmem_re;
-
     mem_wb u_mem_wb(
         .clk             (clk             ),
         .rst_n           (rst_n           ),
         .mem_dmem_re     (mem_dmem_re     ),
         .mem_regs_we     (mem_regs_we     ),
         .mem_regs_w_addr (mem_regs_w_addr ),
-        .mem_regs_w_data (mem_dmem_re ? mem_dmem_r_data : mem_regs_w_data),
+        .mem_regs_w_data (mem_actual_regs_w_data),
         .wb_dmem_re      (wb_dmem_re      ),
         .wb_regs_we      (wb_regs_we      ),
         .wb_regs_w_addr  (wb_regs_w_addr  ),
-        .wb_regs_w_data  (wb_regs_w_data  )
+        .wb_regs_w_data  (wb_actual_regs_w_data)
     );
-    
-    wire [31:0] wb_actual_regs_w_data;
-    assign wb_actual_regs_w_data = wb_regs_w_data;
     
     //REGS
     regs u_regs(
@@ -532,7 +731,7 @@ module cpu(
 
         .mem_regs_we           (mem_regs_we           ),
         .mem_regs_w_addr       (mem_regs_w_addr       ),
-        .mem_regs_w_data       (mem_dmem_re ? mem_dmem_r_data : mem_regs_w_data),
+        .mem_regs_w_data       (mem_actual_regs_w_data),
 
         .wb_regs_we            (wb_regs_we            ),
         .wb_regs_w_addr        (wb_regs_w_addr        ),

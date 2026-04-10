@@ -23,6 +23,9 @@ module id_ex(
     input  wire        id_branch_flag,
     input  wire [31:0] id_branch_jump_addr,
     input  wire        id_jump_flag,
+    input  wire        id_jalr_flag,
+    input  wire        id_call_flag,
+    input  wire        id_ret_flag,
 
     output reg  [31:0] ex_instr_addr,
     output reg         ex_pred_taken,
@@ -38,7 +41,10 @@ module id_ex(
     output reg  [31:0] ex_dmem_w_data,
     output reg         ex_branch_flag,
     output reg  [31:0] ex_branch_jump_addr,
-    output reg         ex_jump_flag
+    output reg         ex_jump_flag,
+    output reg         ex_jalr_flag,
+    output reg         ex_call_flag,
+    output reg         ex_ret_flag
 );
 
     always @(posedge clk) begin
@@ -48,6 +54,9 @@ module id_ex(
             ex_dmem_re     <= 1'b0;
             ex_branch_flag <= 1'b0;
             ex_jump_flag   <= 1'b0;
+            ex_jalr_flag   <= 1'b0;
+            ex_call_flag   <= 1'b0;
+            ex_ret_flag    <= 1'b0;
             ex_pred_taken  <= 1'b0;
         end else if (pipeline_flush) begin
             ex_regs_we     <= 1'b0;
@@ -55,6 +64,9 @@ module id_ex(
             ex_dmem_re     <= 1'b0;
             ex_branch_flag <= 1'b0;
             ex_jump_flag   <= 1'b0;
+            ex_jalr_flag   <= 1'b0;
+            ex_call_flag   <= 1'b0;
+            ex_ret_flag    <= 1'b0;
             ex_pred_taken  <= 1'b0;
         end else if (pipeline_stall) begin
             ex_regs_we     <= 1'b0;
@@ -62,6 +74,9 @@ module id_ex(
             ex_dmem_re     <= 1'b0;
             ex_branch_flag <= 1'b0;
             ex_jump_flag   <= 1'b0;
+            ex_jalr_flag   <= 1'b0;
+            ex_call_flag   <= 1'b0;
+            ex_ret_flag    <= 1'b0;
             ex_pred_taken  <= 1'b0;
         end else if (!pipeline_hold) begin
             ex_regs_we     <= id_regs_we;
@@ -69,6 +84,9 @@ module id_ex(
             ex_dmem_re     <= id_dmem_re;
             ex_branch_flag <= id_branch_flag;
             ex_jump_flag   <= id_jump_flag;
+            ex_jalr_flag   <= id_jalr_flag;
+            ex_call_flag   <= id_call_flag;
+            ex_ret_flag    <= id_ret_flag;
             ex_pred_taken  <= id_pred_taken;
         end
     end

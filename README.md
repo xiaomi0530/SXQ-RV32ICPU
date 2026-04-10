@@ -20,3 +20,6 @@ Board: xc7a100tcsg324-1 (Artix-7)
 
 ***Version 4.08*** || CoreMark = **249.4 Iterations / sec** || **100MHz** || WNS **0.712ns** WHS **0.045ns** || LUT: **2785**\
 ———1.新增Bimodal分支预测（Entry = 16，Index = 4bits）。2.优化时序。
+
+***Version 4.10*** || CoreMark = **259.2 Iterations / sec** || **100MHz** || WNS **0.119ns** WHS **0.075ns** || LUT: **3257**\
+———1.优化分支预测 2.加入跳转预测 *具体的太多了，我也说不清了，在持续优化中，此版本仅为git暂存版

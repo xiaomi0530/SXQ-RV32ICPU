@@ -27,7 +27,10 @@ module id(
 
     output wire        id_branch_flag,
     output wire [31:0] id_branch_jump_addr,
-    output wire        id_jump_flag
+    output wire        id_jump_flag,
+    output wire        id_jalr_flag,
+    output wire        id_call_flag,
+    output wire        id_ret_flag
 );
     
     wire [6:0] opcode = id_instr[6:0];
@@ -88,6 +91,12 @@ module id(
     assign id_branch_flag = type_b;
     assign id_branch_jump_addr = b_imm + id_instr_addr;
     assign id_jump_flag   = type_j_jal | type_i_jalr;
+    assign id_jalr_flag   = type_i_jalr;
+    assign id_call_flag   = (type_j_jal | type_i_jalr) && ((id_rd_addr == 5'd1) || (id_rd_addr == 5'd5));
+    assign id_ret_flag    = type_i_jalr
+                         && (id_rd_addr == 5'd0)
+                         && ((id_rs1_addr == 5'd1) || (id_rs1_addr == 5'd5))
+                         && (i_imm == 32'b0);
 
     assign id_alu_num1 = (type_u_auipc | type_j_jal) ? id_instr_addr : (type_u_lui ? 32'b0 : id_rs1_data);
     assign id_alu_num2 = (type_r | type_b) ? id_rs2_data : imm;

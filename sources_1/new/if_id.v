@@ -7,6 +7,7 @@ module if_id(
     input  wire        pipeline_hold,
     input  wire        pipeline_flush,
     input  wire        frontend_kill,
+    input  wire        slot0_drop_buf,
 
     input  wire [31:0] if_instr_i,
     input  wire [31:0] if_instr_addr_i,
@@ -44,7 +45,7 @@ module if_id(
             id_instr_o      <= 32'b0;
             id_pred_taken_o <= 1'b0;
         end else if (!(pipeline_stall || pipeline_hold)) begin
-            if (kill_fetch_r) begin
+            if (slot0_drop_buf || kill_fetch_r) begin
                 id_instr_o      <= 32'b0;
                 id_pred_taken_o <= 1'b0;
             end else if (if_pre_valid_i) begin
@@ -65,7 +66,7 @@ module if_id(
             id_instr_addr_o   <= 32'b0;
             id_pred_target_o  <= 32'b0;
         end else if (!(pipeline_stall || pipeline_hold)) begin
-            if (kill_fetch_r) begin
+            if (slot0_drop_buf || kill_fetch_r) begin
                 id_instr_addr_o   <= 32'b0;
                 id_pred_target_o  <= 32'b0;
             end else if (if_pre_valid_i) begin
