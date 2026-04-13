@@ -5,10 +5,11 @@ module imem(
     input  wire        rst_n,
     input  wire        pipeline_stall,
     input  wire        pipeline_flush,
-    input  wire        predict_taken_i,
     input  wire [31:0] preif_pc_addr_i,
     output reg  [31:0] if_instr_o,
     output reg  [31:0] if_instr_addr_o,
+    output reg  [31:0] if_pred_instr_o,
+    output reg  [31:0] if_pred_instr_addr_o,
     
     input  wire        preif_valid_i,
     output wire [31:0] if_pre_instr_o,
@@ -27,7 +28,7 @@ module imem(
 
     wire bus_re = bus_stb && !bus_we;
     wire [31:0] if_pre_instr_addr = {preif_pc_addr_i[31:2] + 30'd1, 2'b00};
-    wire if_pre_re = (preif_valid_i == 1'b1) && !predict_taken_i && !pipeline_stall && !bus_re;
+    wire if_pre_re = preif_valid_i && !pipeline_stall && !bus_re;
 
     wire [12:0] bus_word_addr = r_addr[14:2];
     wire [12:0] if_pre_word_addr = preif_pc_addr_i[14:2] + 13'd1;
@@ -36,12 +37,13 @@ module imem(
         if(rst_n == `RST_ENABLE)begin
             if_instr_o <= 1'b0;
             if_instr_addr_o <= 32'b0;
-        end else if (pipeline_flush) begin
-            if_instr_o <= 1'b0;
-            if_instr_addr_o <= 32'b0;
+            if_pred_instr_o <= 32'b0;
+            if_pred_instr_addr_o <= 32'b0;
         end else if(!pipeline_stall)begin
             if_instr_o <= imem[preif_pc_addr_i[14:2]];
-            if_instr_addr_o <= preif_pc_addr_i; 
+            if_instr_addr_o <= preif_pc_addr_i;
+            if_pred_instr_o <= imem[preif_pc_addr_i[14:2]];
+            if_pred_instr_addr_o <= preif_pc_addr_i;
         end 
     end
 

@@ -5,8 +5,7 @@ module pc(
     input  wire        rst_n,
     input  wire        redirect_flag,
     input  wire [31:0] redirect_addr,
-    input  wire        pred_taken,
-    input  wire [31:0] pred_target,
+    input  wire        preif_ready,
     input  wire        pipeline_stall,
     output reg  [31:0] pc_o,
     output reg         preif_valid_o
@@ -14,8 +13,8 @@ module pc(
 
     wire [31:0] pc_plus4 = pc_o + 32'd4;
     wire [31:0] pc_plus8 = pc_o + 32'd8;
-    wire [31:0] seq_next = preif_valid_o ? pc_plus8 : pc_plus4;
-    wire [31:0] pc_next  = pred_taken ? pred_target : seq_next;
+    wire        preif_fire = preif_valid_o && preif_ready;
+    wire [31:0] pc_next    = preif_fire ? pc_plus8 : pc_plus4;
 
     always @(posedge clk) begin
         if (rst_n == `RST_ENABLE) begin
@@ -31,9 +30,7 @@ module pc(
         if (rst_n == `RST_ENABLE || redirect_flag) begin
             preif_valid_o <= 1'b1;
         end else if (!pipeline_stall) begin
-            if (pred_taken)
-                preif_valid_o <= 1'b0;
-            else if (preif_valid_o)
+            if (preif_fire)
                 preif_valid_o <= 1'b0;
         end
     end

@@ -22,6 +22,7 @@ module id_ex(
     input  wire [31:0] id_dmem_w_data,
     input  wire        id_branch_flag,
     input  wire [31:0] id_branch_jump_addr,
+    input  wire [3:0]  id_branch_hash,
     input  wire        id_jump_flag,
     input  wire        id_jalr_flag,
     input  wire        id_call_flag,
@@ -41,6 +42,7 @@ module id_ex(
     output reg  [31:0] ex_dmem_w_data,
     output reg         ex_branch_flag,
     output reg  [31:0] ex_branch_jump_addr,
+    output reg  [3:0]  ex_branch_hash,
     output reg         ex_jump_flag,
     output reg         ex_jalr_flag,
     output reg         ex_call_flag,
@@ -102,6 +104,7 @@ module id_ex(
             ex_mem_op           <= 3'b0;
             ex_dmem_w_data      <= 32'b0;
             ex_branch_jump_addr <= 32'b0;
+            ex_branch_hash      <= 4'b0;
         end else if (pipeline_flush) begin
             ex_instr_addr       <= 32'b0;
             ex_pred_target      <= 32'b0;
@@ -112,6 +115,7 @@ module id_ex(
             ex_mem_op           <= 3'b0;
             ex_dmem_w_data      <= 32'b0;
             ex_branch_jump_addr <= 32'b0;
+            ex_branch_hash      <= 4'b0;
         end else if(!(pipeline_stall || pipeline_hold))begin
             ex_instr_addr       <= id_instr_addr;
             ex_pred_target      <= id_pred_target;
@@ -122,6 +126,7 @@ module id_ex(
             ex_mem_op           <= id_mem_op;
             ex_dmem_w_data      <= id_dmem_w_data;
             ex_branch_jump_addr <= id_branch_jump_addr;
+            ex_branch_hash      <= id_branch_hash;
         end
     end
 
