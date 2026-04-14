@@ -30,7 +30,7 @@ module if_id(
     always @(posedge clk) begin
         if (rst_n == `RST_ENABLE) begin
             kill_fetch_r <= 1'b0;
-        end else if (pipeline_flush || frontend_kill) begin
+        end else if (pipeline_flush) begin
             kill_fetch_r <= 1'b1;
         end else if (!(pipeline_stall || pipeline_hold)) begin
             kill_fetch_r <= 1'b0;
@@ -45,7 +45,7 @@ module if_id(
             id_instr_o      <= 32'b0;
             id_pred_taken_o <= 1'b0;
         end else if (!(pipeline_stall || pipeline_hold)) begin
-            if (slot0_drop_buf || kill_fetch_r) begin
+            if (slot0_drop_buf || frontend_kill || kill_fetch_r) begin
                 id_instr_o      <= 32'b0;
                 id_pred_taken_o <= 1'b0;
             end else if (if_pre_valid_i) begin
@@ -66,7 +66,7 @@ module if_id(
             id_instr_addr_o   <= 32'b0;
             id_pred_target_o  <= 32'b0;
         end else if (!(pipeline_stall || pipeline_hold)) begin
-            if (slot0_drop_buf || kill_fetch_r) begin
+            if (slot0_drop_buf || frontend_kill || kill_fetch_r) begin
                 id_instr_addr_o   <= 32'b0;
                 id_pred_target_o  <= 32'b0;
             end else if (if_pre_valid_i) begin

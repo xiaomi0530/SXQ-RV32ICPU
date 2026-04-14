@@ -12,6 +12,8 @@ module cpu(
 `else
     localparam integer UART_BAUD_RATE = 3_000_000;
 `endif
+    localparam integer BR_PRED_ENTRY_NUM  = 16;
+    localparam integer BR_PRED_INDEX_BITS = 4;
 
     // ------------------------------------------------------------------------
     // Global control
@@ -28,9 +30,6 @@ module cpu(
     wire        preif_valid;
     wire [31:0] preif_pc_addr;
 
-    wire        preif_pred_taken;
-    wire [31:0] preif_pred_target;
-    wire        preif_btb_hit;
     wire        preif_jtb_hit;
     wire [31:0] preif_jtb_target;
     wire        preif_next_jtb_hit;
@@ -40,6 +39,9 @@ module cpu(
     wire        slot0_jump_redirect_raw;
     wire        slot0_jal_redirect;
     wire        slot0_jalr_redirect;
+    wire        slot0_branch_redirect;
+    wire        slot0_ctrl_redirect;
+    wire        slot0_ctrl_redirect_raw;
     wire        slot1_pred_redirect;
     wire        slot1_pred_redirect_raw;
     wire        frontend_redirect_flag;
@@ -50,6 +52,8 @@ module cpu(
     // ------------------------------------------------------------------------
     wire [31:0] if_instr;
     wire [31:0] if_instr_addr;
+    wire [31:0] if_pred_instr      = if_instr;
+    wire [31:0] if_pred_instr_addr = if_instr_addr;
     wire [31:0] if_pre_instr;
     wire [31:0] if_pre_instr_addr;
     wire        if_pre_valid;
@@ -57,35 +61,45 @@ module cpu(
     reg         if_pre_valid_q;
     reg         frontend_redirect_kill_q;
 
-    reg         if_pred_taken;
-    reg  [31:0] if_pred_target;
     reg         if_jtb_hit;
     reg  [31:0] if_jtb_target;
+    reg         if_pre_jtb_hit;
+    reg  [31:0] if_pre_jtb_target;
 
     wire        if_is_b;
     wire        if_is_jal;
     wire        if_is_jalr;
     wire        if_is_call;
     wire        if_is_ret;
+    wire [10:1] if_b_imm_lo;
     wire [31:0] if_jalr_pred_target;
     wire        if_jalr_pred_hit;
+    wire [31:0] if_b_imm;
     wire [31:0] if_b_target;
+    wire [31:0] if_b_target_canon;
     wire [31:0] if_jal_target;
+    wire [31:0] if_jal_target_canon;
+    wire [31:0] if_jtb_target_canon;
+    wire [BR_PRED_INDEX_BITS-1:0] if_branch_hash;
+    wire        if_branch_pred_taken;
+    wire        if_branch_hit;
+    wire        preif_btb_hit;
     wire        if_pred_taken_eff;
     wire [31:0] if_pred_target_eff;
 
-    wire        if_pre_is_b;
     wire        if_pre_is_jal;
     wire        if_pre_is_jalr;
     wire        if_pre_is_call;
     wire        if_pre_is_ret;
-    wire [31:0] if_pre_b_target;
     wire [31:0] if_pre_jal_target;
+    wire [31:0] if_pre_jal_target_canon;
     wire        if_pre_jalr_pred_hit;
     wire [31:0] if_pre_jalr_pred_target;
+    wire [31:0] if_pre_jtb_target_canon;
     wire        if_pre_pred_taken_eff;
     wire [31:0] if_pre_pred_target_eff;
     wire        id_use_if_now;
+    wire        id_use_if_recovery_now;
 
     wire        imem_bus_re;
     wire        if_pre_capture_en;
@@ -127,6 +141,8 @@ module cpu(
     wire        id_jalr_flag;
     wire        id_call_flag;
     wire        id_ret_flag;
+    wire [10:1] id_b_imm_lo;
+    wire [BR_PRED_INDEX_BITS-1:0] id_branch_hash;
     wire [31:0] id_branch_jump_addr;
 
     wire [31:0] if_instr_fwd         = if_instr;
@@ -135,6 +151,7 @@ module cpu(
     // EX
     // ------------------------------------------------------------------------
     wire [31:0] ex_instr_addr;
+    wire [BR_PRED_INDEX_BITS-1:0] ex_branch_hash;
     wire        ex_pred_taken;
     wire [31:0] ex_pred_target;
 
@@ -229,6 +246,10 @@ module cpu(
     wire                 ras_slot1_valid_shadow;
     wire [RAS_PTR_W-1:0] ras_slot1_top_idx_shadow;
     wire [31:0]          ras_slot1_top_target_shadow;
+    wire                 frontend_issue_ok;
+    wire                 slot0_jump_pred_base;
+    wire                 slot0_ctrl_pred_base;
+    wire                 slot1_pred_base;
 
     // ------------------------------------------------------------------------
     // WB
@@ -253,93 +274,110 @@ module cpu(
                                     ? (ras_sp - 2'd2)
                                     : ras_top_idx;
     assign ras_slot1_top_target_shadow = (slot0_jump_redirect && if_is_call)
-                                       ? (if_instr_addr + 32'd4)
+                                       ? (if_pred_instr_addr + 32'd4)
                                        : ras_stack[ras_slot1_top_idx_shadow];
 
-    assign if_is_b               = (if_instr[6:0] == 7'b1100011);
-    assign if_is_jal             = (if_instr[6:0] == 7'b1101111);
-    assign if_is_jalr            = (if_instr[6:0] == 7'b1100111);
+    assign if_is_b               = (if_pred_instr[6:2] == 5'b11000);
+    assign if_is_jal             = (if_pred_instr[6:2] == 5'b11011);
+    assign if_is_jalr            = (if_pred_instr[6:2] == 5'b11001);
     assign if_is_call            = (if_is_jal || if_is_jalr)
-                                 && ((if_instr[11:7] == 5'd1) || (if_instr[11:7] == 5'd5));
+                                 && ((if_pred_instr[11:7] == 5'd1) || (if_pred_instr[11:7] == 5'd5));
     assign if_is_ret             = if_is_jalr
-                                 && (if_instr[11:7] == 5'd0)
-                                 && ((if_instr[19:15] == 5'd1) || (if_instr[19:15] == 5'd5))
-                                 && (if_instr[31:20] == 12'b0);
-    assign if_b_target           = if_instr_addr + {{20{if_instr[31]}}, if_instr[7], if_instr[30:25], if_instr[11:8], 1'b0};
-    assign if_jal_target         = if_instr_addr + {{12{if_instr[31]}}, if_instr[19:12], if_instr[20], if_instr[30:21], 1'b0};
+                                 && (if_pred_instr[11:7] == 5'd0)
+                                 && ((if_pred_instr[19:15] == 5'd1) || (if_pred_instr[19:15] == 5'd5))
+                                 && (if_pred_instr[31:20] == 12'b0);
+    assign if_b_imm_lo           = {if_pred_instr[7], if_pred_instr[30:25], if_pred_instr[11:8]};
+    assign if_b_imm              = {{20{if_pred_instr[31]}}, if_b_imm_lo, 1'b0};
+    assign if_b_target           = if_pred_instr_addr + if_b_imm;
+    assign if_b_target_canon     = {17'b0, if_b_target[14:0]};
+    assign if_branch_hash        = if_b_imm_lo[BR_PRED_INDEX_BITS+1:2];
+    assign if_jal_target         = if_pred_instr_addr + {{12{if_pred_instr[31]}}, if_pred_instr[19:12], if_pred_instr[20], if_pred_instr[30:21], 1'b0};
+    assign if_jal_target_canon   = {17'b0, if_jal_target[14:0]};
+    assign if_jtb_target_canon   = {17'b0, if_jtb_target[14:0]};
     assign if_jalr_pred_hit      = if_is_ret ? ras_valid : if_jtb_hit;
-    assign if_jalr_pred_target   = if_is_ret ? ras_top_target : if_jtb_target;
+    assign if_jalr_pred_target   = if_is_ret ? ras_top_target : if_jtb_target_canon;
     assign if_pred_taken_eff     = if_is_jal ? slot0_jump_redirect
                                   : (if_is_jalr ? slot0_jump_redirect
-                                  : (if_is_b ? if_pred_taken : 1'b0));
-    assign if_pred_target_eff    = if_is_jal ? if_jal_target
+                                  : (if_is_b ? slot0_branch_redirect : 1'b0));
+    assign if_pred_target_eff    = if_is_jal ? if_jal_target_canon
                                   : (if_is_jalr ? if_jalr_pred_target
-                                  : (if_is_b ? if_b_target : 32'b0));
+                                  : (if_is_b ? if_b_target_canon : 32'b0));
 
-    assign if_pre_is_b           = (if_pre_instr[6:0] == 7'b1100011);
-    assign if_pre_is_jal         = (if_pre_instr[6:0] == 7'b1101111);
-    assign if_pre_is_jalr        = (if_pre_instr[6:0] == 7'b1100111);
+    assign if_pre_is_jal         = (if_pre_instr[6:2] == 5'b11011);
+    assign if_pre_is_jalr        = (if_pre_instr[6:2] == 5'b11001);
     assign if_pre_is_call        = if_pre_is_jalr
                                  && ((if_pre_instr[11:7] == 5'd1) || (if_pre_instr[11:7] == 5'd5));
     assign if_pre_is_ret         = if_pre_is_jalr
                                  && (if_pre_instr[11:7] == 5'd0)
                                  && ((if_pre_instr[19:15] == 5'd1) || (if_pre_instr[19:15] == 5'd5))
                                  && (if_pre_instr[31:20] == 12'b0);
-    assign if_pre_b_target       = if_pre_instr_addr + {{20{if_pre_instr[31]}}, if_pre_instr[7], if_pre_instr[30:25], if_pre_instr[11:8], 1'b0};
     assign if_pre_jal_target     = if_pre_instr_addr + {{12{if_pre_instr[31]}}, if_pre_instr[19:12], if_pre_instr[20], if_pre_instr[30:21], 1'b0};
+    assign if_pre_jal_target_canon = {17'b0, if_pre_jal_target[14:0]};
+    assign if_pre_jtb_target_canon = {17'b0, if_pre_jtb_target[14:0]};
     assign if_pre_jalr_pred_hit  = if_pre_is_ret ? ras_slot1_valid_shadow
-                                  : (if_pre_is_call ? preif_next_jtb_hit : 1'b0);
+                                  : (if_pre_is_call ? if_pre_jtb_hit : 1'b0);
     assign if_pre_jalr_pred_target = if_pre_is_ret ? ras_slot1_top_target_shadow
-                                     : preif_next_jtb_target;
+                                     : if_pre_jtb_target_canon;
     assign if_pre_pred_taken_eff = if_pre_is_jal ? 1'b1
                                   : (if_pre_is_jalr ? if_pre_jalr_pred_hit : 1'b0);
-    assign if_pre_pred_target_eff= if_pre_is_jal ? if_pre_jal_target
+    assign if_pre_pred_target_eff= if_pre_is_jal ? if_pre_jal_target_canon
                                   : (if_pre_is_jalr ? if_pre_jalr_pred_target : 32'b0);
 
-    assign slot0_jal_redirect    = !pipeline_block_if && if_is_jal;
-    assign slot0_jalr_redirect   = !pipeline_block_if && if_is_jalr && if_jalr_pred_hit;
-    assign slot0_jump_redirect_raw = slot0_jal_redirect || slot0_jalr_redirect;
-    assign slot1_pred_redirect_raw = !pipeline_block_if && if_pre_valid && if_pre_pred_taken_eff;
-    assign slot0_jump_redirect   = slot0_jump_redirect_raw && !frontend_redirect_kill_q;
-    assign slot1_pred_redirect   = slot1_pred_redirect_raw && !frontend_redirect_kill_q;
-    assign frontend_redirect_flag = ex_mispredict | slot0_jump_redirect | slot1_pred_redirect;
+    assign frontend_issue_ok     = !pipeline_block_if && !frontend_redirect_kill_q;
+    assign slot0_jump_pred_base  = if_is_jal || (if_is_jalr && if_jalr_pred_hit);
+    assign slot0_ctrl_pred_base  = slot0_jump_pred_base || (if_is_b && if_branch_pred_taken);
+    assign slot1_pred_base       = if_pre_valid && if_pre_pred_taken_eff;
+    assign slot0_jal_redirect    = frontend_issue_ok && if_is_jal;
+    assign slot0_jalr_redirect   = frontend_issue_ok && if_is_jalr && if_jalr_pred_hit;
+    assign slot0_branch_redirect = frontend_issue_ok && if_is_b && if_branch_pred_taken;
+    assign slot0_jump_redirect_raw = slot0_jump_pred_base;
+    assign slot0_ctrl_redirect_raw = slot0_ctrl_pred_base;
+    assign slot1_pred_redirect_raw = slot1_pred_base;
+    assign slot0_jump_redirect   = frontend_issue_ok && slot0_jump_pred_base;
+    assign slot0_ctrl_redirect   = frontend_issue_ok && slot0_ctrl_pred_base;
+    assign slot1_pred_redirect   = frontend_issue_ok && slot1_pred_base;
+    assign frontend_redirect_flag = ex_mispredict | slot0_ctrl_redirect | slot1_pred_redirect;
     assign frontend_redirect_addr = ex_mispredict    ? ex_redirect_addr
-                                  : slot0_jump_redirect ? if_pred_target_eff
+                                  : slot0_ctrl_redirect ? if_pred_target_eff
                                   : if_pre_pred_target_eff;
     assign if_pre_valid          = if_pre_valid_q;
-    assign id_use_if_now         = if_pre_valid;
+    assign id_use_if_recovery_now = preif_valid && !frontend_redirect_kill_q;
+    assign id_use_if_now         = if_pre_valid || id_use_if_recovery_now;
+    assign id_b_imm_lo           = {id_instr[7], id_instr[30:25], id_instr[11:8]};
+    assign id_branch_hash        = id_b_imm_lo[BR_PRED_INDEX_BITS+1:2];
     assign imem_bus_re           = bus_s0_stb && !bus_s0_we;
-    assign if_pre_capture_en     = preif_valid && !preif_pred_taken && !imem_bus_re;
+    assign if_pre_capture_en     = preif_valid && !imem_bus_re;
     assign mem_actual_regs_w_data = mem_dmem_re ? mem_dmem_r_data : mem_regs_w_data;
+    assign preif_btb_hit         = if_branch_hit;
 
-    (* keep = "true", max_fanout = 16 *) wire        pipeline_hold_if          = pipeline_hold;
-    (* keep = "true", max_fanout = 16 *) wire        pipeline_hold_id          = pipeline_hold;
-    (* keep = "true", max_fanout = 16 *) wire        pipeline_hold_exm         = pipeline_hold;
-    (* keep = "true", max_fanout = 16 *) wire        pipeline_block_pc         = pipeline_block;
-    (* keep = "true", max_fanout = 16 *) wire        pipeline_block_imem       = pipeline_block;
-    (* keep = "true", max_fanout = 16 *) wire        pipeline_block_if         = pipeline_block;
-    (* keep = "true", max_fanout = 16 *) wire        pipeline_flush_if         = pipeline_flush;
-    (* keep = "true", max_fanout = 16 *) wire        slot1_pred_redirect_if    = slot1_pred_redirect;
-    (* keep = "true", max_fanout = 16 *) wire        frontend_redirect_flag_pc = frontend_redirect_flag;
-    (* keep = "true", max_fanout = 16 *) wire [31:0] frontend_redirect_addr_pc = frontend_redirect_addr;
-    (* keep = "true", max_fanout = 32 *) wire        pipeline_flush_imem       = pipeline_flush;
-    (* keep = "true", max_fanout = 32 *) wire        pipeline_flush_if_id      = pipeline_flush;
-    (* keep = "true", max_fanout = 32 *) wire        pipeline_flush_id_ex      = pipeline_flush;
-
+    wire        pipeline_hold_if          = pipeline_hold;
+    wire        pipeline_hold_id          = pipeline_hold;
+    wire        pipeline_hold_exm         = pipeline_hold;
+    wire        pipeline_block_pc         = pipeline_block;
+    wire        pipeline_block_imem       = pipeline_block;
+    wire        pipeline_block_if         = pipeline_block;
+    wire        pipeline_flush_if         = pipeline_flush;
+    wire        slot1_pred_redirect_if    = slot1_pred_redirect;
+    wire        frontend_redirect_flag_pc = frontend_redirect_flag;
+    wire [31:0] frontend_redirect_addr_pc = frontend_redirect_addr;
+    wire        pipeline_flush_imem       = pipeline_flush;
+    wire        pipeline_flush_if_id      = pipeline_flush;
+    wire        pipeline_flush_id_ex      = pipeline_flush;
     branch_predictor #(
-        .ENTRY_NUM  (16),
-        .INDEX_BITS (4)
+        .ENTRY_NUM  (BR_PRED_ENTRY_NUM ),
+        .INDEX_BITS (BR_PRED_INDEX_BITS)
     ) u_branch_predictor (
         .clk         (clk               ),
         .rst_n       (rst_n             ),
-        .lookup_pc0  (preif_pc_addr     ),
-        .pred_taken0 (preif_pred_taken  ),
-        .pred_target0(preif_pred_target ),
-        .btb_hit0    (preif_btb_hit     ),
-        .update_en   (ex_branch_flag    ),
-        .update_pc   (ex_instr_addr     ),
-        .update_taken(ex_actual_jump_flag),
-        .update_target(ex_branch_jump_addr)
+        .lookup_is_branch0(if_is_b          ),
+        .lookup_pc0  (if_pred_instr_addr    ),
+        .lookup_hash0(if_branch_hash        ),
+        .pred_taken0 (if_branch_pred_taken  ),
+        .branch_hit0 (if_branch_hit         ),
+        .update_en   (ex_branch_flag        ),
+        .update_pc   (ex_instr_addr         ),
+        .update_hash (ex_branch_hash        ),
+        .update_taken(ex_actual_jump_flag   )
     );
 
     jump_target_buffer #(
@@ -356,7 +394,7 @@ module cpu(
         .target1     (preif_next_jtb_target),
         .update_en   (ex_jalr_flag && !ex_ret_flag),
         .update_pc   (ex_instr_addr     ),
-        .update_target(ex_actual_jump_addr)
+        .update_target({17'b0, ex_actual_jump_addr[14:0]})
     );
 
     always @(posedge clk) begin
@@ -384,8 +422,7 @@ module cpu(
         .rst_n          (rst_n                ),
         .redirect_flag  (frontend_redirect_flag_pc),
         .redirect_addr  (frontend_redirect_addr_pc),
-        .pred_taken     (preif_pred_taken     ),
-        .pred_target    (preif_pred_target    ),
+        .preif_ready    (!imem_bus_re         ),
         .pipeline_stall (pipeline_block_pc    ),
         .pc_o           (preif_pc_addr        ),
         .preif_valid_o  (preif_valid          )
@@ -396,7 +433,6 @@ module cpu(
         .rst_n              (rst_n             ),
         .pipeline_stall     (pipeline_block_imem),
         .pipeline_flush     (pipeline_flush_imem),
-        .predict_taken_i    (preif_pred_taken  ),
         .preif_pc_addr_i    (preif_pc_addr     ),
         .if_instr_o         (if_instr          ),
         .if_instr_addr_o    (if_instr_addr     ),
@@ -416,7 +452,7 @@ module cpu(
     always @(posedge clk) begin
         if (rst_n == `RST_ENABLE) begin
             frontend_redirect_kill_q <= 1'b0;
-        end else if (pipeline_flush_if || slot0_jump_redirect || slot1_pred_redirect) begin
+        end else if (pipeline_flush_if || slot0_ctrl_redirect || slot1_pred_redirect) begin
             frontend_redirect_kill_q <= 1'b1;
         end else if (!pipeline_block_if) begin
             frontend_redirect_kill_q <= 1'b0;
@@ -426,26 +462,28 @@ module cpu(
     always @(posedge clk) begin
         if (rst_n == `RST_ENABLE) begin
             if_pre_valid_q    <= 1'b0;
-            if_pred_taken     <= 1'b0;
-            if_pred_target    <= 32'b0;
             if_jtb_hit        <= 1'b0;
             if_jtb_target     <= 32'b0;
-        end else if (slot0_jump_redirect || slot1_pred_redirect_if) begin
+            if_pre_jtb_hit    <= 1'b0;
+            if_pre_jtb_target <= 32'b0;
+        end else if (slot0_ctrl_redirect || slot1_pred_redirect_if) begin
             if_pre_valid_q     <= 1'b0;
-            if_pred_taken      <= 1'b0;
             if_jtb_hit         <= 1'b0;
             if_jtb_target      <= 32'b0;
+            if_pre_jtb_hit     <= 1'b0;
+            if_pre_jtb_target  <= 32'b0;
         end else if (pipeline_flush_if) begin
             if_pre_valid_q     <= 1'b0;
-            if_pred_taken      <= 1'b0;
             if_jtb_hit         <= 1'b0;
             if_jtb_target      <= 32'b0;
+            if_pre_jtb_hit     <= 1'b0;
+            if_pre_jtb_target  <= 32'b0;
         end else if (!pipeline_block_if) begin
             if_pre_valid_q <= if_pre_capture_en;
-            if_pred_taken  <= preif_pred_taken;
-            if_pred_target <= preif_pred_target;
             if_jtb_hit     <= preif_jtb_hit;
             if_jtb_target  <= preif_jtb_target;
+            if_pre_jtb_hit <= preif_next_jtb_hit;
+            if_pre_jtb_target <= preif_next_jtb_target;
         end
     end
 
@@ -455,8 +493,8 @@ module cpu(
         .pipeline_stall  (pipeline_stall  ),
         .pipeline_hold   (pipeline_hold_if),
         .pipeline_flush  (pipeline_flush_if_id),
-        .frontend_kill   (slot0_jump_redirect | slot1_pred_redirect_if),
-        .slot0_drop_buf  (if_pre_valid && slot0_jump_redirect),
+        .frontend_kill   (frontend_redirect_kill_q),
+        .slot0_drop_buf  (if_pre_valid && slot0_ctrl_redirect),
         .if_instr_i      (if_instr        ),
         .if_instr_addr_i (if_instr_addr   ),
         .if_pred_taken_i (if_pred_taken_eff),
@@ -527,6 +565,7 @@ module cpu(
         .id_dmem_w_data      (id_dmem_w_data      ),
         .id_branch_flag      (id_branch_flag      ),
         .id_branch_jump_addr (id_branch_jump_addr ),
+        .id_branch_hash      (id_branch_hash      ),
         .id_jump_flag        (id_jump_flag        ),
         .id_jalr_flag        (id_jalr_flag        ),
         .id_call_flag        (id_call_flag        ),
@@ -546,6 +585,7 @@ module cpu(
         .ex_dmem_w_data      (ex_dmem_w_data      ),
         .ex_branch_flag      (ex_branch_flag      ),
         .ex_branch_jump_addr (ex_branch_jump_addr ),
+        .ex_branch_hash      (ex_branch_hash      ),
         .ex_jump_flag        (ex_jump_flag        ),
         .ex_jalr_flag        (ex_jalr_flag        ),
         .ex_call_flag        (ex_call_flag        ),
