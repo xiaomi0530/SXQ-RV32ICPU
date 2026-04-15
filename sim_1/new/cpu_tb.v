@@ -53,8 +53,14 @@ module cpu_tb;
     integer dir_correct_total;
     integer target_correct_total;
     integer mispredict_total;
-    integer btb_hit0_total;
+    integer if_branch_hit_total;
     integer slot1_redirect_total;
+    integer mul_exec_total;
+    integer mul_follow_slot_total;
+    integer mul_dep_slot_total;
+    integer mul_dep_d1_total;
+    integer mul_dep_d2_total;
+    integer mul_dep_d3_total;
 
     integer cycle_snap;
 
@@ -94,7 +100,7 @@ module cpu_tb;
     integer dir_correct_snap;
     integer target_correct_snap;
     integer mispredict_snap;
-    integer btb_hit0_snap;
+    integer if_branch_hit_snap;
     integer slot1_redirect_snap;
 
     integer instr_now;
@@ -133,7 +139,7 @@ module cpu_tb;
     integer dir_correct_now;
     integer target_correct_now;
     integer mispredict_now;
-    integer btb_hit0_now;
+    integer if_branch_hit_now;
     integer slot1_redirect_now;
 
     integer cycle_win;
@@ -142,6 +148,12 @@ module cpu_tb;
     integer jalr_pc_i;
     integer jalr_pc_slot;
     integer jalr_pc_free;
+    integer mul_follow_inc;
+    integer mul_dep_slot_inc;
+    integer mul_dep_d1_inc;
+    integer mul_dep_d2_inc;
+    integer mul_dep_d3_inc;
+    integer mul_exec_inc;
 
     integer instr_win;
     integer flush_win;
@@ -179,13 +191,19 @@ module cpu_tb;
     integer dir_correct_win;
     integer target_correct_win;
     integer mispredict_win;
-    integer btb_hit0_win;
+    integer if_branch_hit_win;
     integer slot1_redirect_win;
 
     reg         prev_issue_valid;
     reg         prev_issue_we;
     reg  [4:0]  prev_issue_rd;
     reg  [31:0] prev_issue_instr;
+    reg         mul_dep1_valid;
+    reg         mul_dep2_valid;
+    reg         mul_dep3_valid;
+    reg  [4:0]  mul_dep1_rd;
+    reg  [4:0]  mul_dep2_rd;
+    reg  [4:0]  mul_dep3_rd;
     reg         jalr_pc_valid [0:JALR_PC_STAT_SLOTS-1];
     reg  [31:0] jalr_pc_addr  [0:JALR_PC_STAT_SLOTS-1];
     integer     jalr_pc_exec  [0:JALR_PC_STAT_SLOTS-1];
@@ -208,6 +226,30 @@ module cpu_tb;
                               && u_cpu.id_jalr_flag
                               && prev_issue_valid
                               && prev_issue_is_auipc;
+    wire [6:0] issue_opcode     = u_cpu.id_instr[6:0];
+    wire       issue_rs1_used   = issue_instr_fire
+                               && !(issue_opcode == 7'b0110111)
+                               && !(issue_opcode == 7'b0010111)
+                               && !(issue_opcode == 7'b1101111);
+    wire       issue_rs2_used   = issue_instr_fire
+                               && ((issue_opcode == 7'b0110011)
+                                || (issue_opcode == 7'b0100011)
+                                || (issue_opcode == 7'b1100011));
+    wire       issue_is_mul     = issue_instr_fire
+                               && (issue_opcode == 7'b0110011)
+                               && (u_cpu.id_instr[31:25] == 7'b0000001);
+    wire       mul_dep_hit_d1   = issue_instr_fire
+                               && mul_dep1_valid
+                               && (((issue_rs1_used && (u_cpu.id_rs1_addr == mul_dep1_rd)))
+                                || ((issue_rs2_used && (u_cpu.id_rs2_addr == mul_dep1_rd))));
+    wire       mul_dep_hit_d2   = issue_instr_fire
+                               && mul_dep2_valid
+                               && (((issue_rs1_used && (u_cpu.id_rs1_addr == mul_dep2_rd)))
+                                || ((issue_rs2_used && (u_cpu.id_rs2_addr == mul_dep2_rd))));
+    wire       mul_dep_hit_d3   = issue_instr_fire
+                               && mul_dep3_valid
+                               && (((issue_rs1_used && (u_cpu.id_rs1_addr == mul_dep3_rd)))
+                                || ((issue_rs2_used && (u_cpu.id_rs2_addr == mul_dep3_rd))));
 
     function integer pct_x100;
         input integer numer;
@@ -230,7 +272,6 @@ module cpu_tb;
 
     task print_bp_stats;
         input integer show_cycle;
-        input integer win_cycle;
         input integer total_instr;
         input integer total_flush;
         input integer total_load_stall;
@@ -258,39 +299,15 @@ module cpu_tb;
         input integer total_dir_correct;
         input integer total_target_correct;
         input integer total_mispredict;
-        input integer total_btb_hit;
+        input integer total_if_branch_hit;
         input integer total_slot1_redirect;
         input integer total_wb_commit;
-        input integer win_instr;
-        input integer win_flush;
-        input integer win_load_stall;
-        input integer win_mul_hold;
-        input integer win_other_bubble;
-        input integer win_branch;
-        input integer win_branch_taken;
-        input integer win_branch_both_taken;
-        input integer win_jal;
-        input integer win_jal_pred;
-        input integer win_jal_correct;
-        input integer win_jalr;
-        input integer win_jalr_pred;
-        input integer win_jalr_correct;
-        input integer win_ret;
-        input integer win_ret_pred;
-        input integer win_ret_correct;
-        input integer win_call_jalr;
-        input integer win_call_jalr_pred;
-        input integer win_call_jalr_correct;
-        input integer win_indirect_jalr;
-        input integer win_indirect_jalr_pred;
-        input integer win_indirect_jalr_correct;
-        input integer win_pred_taken;
-        input integer win_dir_correct;
-        input integer win_target_correct;
-        input integer win_mispredict;
-        input integer win_btb_hit;
-        input integer win_slot1_redirect;
-        input integer win_wb_commit;
+        input integer total_mul_exec;
+        input integer total_mul_follow_slot;
+        input integer total_mul_dep_slot;
+        input integer total_mul_dep_d1;
+        input integer total_mul_dep_d2;
+        input integer total_mul_dep_d3;
         integer total_dir_acc_x100;
         integer total_taken_prec_x100;
         integer total_taken_recall_x100;
@@ -314,39 +331,15 @@ module cpu_tb;
         integer total_branch_nt;
         integer total_ctrl_total;
         integer total_loss;
-        integer win_loss;
         integer total_loss_pct_x100;
-        integer win_loss_pct_x100;
         integer total_flush_share_x100;
         integer total_load_stall_share_x100;
         integer total_mul_hold_share_x100;
         integer total_other_bubble_share_x100;
-        integer win_flush_share_x100;
-        integer win_load_stall_share_x100;
-        integer win_mul_hold_share_x100;
-        integer win_other_bubble_share_x100;
-        integer win_dir_acc_x100;
-        integer win_taken_prec_x100;
-        integer win_taken_recall_x100;
-        integer win_target_acc_x100;
-        integer win_pred_cov_x100;
-        integer win_miss_rate_x100;
-        integer win_ctrl_share_x100;
-        integer win_ipc_x1000;
-        integer win_jal_acc_x100;
-        integer win_jal_pred_rate_x100;
-        integer win_jalr_acc_x100;
-        integer win_jalr_pred_rate_x100;
-        integer win_ret_acc_x100;
-        integer win_ret_pred_rate_x100;
-        integer win_call_jalr_acc_x100;
-        integer win_call_jalr_pred_rate_x100;
-        integer win_indirect_jalr_acc_x100;
-        integer win_indirect_jalr_pred_rate_x100;
-        integer win_dir_wrong;
-        integer win_target_wrong;
-        integer win_branch_nt;
-        integer win_ctrl_total;
+        integer total_mul_dep_pct_x100;
+        integer total_mul_dep_d1_pct_x100;
+        integer total_mul_dep_d2_pct_x100;
+        integer total_mul_dep_d3_pct_x100;
         begin
             total_dir_acc_x100      = pct_x100(total_dir_correct, total_branch);
             total_taken_prec_x100   = pct_x100(total_target_correct, total_pred_taken);
@@ -376,34 +369,10 @@ module cpu_tb;
             total_load_stall_share_x100 = pct_x100(total_load_stall, total_loss);
             total_mul_hold_share_x100   = pct_x100(total_mul_hold, total_loss);
             total_other_bubble_share_x100 = pct_x100(total_other_bubble, total_loss);
-            win_dir_acc_x100        = pct_x100(win_dir_correct, win_branch);
-            win_taken_prec_x100     = pct_x100(win_target_correct, win_pred_taken);
-            win_taken_recall_x100   = pct_x100(win_target_correct, win_branch_taken);
-            win_target_acc_x100     = pct_x100(win_target_correct, win_branch_both_taken);
-            win_pred_cov_x100       = pct_x100(win_pred_taken, win_branch);
-            win_miss_rate_x100      = pct_x100(win_mispredict, win_branch);
-            win_ctrl_total          = win_branch + win_jal + win_jalr;
-            win_ctrl_share_x100     = pct_x100(win_ctrl_total, win_instr);
-            win_ipc_x1000           = (win_cycle != 0) ? ((win_instr * 1000 + (win_cycle / 2)) / win_cycle) : 0;
-            win_jal_acc_x100        = pct_x100(win_jal_correct, win_jal);
-            win_jal_pred_rate_x100  = pct_x100(win_jal_pred, win_jal);
-            win_jalr_acc_x100       = pct_x100(win_jalr_correct, win_jalr);
-            win_jalr_pred_rate_x100 = pct_x100(win_jalr_pred, win_jalr);
-            win_ret_acc_x100        = pct_x100(win_ret_correct, win_ret);
-            win_ret_pred_rate_x100  = pct_x100(win_ret_pred, win_ret);
-            win_call_jalr_acc_x100  = pct_x100(win_call_jalr_correct, win_call_jalr);
-            win_call_jalr_pred_rate_x100 = pct_x100(win_call_jalr_pred, win_call_jalr);
-            win_indirect_jalr_acc_x100 = pct_x100(win_indirect_jalr_correct, win_indirect_jalr);
-            win_indirect_jalr_pred_rate_x100 = pct_x100(win_indirect_jalr_pred, win_indirect_jalr);
-            win_dir_wrong           = win_branch - win_dir_correct;
-            win_target_wrong        = win_branch_both_taken - win_target_correct;
-            win_branch_nt           = win_branch - win_branch_taken;
-            win_loss                = win_cycle - win_instr;
-            win_loss_pct_x100       = pct_x100(win_loss, win_cycle);
-            win_flush_share_x100      = pct_x100(win_flush, win_loss);
-            win_load_stall_share_x100 = pct_x100(win_load_stall, win_loss);
-            win_mul_hold_share_x100   = pct_x100(win_mul_hold, win_loss);
-            win_other_bubble_share_x100 = pct_x100(win_other_bubble, win_loss);
+            total_mul_dep_pct_x100   = pct_x100(total_mul_dep_slot, total_mul_follow_slot);
+            total_mul_dep_d1_pct_x100 = pct_x100(total_mul_dep_d1, total_mul_exec);
+            total_mul_dep_d2_pct_x100 = pct_x100(total_mul_dep_d2, total_mul_exec);
+            total_mul_dep_d3_pct_x100 = pct_x100(total_mul_dep_d3, total_mul_exec);
 
             $display("");
             $display("[STAT][%0d cyc] KEY total: IPC=%0d.%03d  CTRL=%0d.%02d%%  |  BR dir_acc=%0d.%02d%%  taken_ok_prec=%0d.%02d%%  taken_ok_rec=%0d.%02d%%  miss=%0d.%02d%%",
@@ -414,14 +383,6 @@ module cpu_tb;
                      total_taken_prec_x100 / 100, total_taken_prec_x100 % 100,
                      total_taken_recall_x100 / 100, total_taken_recall_x100 % 100,
                      total_miss_rate_x100 / 100, total_miss_rate_x100 % 100);
-            $display("[STAT][%0d cyc] KEY win  : IPC=%0d.%03d  CTRL=%0d.%02d%%  |  BR dir_acc=%0d.%02d%%  taken_ok_prec=%0d.%02d%%  taken_ok_rec=%0d.%02d%%  miss=%0d.%02d%%",
-                     show_cycle,
-                     win_ipc_x1000 / 1000, win_ipc_x1000 % 1000,
-                     win_ctrl_share_x100 / 100, win_ctrl_share_x100 % 100,
-                     win_dir_acc_x100 / 100, win_dir_acc_x100 % 100,
-                     win_taken_prec_x100 / 100, win_taken_prec_x100 % 100,
-                     win_taken_recall_x100 / 100, win_taken_recall_x100 % 100,
-                     win_miss_rate_x100 / 100, win_miss_rate_x100 % 100);
             $display("[STAT][%0d cyc] BR  total: all=%0d taken=%0d nt=%0d predT=%0d cover=%0d.%02d%% bothT=%0d dir_ok=%0d dir_bad=%0d tgt_ok=%0d tgt_bad=%0d tgt_acc=%0d.%02d%% mis=%0d",
                      show_cycle,
                      total_branch, total_branch_taken, total_branch_nt, total_pred_taken,
@@ -430,14 +391,6 @@ module cpu_tb;
                      total_target_correct, total_target_wrong,
                      total_target_acc_x100 / 100, total_target_acc_x100 % 100,
                      total_mispredict);
-            $display("[STAT][%0d cyc] BR  win  : all=%0d taken=%0d nt=%0d predT=%0d cover=%0d.%02d%% bothT=%0d dir_ok=%0d dir_bad=%0d tgt_ok=%0d tgt_bad=%0d tgt_acc=%0d.%02d%% mis=%0d",
-                     show_cycle,
-                     win_branch, win_branch_taken, win_branch_nt, win_pred_taken,
-                     win_pred_cov_x100 / 100, win_pred_cov_x100 % 100,
-                     win_branch_both_taken, win_dir_correct, win_dir_wrong,
-                     win_target_correct, win_target_wrong,
-                     win_target_acc_x100 / 100, win_target_acc_x100 % 100,
-                     win_mispredict);
             $display("[STAT][%0d cyc] JMP total: jal=%0d pred=%0d(%0d.%02d%%) ok=%0d(%0d.%02d%%)  |  jalr=%0d pred=%0d(%0d.%02d%%) ok=%0d(%0d.%02d%%)",
                      show_cycle,
                      total_jal, total_jal_pred, total_jal_pred_rate_x100 / 100, total_jal_pred_rate_x100 % 100,
@@ -452,16 +405,11 @@ module cpu_tb;
                      total_call_jalr_correct, total_call_jalr_acc_x100 / 100, total_call_jalr_acc_x100 % 100,
                      total_indirect_jalr, total_indirect_jalr_pred, total_indirect_jalr_pred_rate_x100 / 100, total_indirect_jalr_pred_rate_x100 % 100,
                      total_indirect_jalr_correct, total_indirect_jalr_acc_x100 / 100, total_indirect_jalr_acc_x100 % 100);
-            $display("[STAT][%0d cyc] FE  total: preif_btb_hit=%0d(%0d.%02d%% cyc)  slot1_redir=%0d(%0d.%02d%% cyc)  wb=%0d",
+            $display("[STAT][%0d cyc] FE  total: if_branch_hit=%0d(%0d.%02d%% cyc)  slot1_redir=%0d(%0d.%02d%% cyc)  wb=%0d",
                      show_cycle,
-                     total_btb_hit, pct_x100(total_btb_hit, show_cycle) / 100, pct_x100(total_btb_hit, show_cycle) % 100,
+                     total_if_branch_hit, pct_x100(total_if_branch_hit, show_cycle) / 100, pct_x100(total_if_branch_hit, show_cycle) % 100,
                      total_slot1_redirect, pct_x100(total_slot1_redirect, show_cycle) / 100, pct_x100(total_slot1_redirect, show_cycle) % 100,
                      total_wb_commit);
-            $display("[STAT][%0d cyc] FE  win  : preif_btb_hit=%0d(%0d.%02d%% cyc)  slot1_redir=%0d(%0d.%02d%% cyc)  wb=%0d",
-                     show_cycle,
-                     win_btb_hit, pct_x100(win_btb_hit, win_cycle) / 100, pct_x100(win_btb_hit, win_cycle) % 100,
-                     win_slot1_redirect, pct_x100(win_slot1_redirect, win_cycle) / 100, pct_x100(win_slot1_redirect, win_cycle) % 100,
-                     win_wb_commit);
             $display("[STAT][%0d cyc] NOTE: taken_ok = predicted taken + actually taken + target correct", show_cycle);
             $display("[STAT][%0d cyc] LOSS total=%0d (%0d.%02d%% cyc): flush=%0d(%0d.%02d%%) ld=%0d(%0d.%02d%%) mul=%0d(%0d.%02d%%) bub=%0d(%0d.%02d%%)",
                      show_cycle,
@@ -470,13 +418,14 @@ module cpu_tb;
                      total_load_stall, total_load_stall_share_x100 / 100, total_load_stall_share_x100 % 100,
                      total_mul_hold, total_mul_hold_share_x100 / 100, total_mul_hold_share_x100 % 100,
                      total_other_bubble, total_other_bubble_share_x100 / 100, total_other_bubble_share_x100 % 100);
-            $display("[STAT][%0d cyc] LOSS win  =%0d (%0d.%02d%% cyc): flush=%0d(%0d.%02d%%) ld=%0d(%0d.%02d%%) mul=%0d(%0d.%02d%%) bub=%0d(%0d.%02d%%)",
+            $display("[STAT][%0d cyc] MDEP total: mul=%0d  dep=%0d/%0d(%0d.%02d%%)  |  d1=%0d(%0d.%02d%% of mul)  d2=%0d(%0d.%02d%%)  d3=%0d(%0d.%02d%%)",
                      show_cycle,
-                     win_loss, win_loss_pct_x100 / 100, win_loss_pct_x100 % 100,
-                     win_flush, win_flush_share_x100 / 100, win_flush_share_x100 % 100,
-                     win_load_stall, win_load_stall_share_x100 / 100, win_load_stall_share_x100 % 100,
-                     win_mul_hold, win_mul_hold_share_x100 / 100, win_mul_hold_share_x100 % 100,
-                     win_other_bubble, win_other_bubble_share_x100 / 100, win_other_bubble_share_x100 % 100);
+                     total_mul_exec,
+                     total_mul_dep_slot, total_mul_follow_slot,
+                     total_mul_dep_pct_x100 / 100, total_mul_dep_pct_x100 % 100,
+                     total_mul_dep_d1, total_mul_dep_d1_pct_x100 / 100, total_mul_dep_d1_pct_x100 % 100,
+                     total_mul_dep_d2, total_mul_dep_d2_pct_x100 / 100, total_mul_dep_d2_pct_x100 % 100,
+                     total_mul_dep_d3, total_mul_dep_d3_pct_x100 / 100, total_mul_dep_d3_pct_x100 % 100);
         end
     endtask
 
@@ -556,8 +505,14 @@ module cpu_tb;
         dir_correct_total = 0;
         target_correct_total = 0;
         mispredict_total = 0;
-        btb_hit0_total = 0;
+        if_branch_hit_total = 0;
         slot1_redirect_total = 0;
+        mul_exec_total = 0;
+        mul_follow_slot_total = 0;
+        mul_dep_slot_total = 0;
+        mul_dep_d1_total = 0;
+        mul_dep_d2_total = 0;
+        mul_dep_d3_total = 0;
 
         cycle_snap = 0;
         instr_snap = 0;
@@ -596,12 +551,18 @@ module cpu_tb;
         dir_correct_snap = 0;
         target_correct_snap = 0;
         mispredict_snap = 0;
-        btb_hit0_snap = 0;
+        if_branch_hit_snap = 0;
         slot1_redirect_snap = 0;
         prev_issue_valid = 1'b0;
         prev_issue_we = 1'b0;
         prev_issue_rd = 5'd0;
         prev_issue_instr = 32'b0;
+        mul_dep1_valid = 1'b0;
+        mul_dep2_valid = 1'b0;
+        mul_dep3_valid = 1'b0;
+        mul_dep1_rd = 5'd0;
+        mul_dep2_rd = 5'd0;
+        mul_dep3_rd = 5'd0;
 
         for (init_i = 0; init_i < JALR_PC_STAT_SLOTS; init_i = init_i + 1) begin
             jalr_pc_valid[init_i] = 1'b0;
@@ -625,6 +586,12 @@ module cpu_tb;
             prev_issue_we    <= 1'b0;
             prev_issue_rd    <= 5'd0;
             prev_issue_instr <= 32'b0;
+            mul_dep1_valid   <= 1'b0;
+            mul_dep2_valid   <= 1'b0;
+            mul_dep3_valid   <= 1'b0;
+            mul_dep1_rd      <= 5'd0;
+            mul_dep2_rd      <= 5'd0;
+            mul_dep3_rd      <= 5'd0;
             for (init_i = 0; init_i < JALR_PC_STAT_SLOTS; init_i = init_i + 1) begin
                 jalr_pc_valid[init_i] <= 1'b0;
                 jalr_pc_addr[init_i]  <= 32'b0;
@@ -654,7 +621,7 @@ module cpu_tb;
             mul_hold_now       = mul_hold_total       + ((stat_cycle_win && !issue_instr_fire && u_cpu.pipeline_hold && !u_cpu.pipeline_flush && !u_cpu.pipeline_stall) ? 1 : 0);
             other_bubble_now   = other_bubble_total   + ((stat_cycle_win && !issue_instr_fire && !u_cpu.pipeline_flush && !u_cpu.pipeline_stall && !u_cpu.pipeline_hold) ? 1 : 0);
             wb_commit_now      = wb_commit_total      + ((stat_cycle_win && u_cpu.wb_regs_we) ? 1 : 0);
-            btb_hit0_now       = btb_hit0_total       + ((stat_cycle_win && u_cpu.preif_btb_hit) ? 1 : 0);
+            if_branch_hit_now  = if_branch_hit_total  + ((stat_cycle_win && u_cpu.if_branch_hit) ? 1 : 0);
             slot1_redirect_now = slot1_redirect_total + ((stat_cycle_win && u_cpu.slot1_pred_redirect) ? 1 : 0);
 
             branch_now         = branch_total;
@@ -811,7 +778,7 @@ module cpu_tb;
             mul_hold_total       <= mul_hold_now;
             other_bubble_total   <= other_bubble_now;
             wb_commit_total      <= wb_commit_now;
-            btb_hit0_total       <= btb_hit0_now;
+            if_branch_hit_total  <= if_branch_hit_now;
             slot1_redirect_total <= slot1_redirect_now;
             branch_total         <= branch_now;
             branch_taken_total   <= branch_taken_now;
@@ -845,10 +812,51 @@ module cpu_tb;
             mispredict_total     <= mispredict_now;
 
             if (issue_instr_fire) begin
+                mul_follow_inc   = 0;
+                mul_dep_slot_inc = 0;
+                mul_dep_d1_inc   = 0;
+                mul_dep_d2_inc   = 0;
+                mul_dep_d3_inc   = 0;
+                mul_exec_inc     = 0;
+                if (stat_cycle_win) begin
+                    if (mul_dep1_valid)
+                        mul_follow_inc = mul_follow_inc + 1;
+                    if (mul_dep2_valid)
+                        mul_follow_inc = mul_follow_inc + 1;
+                    if (mul_dep3_valid)
+                        mul_follow_inc = mul_follow_inc + 1;
+                    if (mul_dep_hit_d1) begin
+                        mul_dep_slot_inc = mul_dep_slot_inc + 1;
+                        mul_dep_d1_inc   = 1;
+                    end
+                    if (mul_dep_hit_d2) begin
+                        mul_dep_slot_inc = mul_dep_slot_inc + 1;
+                        mul_dep_d2_inc   = 1;
+                    end
+                    if (mul_dep_hit_d3) begin
+                        mul_dep_slot_inc = mul_dep_slot_inc + 1;
+                        mul_dep_d3_inc   = 1;
+                    end
+                    if (issue_is_mul && u_cpu.id_regs_we && (u_cpu.id_regs_w_addr != 5'd0))
+                        mul_exec_inc = 1;
+
+                    mul_follow_slot_total <= mul_follow_slot_total + mul_follow_inc;
+                    mul_dep_slot_total    <= mul_dep_slot_total + mul_dep_slot_inc;
+                    mul_dep_d1_total      <= mul_dep_d1_total + mul_dep_d1_inc;
+                    mul_dep_d2_total      <= mul_dep_d2_total + mul_dep_d2_inc;
+                    mul_dep_d3_total      <= mul_dep_d3_total + mul_dep_d3_inc;
+                    mul_exec_total        <= mul_exec_total + mul_exec_inc;
+                end
                 prev_issue_valid <= 1'b1;
                 prev_issue_we    <= u_cpu.id_regs_we;
                 prev_issue_rd    <= u_cpu.id_regs_w_addr;
                 prev_issue_instr <= u_cpu.id_instr;
+                mul_dep3_valid   <= mul_dep2_valid;
+                mul_dep3_rd      <= mul_dep2_rd;
+                mul_dep2_valid   <= mul_dep1_valid;
+                mul_dep2_rd      <= mul_dep1_rd;
+                mul_dep1_valid   <= issue_is_mul && u_cpu.id_regs_we && (u_cpu.id_regs_w_addr != 5'd0);
+                mul_dep1_rd      <= u_cpu.id_regs_w_addr;
             end
 
             if (PERIODIC_STATS_ENABLE && BP_STATS_ENABLE && (stat_cycle_total != 0)
@@ -890,11 +898,10 @@ module cpu_tb;
                 dir_correct_win    = dir_correct_now    - dir_correct_snap;
                 target_correct_win = target_correct_now - target_correct_snap;
                 mispredict_win     = mispredict_now     - mispredict_snap;
-                btb_hit0_win       = btb_hit0_now       - btb_hit0_snap;
+                if_branch_hit_win  = if_branch_hit_now  - if_branch_hit_snap;
                 slot1_redirect_win = slot1_redirect_now - slot1_redirect_snap;
 
                 print_bp_stats(stat_cycle_total,
-                               cycle_win,
                                instr_now,
                                flush_now, load_stall_now, mul_hold_now, other_bubble_now,
                                branch_now, branch_taken_now, branch_both_taken_now,
@@ -905,34 +912,9 @@ module cpu_tb;
                                indirect_jalr_now, indirect_jalr_pred_now, indirect_jalr_correct_now,
                                pred_taken_now,
                                dir_correct_now, target_correct_now, mispredict_now,
-                               btb_hit0_now, slot1_redirect_now, wb_commit_now,
-                               instr_win,
-                               flush_win, load_stall_win, mul_hold_win, other_bubble_win,
-                               branch_win, branch_taken_win, branch_both_taken_win,
-                               jal_win, jal_pred_win, jal_correct_win,
-                               jalr_win, jalr_pred_win, jalr_correct_win,
-                               ret_win, ret_pred_win, ret_correct_win,
-                               call_jalr_win, call_jalr_pred_win, call_jalr_correct_win,
-                               indirect_jalr_win, indirect_jalr_pred_win, indirect_jalr_correct_win,
-                               pred_taken_win,
-                               dir_correct_win, target_correct_win, mispredict_win,
-                               btb_hit0_win, slot1_redirect_win, wb_commit_win);
-                $display("[STAT][%0d cyc] JALR dep win : prev_wr_rs1=%0d(%0d.%02d%%)  |  ret=%0d  call=%0d  other=%0d",
-                         stat_cycle_total,
-                         jalr_prev_wr_rs1_win,
-                         pct_x100(jalr_prev_wr_rs1_win, jalr_win) / 100,
-                         pct_x100(jalr_prev_wr_rs1_win, jalr_win) % 100,
-                         ret_prev_wr_rs1_win,
-                         call_jalr_prev_wr_rs1_win,
-                         indirect_jalr_prev_wr_rs1_win);
-                $display("[STAT][%0d cyc] AUIPC+JALR win: pair=%0d(%0d.%02d%%)  |  ret=%0d  call=%0d  other=%0d",
-                         stat_cycle_total,
-                         auipc_jalr_win,
-                         pct_x100(auipc_jalr_win, jalr_win) / 100,
-                         pct_x100(auipc_jalr_win, jalr_win) % 100,
-                         auipc_ret_win,
-                         auipc_call_jalr_win,
-                         auipc_indirect_jalr_win);
+                               if_branch_hit_now, slot1_redirect_now, wb_commit_now,
+                               mul_exec_total, mul_follow_slot_total, mul_dep_slot_total,
+                               mul_dep_d1_total, mul_dep_d2_total, mul_dep_d3_total);
 
                 cycle_snap          <= stat_cycle_total;
                 instr_snap          <= instr_now;
@@ -971,7 +953,7 @@ module cpu_tb;
                 dir_correct_snap    <= dir_correct_now;
                 target_correct_snap <= target_correct_now;
                 mispredict_snap     <= mispredict_now;
-                btb_hit0_snap       <= btb_hit0_now;
+                if_branch_hit_snap  <= if_branch_hit_now;
                 slot1_redirect_snap <= slot1_redirect_now;
             end
         end
@@ -1056,13 +1038,12 @@ module cpu_tb;
             dir_correct_win    = dir_correct_total    - dir_correct_snap;
             target_correct_win = target_correct_total - target_correct_snap;
             mispredict_win     = mispredict_total     - mispredict_snap;
-            btb_hit0_win       = btb_hit0_total       - btb_hit0_snap;
+            if_branch_hit_win  = if_branch_hit_total  - if_branch_hit_snap;
             slot1_redirect_win = slot1_redirect_total - slot1_redirect_snap;
 
             if (BP_STATS_ENABLE) begin
                 $display("");
                 print_bp_stats(stat_cycle_total,
-                               cycle_win,
                                instr_total,
                                flush_total, load_stall_total, mul_hold_total, other_bubble_total,
                                branch_total, branch_taken_total, branch_both_taken_total,
@@ -1073,18 +1054,9 @@ module cpu_tb;
                                indirect_jalr_total, indirect_jalr_pred_total, indirect_jalr_correct_total,
                                pred_taken_total,
                                dir_correct_total, target_correct_total, mispredict_total,
-                               btb_hit0_total, slot1_redirect_total, wb_commit_total,
-                               instr_win,
-                               flush_win, load_stall_win, mul_hold_win, other_bubble_win,
-                               branch_win, branch_taken_win, branch_both_taken_win,
-                               jal_win, jal_pred_win, jal_correct_win,
-                               jalr_win, jalr_pred_win, jalr_correct_win,
-                               ret_win, ret_pred_win, ret_correct_win,
-                               call_jalr_win, call_jalr_pred_win, call_jalr_correct_win,
-                               indirect_jalr_win, indirect_jalr_pred_win, indirect_jalr_correct_win,
-                               pred_taken_win,
-                               dir_correct_win, target_correct_win, mispredict_win,
-                               btb_hit0_win, slot1_redirect_win, wb_commit_win);
+                               if_branch_hit_total, slot1_redirect_total, wb_commit_total,
+                               mul_exec_total, mul_follow_slot_total, mul_dep_slot_total,
+                               mul_dep_d1_total, mul_dep_d2_total, mul_dep_d3_total);
                 print_jalr_pc_stats();
                 $display("[STAT][%0d cyc] JALR dep total: prev_wr_rs1=%0d(%0d.%02d%%)  |  ret=%0d  call=%0d  other=%0d",
                          stat_cycle_total,
@@ -1094,14 +1066,6 @@ module cpu_tb;
                          ret_prev_wr_rs1_total,
                          call_jalr_prev_wr_rs1_total,
                          indirect_jalr_prev_wr_rs1_total);
-                $display("[STAT][%0d cyc] JALR dep win  : prev_wr_rs1=%0d(%0d.%02d%%)  |  ret=%0d  call=%0d  other=%0d",
-                         stat_cycle_total,
-                         jalr_prev_wr_rs1_win,
-                         pct_x100(jalr_prev_wr_rs1_win, jalr_win) / 100,
-                         pct_x100(jalr_prev_wr_rs1_win, jalr_win) % 100,
-                         ret_prev_wr_rs1_win,
-                         call_jalr_prev_wr_rs1_win,
-                         indirect_jalr_prev_wr_rs1_win);
                 $display("[STAT][%0d cyc] AUIPC+JALR total: pair=%0d(%0d.%02d%%)  |  ret=%0d  call=%0d  other=%0d",
                          stat_cycle_total,
                          auipc_jalr_total,
@@ -1110,14 +1074,6 @@ module cpu_tb;
                          auipc_ret_total,
                          auipc_call_jalr_total,
                          auipc_indirect_jalr_total);
-                $display("[STAT][%0d cyc] AUIPC+JALR win  : pair=%0d(%0d.%02d%%)  |  ret=%0d  call=%0d  other=%0d",
-                         stat_cycle_total,
-                         auipc_jalr_win,
-                         pct_x100(auipc_jalr_win, jalr_win) / 100,
-                         pct_x100(auipc_jalr_win, jalr_win) % 100,
-                         auipc_ret_win,
-                         auipc_call_jalr_win,
-                         auipc_indirect_jalr_win);
             end
             $display("LED = %04X", u_cpu.u_mmio.led);
             if (u_cpu.u_mmio.led == 16'h0000)
