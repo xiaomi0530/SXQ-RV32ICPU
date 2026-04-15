@@ -125,6 +125,10 @@ module cpu(
     wire        id_dmem_we;
     wire        id_dmem_re;
     wire [31:0] id_dmem_w_data;
+    wire        id_mul_op;
+    wire        id_mul_signed_a;
+    wire        id_mul_signed_b;
+    wire        id_mul_preload;
 
     wire        id_branch_flag;
     wire        id_jump_flag;
@@ -247,6 +251,11 @@ module cpu(
     wire [4:0]  wb_regs_w_addr;
     wire [31:0] wb_actual_regs_w_data;
 
+    localparam [3:0] ALU_OP_MUL    = 4'b1001;
+    localparam [3:0] ALU_OP_MULH   = 4'b1010;
+    localparam [3:0] ALU_OP_MULHSU = 4'b1011;
+    localparam [3:0] ALU_OP_MULHU  = 4'b1111;
+
     // ------------------------------------------------------------------------
     // Timing helper / fanout split signals
     // ------------------------------------------------------------------------
@@ -328,6 +337,19 @@ module cpu(
     assign imem_bus_re           = bus_s0_stb && !bus_s0_we;
     assign slot1_capture_en      = preif_valid && !imem_bus_re;
     assign mem_actual_regs_w_data = mem_dmem_re ? mem_dmem_r_data : mem_regs_w_data;
+    assign id_mul_op             = (id_alu_op == ALU_OP_MUL)
+                                || (id_alu_op == ALU_OP_MULH)
+                                || (id_alu_op == ALU_OP_MULHSU)
+                                || (id_alu_op == ALU_OP_MULHU);
+    assign id_mul_signed_a       = (id_alu_op == ALU_OP_MUL)
+                                || (id_alu_op == ALU_OP_MULH)
+                                || (id_alu_op == ALU_OP_MULHSU);
+    assign id_mul_signed_b       = (id_alu_op == ALU_OP_MUL)
+                                || (id_alu_op == ALU_OP_MULH);
+    assign id_mul_preload        = id_mul_op
+                                && !pipeline_flush
+                                && !pipeline_stall
+                                && !pipeline_hold;
 
     wire        pipeline_hold_if          = pipeline_hold;
     wire        pipeline_hold_id          = pipeline_hold;
@@ -576,6 +598,11 @@ module cpu(
     assign pipeline_flush = ex_mispredict;
 
     ex u_ex(
+        .mul_preload           (id_mul_preload         ),
+        .mul_preload_signed_a  (id_mul_signed_a        ),
+        .mul_preload_signed_b  (id_mul_signed_b        ),
+        .mul_preload_op_a      (id_alu_num1            ),
+        .mul_preload_op_b      (id_alu_num2            ),
         .clk                   (clk                   ),
         .rst_n                 (rst_n                 ),
         .ex_instr_addr         (ex_instr_addr         ),

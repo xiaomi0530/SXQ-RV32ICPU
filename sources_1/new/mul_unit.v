@@ -3,7 +3,7 @@
 module mul_unit(
     input  wire        clk,
     input  wire        rst_n,
-    input  wire        start,
+    input  wire        preload,
     input  wire        signed_a,
     input  wire        signed_b,
     input  wire [31:0] op_a,
@@ -16,8 +16,8 @@ module mul_unit(
 
     reg        busy;
     reg [1:0]  latency_cnt;
-    wire       start_en = start && !busy;
-    wire       dsp_ce   = busy | start_en;
+    wire       preload_en = preload && !busy;
+    wire       dsp_ce     = busy | preload_en;
 
     reg signed [16:0] a_hi_q;
     reg signed [16:0] b_hi_q;
@@ -31,7 +31,7 @@ module mul_unit(
             latency_cnt <= 2'd0;
         end else begin
             ready <= 1'b0;
-            if(start_en) begin
+            if(preload_en) begin
                 busy        <= 1'b1;
                 latency_cnt <= MUL_LATENCY - 1;
             end else if(busy) begin
@@ -51,7 +51,7 @@ module mul_unit(
             b_hi_q <= 17'sd0;
             a_lo_q <= 17'sd0;
             b_lo_q <= 17'sd0;
-        end else if(start_en) begin
+        end else if(preload_en) begin
             a_hi_q <= signed_a ? {op_a[31], op_a[31:16]} : {1'b0, op_a[31:16]};
             b_hi_q <= signed_b ? {op_b[31], op_b[31:16]} : {1'b0, op_b[31:16]};
             a_lo_q <= {1'b0, op_a[15:0]};

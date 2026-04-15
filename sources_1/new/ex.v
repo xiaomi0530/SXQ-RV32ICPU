@@ -3,6 +3,11 @@
 module ex(
     input wire        clk,
     input wire        rst_n,
+    input wire        mul_preload,
+    input wire        mul_preload_signed_a,
+    input wire        mul_preload_signed_b,
+    input wire [31:0] mul_preload_op_a,
+    input wire [31:0] mul_preload_op_b,
     input wire [31:0] ex_instr_addr, 
     input wire        ex_pred_taken,
     input wire [31:0] ex_pred_target,
@@ -53,37 +58,22 @@ module ex(
     wire is_mulhu  = (ex_alu_op == ALU_OP_MULHU);
     wire mul_op    = is_mul | is_mulh | is_mulhsu | is_mulhu;
 
-    reg mul_inflight;
-    wire mul_start = mul_op && !mul_inflight;
-    wire signed_a  = is_mul | is_mulh | is_mulhsu;
-    wire signed_b  = is_mul | is_mulh;
-
     wire [63:0] mul_result;
     wire        mul_ready;
 
     mul_unit u_mul_unit (
         .clk     (clk),
         .rst_n   (rst_n),
-        .start   (mul_start),
-        .signed_a(signed_a),
-        .signed_b(signed_b),
-        .op_a    (ex_alu_num1),
-        .op_b    (ex_alu_num2),
+        .preload (mul_preload),
+        .signed_a(mul_preload_signed_a),
+        .signed_b(mul_preload_signed_b),
+        .op_a    (mul_preload_op_a),
+        .op_b    (mul_preload_op_b),
         .result  (mul_result),
         .ready   (mul_ready)
     );
 
-    always @(posedge clk) begin
-        if (rst_n == `RST_ENABLE)
-            mul_inflight <= 1'b0;
-        else if (mul_ready)
-            mul_inflight <= 1'b0;
-        else if (mul_start)
-            mul_inflight <= 1'b1;
-    end
-
-    wire mul_hold = mul_start | (mul_inflight && !mul_ready);
-    assign ex_mul_busy = mul_hold;
+    assign ex_mul_busy = mul_op && !mul_ready;
 
     reg [31:0] alu_out;
 
