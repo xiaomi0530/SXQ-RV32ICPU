@@ -17,16 +17,17 @@ module branch_predictor #(
     input  wire        update_taken
 );
 
-    localparam integer TAG_BITS = 30 - INDEX_BITS;
+    localparam integer PC_CANON_BITS = 15;
+    localparam integer TAG_BITS      = PC_CANON_BITS - INDEX_BITS - 2;
 
     reg [ENTRY_NUM-1:0]              branch_valid;
     reg [TAG_BITS-1:0]               branch_tag    [0:ENTRY_NUM-1];
     reg [1:0]                        bht_ctr    [0:ENTRY_NUM-1];
 
     wire [INDEX_BITS-1:0] lookup_idx0 = lookup_pc0[INDEX_BITS+1:2] ^ lookup_hash0;
-    wire [TAG_BITS-1:0]   lookup_tag0 = lookup_pc0[31:INDEX_BITS+2];
-    wire [INDEX_BITS-1:0] update_idx = update_pc[INDEX_BITS+1:2] ^ update_hash;
-    wire [TAG_BITS-1:0]   update_tag = update_pc[31:INDEX_BITS+2];
+    wire [TAG_BITS-1:0]   lookup_tag0 = lookup_pc0[PC_CANON_BITS-1:INDEX_BITS+2];
+    wire [INDEX_BITS-1:0] update_idx  = update_pc[INDEX_BITS+1:2] ^ update_hash;
+    wire [TAG_BITS-1:0]   update_tag  = update_pc[PC_CANON_BITS-1:INDEX_BITS+2];
 
     assign branch_hit0     = lookup_is_branch0 && branch_valid[lookup_idx0] && (branch_tag[lookup_idx0] == lookup_tag0);
     assign pred_taken0  = branch_hit0 && bht_ctr[lookup_idx0][1];
