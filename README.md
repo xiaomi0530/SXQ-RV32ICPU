@@ -23,3 +23,6 @@ Board: xc7a100tcsg324-1 (Artix-7)
 
 ***Version 4.10*** || CoreMark = **259.2 Iterations / sec** || **100MHz** || WNS **0.119ns** WHS **0.075ns** || LUT: **3257**\
 ———1.优化分支预测 2.加入跳转预测 *具体的太多了，我也说不清了，在持续优化中，此版本仅为git暂存版
+
+***Version 4.16*** || CoreMark = **265.6 Iterations / sec** || **100MHz** || WNS **0.025ns** WHS **0.066ns** || LUT: **2632**\
+———1.修正分支预测与预取机制 2.时序优化 3.将mul的操作数输入提前一个周期（至ID阶段）
