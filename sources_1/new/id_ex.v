@@ -1,6 +1,9 @@
 `timescale 1ns / 1ps
+`include "branch_predictor_cfg.vh"
 
-module id_ex(
+module id_ex #(
+    parameter integer BR_HASH_BITS = `BR_PRED_INDEX_BITS
+)(
     input  wire        clk,
     input  wire        rst_n,
     input  wire        pipeline_stall,
@@ -8,6 +11,7 @@ module id_ex(
     input  wire        pipeline_flush,
 
     input  wire [31:0] id_instr_addr,
+    input  wire        id_branch_nohit,
     input  wire        id_pred_taken,
     input  wire [31:0] id_pred_target,
 
@@ -22,13 +26,14 @@ module id_ex(
     input  wire [31:0] id_dmem_w_data,
     input  wire        id_branch_flag,
     input  wire [31:0] id_branch_jump_addr,
-    input  wire [3:0]  id_branch_hash,
+    input  wire [BR_HASH_BITS-1:0]  id_branch_hash,
     input  wire        id_jump_flag,
     input  wire        id_jalr_flag,
     input  wire        id_call_flag,
     input  wire        id_ret_flag,
 
     output reg  [31:0] ex_instr_addr,
+    output reg         ex_branch_nohit,
     output reg         ex_pred_taken,
     output reg  [31:0] ex_pred_target,
     output reg  [31:0] ex_alu_num1,
@@ -42,7 +47,7 @@ module id_ex(
     output reg  [31:0] ex_dmem_w_data,
     output reg         ex_branch_flag,
     output reg  [31:0] ex_branch_jump_addr,
-    output reg  [3:0]  ex_branch_hash,
+    output reg  [BR_HASH_BITS-1:0]  ex_branch_hash,
     output reg         ex_jump_flag,
     output reg         ex_jalr_flag,
     output reg         ex_call_flag,
@@ -59,6 +64,7 @@ module id_ex(
             ex_jalr_flag   <= 1'b0;
             ex_call_flag   <= 1'b0;
             ex_ret_flag    <= 1'b0;
+            ex_branch_nohit <= 1'b0;
             ex_pred_taken  <= 1'b0;
         end else if (pipeline_flush) begin
             ex_regs_we     <= 1'b0;
@@ -69,6 +75,7 @@ module id_ex(
             ex_jalr_flag   <= 1'b0;
             ex_call_flag   <= 1'b0;
             ex_ret_flag    <= 1'b0;
+            ex_branch_nohit <= 1'b0;
             ex_pred_taken  <= 1'b0;
         end else if (pipeline_stall) begin
             ex_regs_we     <= 1'b0;
@@ -79,6 +86,7 @@ module id_ex(
             ex_jalr_flag   <= 1'b0;
             ex_call_flag   <= 1'b0;
             ex_ret_flag    <= 1'b0;
+            ex_branch_nohit <= 1'b0;
             ex_pred_taken  <= 1'b0;
         end else if (!pipeline_hold) begin
             ex_regs_we     <= id_regs_we;
@@ -89,6 +97,7 @@ module id_ex(
             ex_jalr_flag   <= id_jalr_flag;
             ex_call_flag   <= id_call_flag;
             ex_ret_flag    <= id_ret_flag;
+            ex_branch_nohit <= id_branch_nohit;
             ex_pred_taken  <= id_pred_taken;
         end
     end
@@ -104,7 +113,7 @@ module id_ex(
             ex_mem_op           <= 3'b0;
             ex_dmem_w_data      <= 32'b0;
             ex_branch_jump_addr <= 32'b0;
-            ex_branch_hash      <= 4'b0;
+            ex_branch_hash      <= {BR_HASH_BITS{1'b0}};
         end else if (pipeline_flush) begin
             ex_instr_addr       <= 32'b0;
             ex_pred_target      <= 32'b0;
@@ -115,7 +124,7 @@ module id_ex(
             ex_mem_op           <= 3'b0;
             ex_dmem_w_data      <= 32'b0;
             ex_branch_jump_addr <= 32'b0;
-            ex_branch_hash      <= 4'b0;
+            ex_branch_hash      <= {BR_HASH_BITS{1'b0}};
         end else if(!(pipeline_stall || pipeline_hold))begin
             ex_instr_addr       <= id_instr_addr;
             ex_pred_target      <= id_pred_target;

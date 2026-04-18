@@ -1,8 +1,11 @@
 `timescale 1ns / 1ps
+`include "branch_predictor_cfg.vh"
 
 module branch_predictor #(
-    parameter integer ENTRY_NUM  = 16,
-    parameter integer INDEX_BITS = 4
+    parameter integer ENTRY_NUM  = `BR_PRED_ENTRY_NUM,
+    parameter integer INDEX_BITS = `BR_PRED_INDEX_BITS,
+    parameter integer PC_CANON_BITS = `BR_PRED_PC_CANON_BITS,
+    parameter integer TAG_BITS = `BR_PRED_TAG_BITS
 )(
     input  wire        clk,
     input  wire        rst_n,
@@ -17,17 +20,30 @@ module branch_predictor #(
     input  wire        update_taken
 );
 
-    localparam integer PC_CANON_BITS = 15;
-    localparam integer TAG_BITS      = PC_CANON_BITS - INDEX_BITS - 2;
-
     reg [ENTRY_NUM-1:0]              branch_valid;
     reg [TAG_BITS-1:0]               branch_tag    [0:ENTRY_NUM-1];
     reg [1:0]                        bht_ctr    [0:ENTRY_NUM-1];
 
+    function [TAG_BITS-1:0] pack_branch_tag;
+        input [31:0] pc_value;
+        integer bit_idx;
+        integer src_idx;
+        begin
+            pack_branch_tag = {TAG_BITS{1'b0}};
+            for (src_idx = (INDEX_BITS + 2); src_idx < PC_CANON_BITS; src_idx = src_idx + 1) begin
+                bit_idx = src_idx - (INDEX_BITS + 2);
+                if (bit_idx < TAG_BITS)
+                    pack_branch_tag[bit_idx] = pc_value[src_idx];
+                else
+                    pack_branch_tag[bit_idx % TAG_BITS] = pack_branch_tag[bit_idx % TAG_BITS] ^ pc_value[src_idx];
+            end
+        end
+    endfunction
+
     wire [INDEX_BITS-1:0] lookup_idx0 = lookup_pc0[INDEX_BITS+1:2] ^ lookup_hash0;
-    wire [TAG_BITS-1:0]   lookup_tag0 = lookup_pc0[PC_CANON_BITS-1:INDEX_BITS+2];
+    wire [TAG_BITS-1:0]   lookup_tag0 = pack_branch_tag(lookup_pc0);
     wire [INDEX_BITS-1:0] update_idx  = update_pc[INDEX_BITS+1:2] ^ update_hash;
-    wire [TAG_BITS-1:0]   update_tag  = update_pc[PC_CANON_BITS-1:INDEX_BITS+2];
+    wire [TAG_BITS-1:0]   update_tag  = pack_branch_tag(update_pc);
 
     assign branch_hit0     = lookup_is_branch0 && branch_valid[lookup_idx0] && (branch_tag[lookup_idx0] == lookup_tag0);
     assign pred_taken0  = branch_hit0 && bht_ctr[lookup_idx0][1];

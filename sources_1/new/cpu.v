@@ -1,4 +1,5 @@
 `timescale 1ns / 1ps
+`include "branch_predictor_cfg.vh"
 
 module cpu(
     input  wire        clk,
@@ -12,8 +13,10 @@ module cpu(
 `else
     localparam integer UART_BAUD_RATE = 3_000_000;
 `endif
-    localparam integer BR_PRED_ENTRY_NUM  = 16;
-    localparam integer BR_PRED_INDEX_BITS = 4;
+    localparam integer BR_PRED_PC_CANON_BITS = `BR_PRED_PC_CANON_BITS;
+    localparam integer BR_PRED_ENTRY_NUM  = `BR_PRED_ENTRY_NUM;
+    localparam integer BR_PRED_INDEX_BITS = `BR_PRED_INDEX_BITS;
+    localparam integer BR_PRED_TAG_BITS   = `BR_PRED_TAG_BITS;
 
     // ------------------------------------------------------------------------
     // Global control
@@ -65,6 +68,7 @@ module cpu(
     wire [10:1] if_b_imm_lo;
     wire [31:0] if_jal_imm;
     wire [31:0] if_jalr_pred_target;
+    wire [14:0] if_jalr_pred_target_low;
     wire        if_jalr_pred_hit;
     wire [31:0] if_b_imm;
     wire [14:0] if_b_target_low;
@@ -75,7 +79,9 @@ module cpu(
     wire [BR_PRED_INDEX_BITS-1:0] if_branch_hash;
     wire        if_branch_pred_taken;
     wire        if_branch_hit;
+    wire        if_branch_pred_taken_eff;
     wire        if_pred_taken_eff;
+    wire [14:0] if_pred_target_low;
     wire [31:0] if_pred_target_eff;
 
     wire        if_pre_is_jal;
@@ -87,8 +93,10 @@ module cpu(
     wire [31:0] if_pre_jal_target_canon;
     wire        if_pre_jalr_pred_hit;
     wire [31:0] if_pre_jalr_pred_target;
+    wire [14:0] if_pre_jalr_pred_target_low;
     wire [31:0] if_pre_jtb_target_canon;
     wire        if_pre_pred_taken_eff;
+    wire [14:0] if_pre_pred_target_low;
     wire [31:0] if_pre_pred_target_eff;
     wire        id_take_live_if;
     wire        id_take_recovery_if;
@@ -101,11 +109,13 @@ module cpu(
     // ------------------------------------------------------------------------
     wire [31:0] id_instr_reg;
     wire [31:0] id_instr_addr_reg;
+    wire        id_branch_nohit_reg;
     wire        id_pred_taken_reg;
     wire [31:0] id_pred_target_reg;
 
     wire [31:0] id_instr;
     wire [31:0] id_instr_addr;
+    wire        id_branch_nohit;
     wire        id_pred_taken;
     wire [31:0] id_pred_target;
 
@@ -146,6 +156,7 @@ module cpu(
     // ------------------------------------------------------------------------
     wire [31:0] ex_instr_addr;
     wire [BR_PRED_INDEX_BITS-1:0] ex_branch_hash;
+    wire        ex_branch_nohit;
     wire        ex_pred_taken;
     wire [31:0] ex_pred_target;
 
@@ -168,6 +179,19 @@ module cpu(
     wire        ex_jalr_flag;
     wire        ex_call_flag;
     wire        ex_ret_flag;
+
+    function [BR_PRED_INDEX_BITS-1:0] branch_hash_mix;
+        input [31:0] pc_value;
+        input [10:1] imm_lo_value;
+        integer bit_idx;
+        begin
+            branch_hash_mix = {BR_PRED_INDEX_BITS{1'b0}};
+            for (bit_idx = 0; bit_idx < BR_PRED_INDEX_BITS; bit_idx = bit_idx + 1) begin
+                if (((6 + bit_idx) < BR_PRED_PC_CANON_BITS) && ((5 + bit_idx) <= 10))
+                    branch_hash_mix[bit_idx] = pc_value[6 + bit_idx] ^ imm_lo_value[5 + bit_idx];
+            end
+        end
+    endfunction
     wire [31:0] ex_branch_jump_addr;
 
     wire        ex_actual_jump_flag;
@@ -234,12 +258,11 @@ module cpu(
     reg  [31:0] ras_stack [0:RAS_DEPTH-1];
     reg  [RAS_PTR_W-1:0] ras_sp;
     reg  [RAS_PTR_W:0]   ras_count;
+    reg  [31:0]          ras_top_target_q;
+    reg  [31:0]          ras_next_target_q;
     wire                 ras_valid;
-    wire [RAS_PTR_W-1:0] ras_top_idx;
-    wire [31:0]          ras_top_target;
     wire                 ras_slot1_valid_shadow;
-    wire [RAS_PTR_W-1:0] ras_slot1_top_idx_shadow;
-    wire [31:0]          ras_slot1_top_target_shadow;
+    wire [14:0]          ras_slot1_top_target_shadow_low;
     wire                 frontend_issue_ok;
     wire                 slot0_jump_pred_base;
     wire                 slot0_ctrl_pred_base;
@@ -262,19 +285,16 @@ module cpu(
     // Timing helper / fanout split signals
     // ------------------------------------------------------------------------
     assign ras_valid            = (ras_count != 0);
-    assign ras_top_idx          = ras_sp - 1'b1;
-    assign ras_top_target       = ras_stack[ras_top_idx];
-    assign ras_slot1_valid_shadow = slot0_jump_redirect && if_is_ret
+    assign ras_slot1_valid_shadow = slot0_jump_pred_base && if_is_ret
                                   ? (ras_count > 1)
-                                  : (slot0_jump_redirect && if_is_call)
+                                  : (slot0_jump_pred_base && if_is_call)
                                   ? 1'b1
                                   : ras_valid;
-    assign ras_slot1_top_idx_shadow = slot0_jump_redirect && if_is_ret
-                                    ? (ras_sp - 2'd2)
-                                    : ras_top_idx;
-    assign ras_slot1_top_target_shadow = (slot0_jump_redirect && if_is_call)
-                                       ? {17'b0, (if_instr_addr[14:0] + 15'd4)}
-                                       : ras_stack[ras_slot1_top_idx_shadow];
+    assign ras_slot1_top_target_shadow_low = (slot0_jump_pred_base && if_is_call)
+                                           ? (if_instr_addr[14:0] + 15'd4)
+                                           : ((slot0_jump_pred_base && if_is_ret)
+                                           ? ras_next_target_q[14:0]
+                                           : ras_top_target_q[14:0]);
 
     assign if_is_b               = (if_instr[6:2] == 5'b11000);
     assign if_is_jal             = (if_instr[6:2] == 5'b11011);
@@ -289,17 +309,20 @@ module cpu(
     assign if_b_imm              = {{20{if_instr[31]}}, if_b_imm_lo, 1'b0};
     assign if_b_target_low       = if_instr_addr[14:0] + if_b_imm[14:0];
     assign if_b_target_canon     = {17'b0, if_b_target_low};
-    assign if_branch_hash        = if_b_imm_lo[BR_PRED_INDEX_BITS+1:2];
+    assign if_branch_hash        = branch_hash_mix(if_instr_addr, if_b_imm_lo);
+    assign if_branch_pred_taken_eff = if_branch_hit ? if_branch_pred_taken : if_b_imm[31];
     assign if_jal_imm            = {{12{if_instr[31]}}, if_instr[19:12], if_instr[20], if_instr[30:21], 1'b0};
     assign if_jal_target_low     = if_instr_addr[14:0] + if_jal_imm[14:0];
     assign if_jal_target_canon   = {17'b0, if_jal_target_low};
     assign if_jtb_target_canon   = {17'b0, if_jtb_target[14:0]};
     assign if_jalr_pred_hit      = if_is_ret ? ras_valid : if_jtb_hit;
-    assign if_jalr_pred_target   = if_is_ret ? ras_top_target : if_jtb_target_canon;
+    assign if_jalr_pred_target_low = if_is_ret ? ras_top_target_q[14:0] : if_jtb_target[14:0];
+    assign if_jalr_pred_target   = {17'b0, if_jalr_pred_target_low};
     assign if_pred_taken_eff     = slot0_ctrl_redirect;
-    assign if_pred_target_eff    = if_is_jal ? if_jal_target_canon
-                                  : (if_is_jalr ? if_jalr_pred_target
-                                  : (if_is_b ? if_b_target_canon : 32'b0));
+    assign if_pred_target_low    = if_is_jal ? if_jal_target_low
+                                  : (if_is_jalr ? if_jalr_pred_target_low
+                                  : (if_is_b ? if_b_target_low : 15'b0));
+    assign if_pred_target_eff    = {17'b0, if_pred_target_low};
 
     assign if_pre_is_jal         = (if_pre_instr[6:2] == 5'b11011);
     assign if_pre_is_jalr        = (if_pre_instr[6:2] == 5'b11001);
@@ -315,29 +338,31 @@ module cpu(
     assign if_pre_jtb_target_canon = {17'b0, if_pre_jtb_target[14:0]};
     assign if_pre_jalr_pred_hit  = if_pre_is_ret ? ras_slot1_valid_shadow
                                   : (if_pre_is_call ? if_pre_jtb_hit : 1'b0);
-    assign if_pre_jalr_pred_target = if_pre_is_ret ? ras_slot1_top_target_shadow
-                                     : if_pre_jtb_target_canon;
+    assign if_pre_jalr_pred_target_low = if_pre_is_ret ? ras_slot1_top_target_shadow_low
+                                         : if_pre_jtb_target[14:0];
+    assign if_pre_jalr_pred_target = {17'b0, if_pre_jalr_pred_target_low};
     assign if_pre_pred_taken_eff = if_pre_is_jal ? 1'b1
                                   : (if_pre_is_jalr ? if_pre_jalr_pred_hit : 1'b0);
-    assign if_pre_pred_target_eff= if_pre_is_jal ? if_pre_jal_target_canon
-                                  : (if_pre_is_jalr ? if_pre_jalr_pred_target : 32'b0);
+    assign if_pre_pred_target_low= if_pre_is_jal ? if_pre_jal_target_low
+                                  : (if_pre_is_jalr ? if_pre_jalr_pred_target_low : 15'b0);
+    assign if_pre_pred_target_eff= {17'b0, if_pre_pred_target_low};
 
     assign frontend_issue_ok     = !pipeline_block_if && !frontend_redirect_kill_q;
     assign slot0_jump_pred_base  = if_is_jal || (if_is_jalr && if_jalr_pred_hit);
-    assign slot0_ctrl_pred_base  = slot0_jump_pred_base || if_branch_pred_taken;
+    assign slot0_ctrl_pred_base  = slot0_jump_pred_base || if_branch_pred_taken_eff;
     assign slot1_pred_base       = if_pre_valid && if_pre_pred_taken_eff;
     assign slot0_jump_redirect   = frontend_issue_ok && slot0_jump_pred_base;
     assign slot0_ctrl_redirect   = frontend_issue_ok && slot0_ctrl_pred_base;
     assign slot1_pred_redirect   = frontend_issue_ok && slot1_pred_base;
     assign frontend_redirect_flag = ex_mispredict | slot0_ctrl_redirect | slot1_pred_redirect;
     assign frontend_redirect_addr = ex_mispredict        ? ex_redirect_addr[14:0]
-                                  : slot0_ctrl_redirect ? if_pred_target_eff[14:0]
-                                  :                       if_pre_pred_target_eff[14:0];
+                                  : slot0_ctrl_redirect ? if_pred_target_low
+                                  :                       if_pre_pred_target_low;
     assign if_pre_valid          = if_pre_valid_q;
     assign id_take_recovery_if   = preif_valid && !frontend_redirect_kill_q;
     assign id_take_live_if       = if_pre_valid || id_take_recovery_if;
     assign id_b_imm_lo           = {id_instr[7], id_instr[30:25], id_instr[11:8]};
-    assign id_branch_hash        = id_b_imm_lo[BR_PRED_INDEX_BITS+1:2];
+    assign id_branch_hash        = branch_hash_mix(id_instr_addr, id_b_imm_lo);
     assign imem_bus_re           = bus_s0_stb && !bus_s0_we;
     assign slot1_capture_en      = preif_valid && !imem_bus_re;
     assign mem_actual_regs_w_data = mem_dmem_re ? mem_dmem_r_data : mem_regs_w_data;
@@ -369,8 +394,10 @@ module cpu(
     wire        pipeline_flush_if_id      = pipeline_flush;
     wire        pipeline_flush_id_ex      = pipeline_flush;
     branch_predictor #(
-        .ENTRY_NUM  (BR_PRED_ENTRY_NUM ),
-        .INDEX_BITS (BR_PRED_INDEX_BITS)
+        .ENTRY_NUM     (BR_PRED_ENTRY_NUM     ),
+        .INDEX_BITS    (BR_PRED_INDEX_BITS    ),
+        .PC_CANON_BITS (BR_PRED_PC_CANON_BITS ),
+        .TAG_BITS      (BR_PRED_TAG_BITS      )
     ) u_branch_predictor (
         .clk         (clk               ),
         .rst_n       (rst_n             ),
@@ -406,17 +433,26 @@ module cpu(
         if (rst_n == `RST_ENABLE) begin
             ras_sp    <= {RAS_PTR_W{1'b0}};
             ras_count <= {(RAS_PTR_W+1){1'b0}};
+            ras_top_target_q  <= 32'b0;
+            ras_next_target_q <= 32'b0;
         end else if (ex_jump_flag) begin
             if (ex_ret_flag) begin
                 if (ras_count != 0) begin
                     ras_sp    <= ras_sp - 1'b1;
                     ras_count <= ras_count - 1'b1;
+                    ras_top_target_q <= (ras_count > 1) ? ras_next_target_q : 32'b0;
+                    if (ras_count > 2)
+                        ras_next_target_q <= ras_stack[ras_sp - 3'd3];
+                    else
+                        ras_next_target_q <= 32'b0;
                 end
             end else if (ex_call_flag) begin
                 ras_stack[ras_sp] <= ex_instr_addr + 32'd4;
                 ras_sp            <= ras_sp + 1'b1;
                 if (ras_count != RAS_DEPTH)
                     ras_count <= ras_count + 1'b1;
+                ras_next_target_q <= ras_valid ? ras_top_target_q : 32'b0;
+                ras_top_target_q  <= ex_instr_addr + 32'd4;
             end
         end
     end
@@ -502,6 +538,7 @@ module cpu(
         .slot0_drop_buf  (if_pre_valid && slot0_ctrl_redirect),
         .if_instr_i      (if_instr        ),
         .if_instr_addr_i (if_instr_addr   ),
+        .if_branch_nohit_i(if_is_b && !if_branch_hit),
         .if_pred_taken_i (if_pred_taken_eff),
         .if_pred_target_i(if_pred_target_eff),
         .if_pre_instr_i  (if_pre_instr    ),
@@ -511,6 +548,7 @@ module cpu(
         .if_pre_valid_i  (if_pre_valid    ),
         .id_instr_o      (id_instr_reg        ),
         .id_instr_addr_o (id_instr_addr_reg   ),
+        .id_branch_nohit_o(id_branch_nohit_reg),
         .id_pred_taken_o (id_pred_taken_reg   ),
         .id_pred_target_o(id_pred_target_reg  )
     );
@@ -518,6 +556,7 @@ module cpu(
     //ID
     assign id_instr       = id_take_live_if ? if_instr          : id_instr_reg;
     assign id_instr_addr  = id_take_live_if ? if_instr_addr     : id_instr_addr_reg;
+    assign id_branch_nohit= id_take_live_if ? (if_is_b && !if_branch_hit) : id_branch_nohit_reg;
     assign id_pred_taken  = id_take_live_if ? if_pred_taken_eff : id_pred_taken_reg;
     assign id_pred_target = id_take_live_if ? if_pred_target_eff: id_pred_target_reg;
 
@@ -557,6 +596,7 @@ module cpu(
         .pipeline_flush      (pipeline_flush_id_ex),
 
         .id_instr_addr       (id_instr_addr       ),
+        .id_branch_nohit     (id_branch_nohit     ),
         .id_pred_taken       (id_pred_taken       ),
         .id_pred_target      (id_pred_target      ),
         .id_alu_num1         (id_alu_num1         ),
@@ -577,6 +617,7 @@ module cpu(
         .id_ret_flag         (id_ret_flag         ),
 
         .ex_instr_addr       (ex_instr_addr       ),
+        .ex_branch_nohit     (ex_branch_nohit     ),
         .ex_pred_taken       (ex_pred_taken       ),
         .ex_pred_target      (ex_pred_target      ),
         .ex_alu_num1         (ex_alu_num1         ),
