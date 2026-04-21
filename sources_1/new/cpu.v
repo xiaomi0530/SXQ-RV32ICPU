@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-`include "branch_predictor_cfg.vh"
+`include "defines.v"
 
 module cpu(
     input  wire        clk,
@@ -24,7 +24,8 @@ module cpu(
     wire        pipeline_stall;
     wire        pipeline_flush;
     wire        ex_mul_busy;
-    wire        pipeline_hold         = ex_mul_busy;
+    wire        ex_div_busy;
+    wire        pipeline_hold         = ex_mul_busy | ex_div_busy;
     wire        pipeline_block        = pipeline_stall | pipeline_hold;
 
     // ------------------------------------------------------------------------
@@ -141,6 +142,8 @@ module cpu(
     wire        id_mul_signed_a;
     wire        id_mul_signed_b;
     wire        id_mul_preload;
+    wire        id_div_op;
+    wire        id_div_preload;
 
     wire        id_branch_flag;
     wire        id_jump_flag;
@@ -280,6 +283,7 @@ module cpu(
     localparam [3:0] ALU_OP_MULH   = 4'b1010;
     localparam [3:0] ALU_OP_MULHSU = 4'b1011;
     localparam [3:0] ALU_OP_MULHU  = 4'b1111;
+    localparam [3:0] ALU_OP_DIVREM = 4'b1100;
 
     // ------------------------------------------------------------------------
     // Timing helper / fanout split signals
@@ -376,6 +380,11 @@ module cpu(
     assign id_mul_signed_b       = (id_alu_op == ALU_OP_MUL)
                                 || (id_alu_op == ALU_OP_MULH);
     assign id_mul_preload        = id_mul_op
+                                && !pipeline_flush
+                                && !pipeline_stall
+                                && !pipeline_hold;
+    assign id_div_op             = (id_alu_op == ALU_OP_DIVREM);
+    assign id_div_preload        = id_div_op
                                 && !pipeline_flush
                                 && !pipeline_stall
                                 && !pipeline_hold;
@@ -648,6 +657,10 @@ module cpu(
         .mul_preload_signed_b  (id_mul_signed_b        ),
         .mul_preload_op_a      (id_alu_num1            ),
         .mul_preload_op_b      (id_alu_num2            ),
+        .div_preload           (id_div_preload         ),
+        .div_preload_op        (id_mem_op[1:0]         ),
+        .div_preload_op_a      (id_alu_num1            ),
+        .div_preload_op_b      (id_alu_num2            ),
         .clk                   (clk                   ),
         .rst_n                 (rst_n                 ),
         .ex_instr_addr         (ex_instr_addr         ),
@@ -666,7 +679,8 @@ module cpu(
         .ex_actual_jump_addr   (ex_actual_jump_addr   ),
         .ex_mispredict         (ex_mispredict         ),
         .ex_redirect_addr      (ex_redirect_addr      ),
-        .ex_mul_busy           (ex_mul_busy           )
+        .ex_mul_busy           (ex_mul_busy           ),
+        .ex_div_busy           (ex_div_busy           )
     );
     
     //EX_MEM

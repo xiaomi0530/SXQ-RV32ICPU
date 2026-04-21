@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-`include "branch_predictor_cfg.vh"
+`include "defines.v"
 
 module branch_predictor #(
     parameter integer ENTRY_NUM  = `BR_PRED_ENTRY_NUM,

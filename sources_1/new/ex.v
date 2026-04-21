@@ -8,6 +8,10 @@ module ex(
     input wire        mul_preload_signed_b,
     input wire [31:0] mul_preload_op_a,
     input wire [31:0] mul_preload_op_b,
+    input wire        div_preload,
+    input wire [1:0]  div_preload_op,
+    input wire [31:0] div_preload_op_a,
+    input wire [31:0] div_preload_op_b,
     input wire [31:0] ex_instr_addr, 
     input wire        ex_pred_taken,
     input wire [31:0] ex_pred_target,
@@ -27,7 +31,8 @@ module ex(
     output wire [31:0] ex_actual_jump_addr,
     output wire        ex_mispredict,
     output wire [31:0] ex_redirect_addr,
-    output wire        ex_mul_busy
+    output wire        ex_mul_busy,
+    output wire        ex_div_busy
 );
     
     wire [31:0] add_res = ex_alu_num1 + ex_alu_num2;
@@ -51,15 +56,19 @@ module ex(
     localparam [3:0] ALU_OP_MULH   = 4'b1010;
     localparam [3:0] ALU_OP_MULHSU = 4'b1011;
     localparam [3:0] ALU_OP_MULHU  = 4'b1111;
+    localparam [3:0] ALU_OP_DIVREM = 4'b1100;
 
     wire is_mul    = (ex_alu_op == ALU_OP_MUL);
     wire is_mulh   = (ex_alu_op == ALU_OP_MULH);
     wire is_mulhsu = (ex_alu_op == ALU_OP_MULHSU);
     wire is_mulhu  = (ex_alu_op == ALU_OP_MULHU);
     wire mul_op    = is_mul | is_mulh | is_mulhsu | is_mulhu;
+    wire div_op    = (ex_alu_op == ALU_OP_DIVREM);
 
     wire [63:0] mul_result;
     wire        mul_ready;
+    wire [31:0] div_result;
+    wire        div_ready;
 
     mul_unit u_mul_unit (
         .clk     (clk),
@@ -73,7 +82,19 @@ module ex(
         .ready   (mul_ready)
     );
 
+    div_unit u_div_unit (
+        .clk     (clk),
+        .rst_n   (rst_n),
+        .preload (div_preload),
+        .op      (div_preload_op),
+        .op_a    (div_preload_op_a),
+        .op_b    (div_preload_op_b),
+        .result  (div_result),
+        .ready   (div_ready)
+    );
+
     assign ex_mul_busy = mul_op && !mul_ready;
+    assign ex_div_busy = div_op && !div_ready;
 
     reg [31:0] alu_out;
 
@@ -93,6 +114,7 @@ module ex(
             ALU_OP_MULH,
             ALU_OP_MULHSU,
             ALU_OP_MULHU:  alu_out = mul_result[63:32];
+            ALU_OP_DIVREM: alu_out = div_result;
             default: alu_out = 32'b0;
         endcase
     end

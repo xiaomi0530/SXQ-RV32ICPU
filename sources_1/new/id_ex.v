@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-`include "branch_predictor_cfg.vh"
+`include "defines.v"
 
 module id_ex #(
     parameter integer BR_HASH_BITS = `BR_PRED_INDEX_BITS

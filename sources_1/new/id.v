@@ -103,11 +103,13 @@ module id(
 
     wire rv32m_any = dec_r && (funct7 == 7'b0000001);
     wire rv32m_mul = rv32m_any && (funct3[2] == 1'b0);
+    wire rv32m_div = rv32m_any && (funct3[2] == 1'b1);
 
     localparam [3:0] ALU_OP_MUL     = 4'b1001;
     localparam [3:0] ALU_OP_MULH    = 4'b1010;
     localparam [3:0] ALU_OP_MULHSU  = 4'b1011;
     localparam [3:0] ALU_OP_MULHU   = 4'b1111;
+    localparam [3:0] ALU_OP_DIVREM  = 4'b1100;
 
     always @(*) begin 
         if (rv32m_mul) begin
@@ -118,6 +120,8 @@ module id(
                 3'b011: id_alu_op = ALU_OP_MULHU;
                 default: id_alu_op = 4'b0000;
             endcase
+        end else if (rv32m_div) begin
+            id_alu_op = ALU_OP_DIVREM;
         end else if (rv32m_any) begin
             id_alu_op = 4'b0000;
         end else if (type_r || type_i_alu) begin
