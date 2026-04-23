@@ -6,20 +6,19 @@ module imem(
     input  wire        pipeline_stall,
     input  wire        pipeline_flush,
     input  wire [31:0] preif_pc_addr_i,
-    output reg  [31:0] if_instr_o,
-    output reg  [31:0] if_instr_addr_o,
-    
+    output reg   [31:0] if_instr_o,
+    output reg   [31:0] if_instr_addr_o,
+
     input  wire        preif_valid_i,
     output wire [31:0] if_pre_instr_o,
-    output reg  [31:0] if_pre_instr_addr_o,
-    output wire        if_pre_valid_o,
+    output reg   [31:0] if_pre_instr_addr_o,
 
     input  wire        bus_stb,
-    output reg         bus_ack,
+    output reg          bus_ack,
     input  wire [31:0] r_addr,
     input  wire        bus_we,
     input  wire [2:0]  mem_op,
-    output reg  [31:0] r_data
+    output reg   [31:0] r_data
 );
 
     (* ram_style = "block" *) reg [31:0] imem [0:8191];
@@ -32,16 +31,15 @@ module imem(
     wire [12:0] if_pre_word_addr = preif_pc_addr_i[14:2] + 13'd1;
 
     always @(posedge clk) begin
-        if(rst_n == `RST_ENABLE)begin
+        if (rst_n == `RST_ENABLE) begin
             if_instr_o <= 1'b0;
             if_instr_addr_o <= 32'b0;
-        end else if(!pipeline_stall)begin
+        end else if (!pipeline_stall) begin
             if_instr_o <= imem[preif_pc_addr_i[14:2]];
             if_instr_addr_o <= {17'b0, preif_pc_addr_i[14:0]};
-        end 
+        end
     end
 
-    
     initial begin
         $readmemh("imem.mem",imem);
     end
@@ -51,7 +49,6 @@ module imem(
     reg         bus_re_r;
     reg [31:0]  word_data;
     reg         if_pre_re_r;
-    assign if_pre_valid_o = if_pre_re_r;
 
     always@(posedge clk) begin
         if (rst_n == `RST_ENABLE) begin
@@ -86,8 +83,8 @@ module imem(
     end
     assign if_pre_instr_o = if_pre_re_r ? portb_read_data : 32'h0;
 
-    always @(*) begin
-        if(bus_re_r)begin
+    always @* begin
+        if (bus_re_r) begin
             word_data = portb_read_data;
             case (mem_op_r)
                 3'b000:
@@ -120,7 +117,6 @@ module imem(
         end else begin
             r_data = 32'h0;
         end
-    end 
-    
-    
+    end
+
 endmodule

@@ -7,18 +7,18 @@ module mem_wb(
     input  wire        mem_regs_we,
     input  wire [4:0]  mem_regs_w_addr,
     input  wire [31:0] mem_regs_w_data,
-    output reg         wb_dmem_re,
-    output reg         wb_regs_we,
-    output reg  [4:0]  wb_regs_w_addr,
-    output reg  [31:0] wb_regs_w_data
+    output reg          wb_dmem_re,
+    output reg          wb_regs_we,
+    output reg   [4:0]  wb_regs_w_addr,
+    output reg   [31:0] wb_regs_w_data
 );
 
-    always@(posedge clk)begin
-        if(rst_n == `RST_ENABLE)begin
+    always@(posedge clk) begin
+        if (rst_n == `RST_ENABLE) begin
             wb_regs_we <= 1'b0;
         end else begin
-            wb_regs_we <= mem_regs_we; 
-        end    
+            wb_regs_we <= mem_regs_we;
+        end
     end
 
     always@(posedge clk) begin

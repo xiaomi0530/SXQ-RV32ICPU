@@ -1,4 +1,5 @@
 `timescale 1ns / 1ps
+`include "defines.v"
 
 // Register map (base = 0xF0000000)
 //   0x00  cycle_cnt_lo   [RO] 64-bit cycle counter low word
@@ -13,16 +14,16 @@ module mmio(
     input  wire        rst_n,
 
     input  wire        bus_stb,
-    output reg         bus_ack,
+    output reg          bus_ack,
     input  wire        bus_we,
     input  wire [31:0] bus_addr,
-    input  wire [31:0] w_data,  
-    output reg  [31:0] r_data,  
+    input  wire [31:0] w_data,
+    output reg   [31:0] r_data,
 
-    output reg  [15:0] led,
-    output reg         uart_valid,
-    output reg  [7:0]  uart_data,
-    output reg         tohost,
+    output reg   [15:0] led,
+    output reg          uart_valid,
+    output reg   [7:0]  uart_data,
+    output reg          tohost,
     input  wire        uart_busy,
     input  wire        uart_ready,
     input  wire        uart_overflow
@@ -47,9 +48,9 @@ module mmio(
             uart_data <= 8'h0;
         end else if (bus_stb && bus_we) begin
             case (bus_addr[5:0])
-                6'h08: tohost    <= w_data[0];
-                6'h0C: led       <= w_data[15:0];
-                6'h10: begin
+                `MMIO_TOHOST_OFFSET: tohost <= w_data[0];
+                `MMIO_LED_OFFSET:    led    <= w_data[15:0];
+                `MMIO_UART_TX_OFFSET: begin
                     uart_data  <= w_data[7:0];
                     uart_valid <= 1'b1;
                 end
@@ -60,10 +61,10 @@ module mmio(
 
     always @(posedge clk) begin
         case (bus_addr[5:0])
-            6'h00:   r_data <= cycle_cnt[31:0];
-            6'h04:   r_data <= cycle_cnt[63:32];
-            6'h14:   r_data <= {29'd0, uart_overflow, uart_busy, uart_ready};
-            default: r_data <= 32'h0;
+            `MMIO_TIMER_LO_OFFSET:   r_data <= cycle_cnt[31:0];
+            `MMIO_TIMER_HI_OFFSET:   r_data <= cycle_cnt[63:32];
+            `MMIO_UART_STATUS_OFFSET:r_data <= {29'd0, uart_overflow, uart_busy, uart_ready};
+            default:                 r_data <= 32'h0;
         endcase
     end
 

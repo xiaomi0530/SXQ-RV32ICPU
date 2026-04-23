@@ -7,8 +7,8 @@ module pc(
     input  wire [14:0] redirect_addr,
     input  wire        preif_ready,
     input  wire        pipeline_stall,
-    output reg  [31:0] pc_o,
-    output reg         preif_valid_o
+    output reg   [31:0] pc_o,
+    output reg          preif_valid_o
 );
 
     wire [14:0] pc_plus4_low = pc_o[14:0] + 15'd4;

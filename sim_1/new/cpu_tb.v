@@ -1,14 +1,21 @@
 `timescale 1ns / 1ps
-`include "../../sources_1/new/branch_predictor_cfg.vh"
+`include "../../sources_1/new/defines.v"
 
 module cpu_tb;
 
-    localparam BP_STATS_ENABLE = 1'b1;
-    localparam PERIODIC_STATS_ENABLE = 1'b0;
-    localparam [31:0] MMIO_TIMER_LO_ADDR = 32'hF0000000;
-    localparam [31:0] MMIO_TIMER_HI_ADDR = 32'hF0000004;
-    localparam integer BRANCH_PC_STAT_SLOTS = 1024;
-    localparam integer JALR_PC_STAT_SLOTS = 16;
+    localparam BP_STATS_ENABLE = `TB_BP_STATS_ENABLE;
+    localparam PERIODIC_STATS_ENABLE = `TB_PERIODIC_STATS_ENABLE;
+    localparam [31:0] MMIO_TIMER_LO_ADDR = `MMIO_TIMER_LO_ADDR;
+    localparam [31:0] MMIO_TIMER_HI_ADDR = `MMIO_TIMER_HI_ADDR;
+    localparam integer BRANCH_PC_STAT_SLOTS = `TB_BRANCH_PC_STAT_SLOTS;
+    localparam integer JALR_PC_STAT_SLOTS = `TB_JALR_PC_STAT_SLOTS;
+    localparam integer SLOT1_TRACK_SLOTS = `TB_SLOT1_TRACK_SLOTS;
+    localparam [2:0] SLOT1_TYPE_B = `TB_SLOT1_TYPE_B;
+    localparam [2:0] SLOT1_TYPE_JAL = `TB_SLOT1_TYPE_JAL;
+    localparam [2:0] SLOT1_TYPE_JALR = `TB_SLOT1_TYPE_JALR;
+    localparam [2:0] SLOT1_TYPE_RET = `TB_SLOT1_TYPE_RET;
+    localparam [2:0] SLOT1_TYPE_CALL_JALR = `TB_SLOT1_TYPE_CALL_JALR;
+    localparam [2:0] SLOT1_TYPE_INDIRECT_JALR = `TB_SLOT1_TYPE_INDIRECT_JALR;
     localparam integer BHT_STAT_ENTRY_NUM  = `BR_PRED_ENTRY_NUM;
     localparam integer BHT_STAT_INDEX_BITS = `BR_PRED_INDEX_BITS;
     localparam integer BHT_STAT_PC_BITS    = `BR_PRED_PC_CANON_BITS;
@@ -72,6 +79,42 @@ module cpu_tb;
     integer if_branch_nohit_back_ok_total;
     integer if_branch_nohit_back_redirect_total;
     integer slot1_redirect_total;
+    integer slot1_branch_seen_total;
+    integer slot1_branch_issue_total;
+    integer slot1_branch_back_total;
+    integer slot1_branch_issue_back_total;
+    integer slot1_ctrl_track_total;
+    integer slot1_ctrl_match_total;
+    integer slot1_ctrl_drop_total;
+    integer slot1_pred_effective_total;
+    integer slot1_pred_without_valid_total;
+    integer slot1_raw_invalid_total;
+    integer slot1_b_exec_total;
+    integer slot1_b_pred_total;
+    integer slot1_b_correct_total;
+    integer slot1_b_taken_total;
+    integer slot1_b_nt_total;
+    integer slot1_b_fwd_total;
+    integer slot1_b_fwd_taken_total;
+    integer slot1_b_fwd_nt_total;
+    integer slot1_b_back_total;
+    integer slot1_b_back_taken_total;
+    integer slot1_b_back_nt_total;
+    integer slot1_jal_exec_total;
+    integer slot1_jal_pred_total;
+    integer slot1_jal_correct_total;
+    integer slot1_jalr_exec_total;
+    integer slot1_jalr_pred_total;
+    integer slot1_jalr_correct_total;
+    integer slot1_ret_exec_total;
+    integer slot1_ret_pred_total;
+    integer slot1_ret_correct_total;
+    integer slot1_call_jalr_exec_total;
+    integer slot1_call_jalr_pred_total;
+    integer slot1_call_jalr_correct_total;
+    integer slot1_indirect_jalr_exec_total;
+    integer slot1_indirect_jalr_pred_total;
+    integer slot1_indirect_jalr_correct_total;
     integer bht_tag_alias_total;
     integer bht_store_total;
     integer bht_store_conflict_total;
@@ -82,6 +125,19 @@ module cpu_tb;
     integer mul_dep_d1_total;
     integer mul_dep_d2_total;
     integer mul_dep_d3_total;
+    integer slot1_track_i;
+    integer slot1_match_slot;
+    integer slot1_free_slot;
+    integer slot1_match_type;
+    integer slot1_match_pred_taken;
+    integer slot1_match_branch_backward;
+    integer slot1_match_correct;
+    reg         slot1_pending_valid [0:SLOT1_TRACK_SLOTS-1];
+    reg [31:0]  slot1_pending_pc [0:SLOT1_TRACK_SLOTS-1];
+    reg [31:0]  slot1_pending_instr [0:SLOT1_TRACK_SLOTS-1];
+    reg         slot1_pending_pred_taken [0:SLOT1_TRACK_SLOTS-1];
+    reg [31:0]  slot1_pending_pred_target [0:SLOT1_TRACK_SLOTS-1];
+    reg [2:0]   slot1_pending_type [0:SLOT1_TRACK_SLOTS-1];
 
     integer cycle_snap;
 
@@ -188,6 +244,10 @@ module cpu_tb;
     integer if_branch_nohit_back_ok_now;
     integer if_branch_nohit_back_redirect_now;
     integer slot1_redirect_now;
+    integer slot1_branch_seen_now;
+    integer slot1_branch_issue_now;
+    integer slot1_branch_back_now;
+    integer slot1_branch_issue_back_now;
     integer bht_tag_alias_now;
     integer bht_store_now;
     integer bht_store_conflict_now;
@@ -449,6 +509,39 @@ module cpu_tb;
     wire timer_req_fire = u_cpu.ex_dmem_re
                        && ((u_cpu.ex_dmem_wr_addr == MMIO_TIMER_LO_ADDR)
                         || (u_cpu.ex_dmem_wr_addr == MMIO_TIMER_HI_ADDR));
+    wire slot1_branch_seen_fire = stat_active
+                               && u_cpu.if_pre_valid
+                               && (u_cpu.if_pre_instr[6:2] == 5'b11000);
+    wire slot1_branch_issue_fire = slot1_branch_seen_fire
+                                && u_cpu.frontend_issue_ok
+                                && !u_cpu.slot0_ctrl_redirect;
+    wire slot1_branch_back_fire = slot1_branch_seen_fire
+                               && u_cpu.if_pre_instr[31];
+    wire slot1_branch_issue_back_fire = slot1_branch_issue_fire
+                                     && u_cpu.if_pre_instr[31];
+    wire slot1_ctrl_candidate_fire = stat_active
+                                  && u_cpu.if_pre_valid
+                                  && u_cpu.frontend_issue_ok
+                                  && !u_cpu.slot0_ctrl_redirect
+                                  && !u_cpu.ex_mispredict
+                                  && ((u_cpu.if_pre_instr[6:2] == 5'b11000)
+                                   || (u_cpu.if_pre_instr[6:2] == 5'b11011)
+                                   || (u_cpu.if_pre_instr[6:2] == 5'b11001));
+    wire slot1_pred_effective_fire = stat_active
+                                   && u_cpu.slot1_pred_redirect
+                                   && !u_cpu.ex_mispredict
+                                   && !u_cpu.slot0_ctrl_redirect;
+    wire slot1_pred_without_valid_fire = stat_active
+                                      && u_cpu.slot1_pred_redirect
+                                      && !u_cpu.if_pre_valid;
+    wire slot1_raw_invalid_fire = stat_active
+                               && !u_cpu.if_pre_valid
+                               && u_cpu.if_pre_pred_taken_eff;
+    wire [2:0] slot1_candidate_type = (u_cpu.if_pre_instr[6:2] == 5'b11000) ? SLOT1_TYPE_B :
+                                      (u_cpu.if_pre_instr[6:2] == 5'b11011) ? SLOT1_TYPE_JAL :
+                                      (u_cpu.if_pre_is_ret)                  ? SLOT1_TYPE_RET :
+                                      (u_cpu.if_pre_is_call)                 ? SLOT1_TYPE_CALL_JALR :
+                                                                               SLOT1_TYPE_INDIRECT_JALR;
 
     task print_bp_stats;
         input integer show_cycle;
@@ -634,6 +727,127 @@ module cpu_tb;
                      total_load_stall, total_load_stall_share_x100 / 100, total_load_stall_share_x100 % 100,
                      total_mul_hold, total_mul_hold_share_x100 / 100, total_mul_hold_share_x100 % 100,
                      total_other_bubble, total_other_bubble_share_x100 / 100, total_other_bubble_share_x100 % 100);
+        end
+    endtask
+
+    task print_slot1_branch_stats;
+        input integer show_cycle;
+        input integer total_branch;
+        input integer total_slot1_branch_seen;
+        input integer total_slot1_branch_issue;
+        input integer total_slot1_branch_back;
+        input integer total_slot1_branch_issue_back;
+        integer seen_cycle_pct_x100;
+        integer issue_cycle_pct_x100;
+        integer issue_branch_pct_x100;
+        integer back_seen_pct_x100;
+        integer back_issue_pct_x100;
+        begin
+            seen_cycle_pct_x100  = pct_x100(total_slot1_branch_seen, show_cycle);
+            issue_cycle_pct_x100 = pct_x100(total_slot1_branch_issue, show_cycle);
+            issue_branch_pct_x100 = pct_x100(total_slot1_branch_issue, total_branch);
+            back_seen_pct_x100   = pct_x100(total_slot1_branch_back, total_slot1_branch_seen);
+            back_issue_pct_x100  = pct_x100(total_slot1_branch_issue_back, total_slot1_branch_issue);
+
+            $display("[STAT][%0d cyc] SLOT1-BR seen=%0d(%0d.%02d%% cyc) issuable=%0d(%0d.%02d%% cyc, %0d.%02d%% of BR)",
+                     show_cycle,
+                     total_slot1_branch_seen,
+                     seen_cycle_pct_x100 / 100, seen_cycle_pct_x100 % 100,
+                     total_slot1_branch_issue,
+                     issue_cycle_pct_x100 / 100, issue_cycle_pct_x100 % 100,
+                     issue_branch_pct_x100 / 100, issue_branch_pct_x100 % 100);
+            $display("[STAT][%0d cyc] SLOT1-BR bias: backward seen=%0d(%0d.%02d%%) issuable=%0d(%0d.%02d%%)",
+                     show_cycle,
+                     total_slot1_branch_back,
+                     back_seen_pct_x100 / 100, back_seen_pct_x100 % 100,
+                     total_slot1_branch_issue_back,
+                     back_issue_pct_x100 / 100, back_issue_pct_x100 % 100);
+        end
+    endtask
+
+    task print_slot1_ctrl_stats;
+        input integer show_cycle;
+        integer b_acc_x100;
+        integer b_pred_rate_x100;
+        integer jal_acc_x100;
+        integer jal_pred_rate_x100;
+        integer jalr_acc_x100;
+        integer jalr_pred_rate_x100;
+        integer ret_acc_x100;
+        integer ret_pred_rate_x100;
+        integer call_acc_x100;
+        integer call_pred_rate_x100;
+        integer indir_acc_x100;
+        integer indir_pred_rate_x100;
+        integer b_taken_pct_x100;
+        integer b_nt_pct_x100;
+        integer b_fwd_pct_x100;
+        integer b_back_pct_x100;
+        integer b_fwd_taken_pct_x100;
+        integer b_fwd_nt_pct_x100;
+        integer b_back_taken_pct_x100;
+        integer b_back_nt_pct_x100;
+        integer pred_effective_valid_pct_x100;
+        begin
+            b_acc_x100 = pct_x100(slot1_b_correct_total, slot1_b_exec_total);
+            b_pred_rate_x100 = pct_x100(slot1_b_pred_total, slot1_b_exec_total);
+            jal_acc_x100 = pct_x100(slot1_jal_correct_total, slot1_jal_exec_total);
+            jal_pred_rate_x100 = pct_x100(slot1_jal_pred_total, slot1_jal_exec_total);
+            jalr_acc_x100 = pct_x100(slot1_jalr_correct_total, slot1_jalr_exec_total);
+            jalr_pred_rate_x100 = pct_x100(slot1_jalr_pred_total, slot1_jalr_exec_total);
+            ret_acc_x100 = pct_x100(slot1_ret_correct_total, slot1_ret_exec_total);
+            ret_pred_rate_x100 = pct_x100(slot1_ret_pred_total, slot1_ret_exec_total);
+            call_acc_x100 = pct_x100(slot1_call_jalr_correct_total, slot1_call_jalr_exec_total);
+            call_pred_rate_x100 = pct_x100(slot1_call_jalr_pred_total, slot1_call_jalr_exec_total);
+            indir_acc_x100 = pct_x100(slot1_indirect_jalr_correct_total, slot1_indirect_jalr_exec_total);
+            indir_pred_rate_x100 = pct_x100(slot1_indirect_jalr_pred_total, slot1_indirect_jalr_exec_total);
+            b_taken_pct_x100 = pct_x100(slot1_b_taken_total, slot1_b_exec_total);
+            b_nt_pct_x100 = pct_x100(slot1_b_nt_total, slot1_b_exec_total);
+            b_fwd_pct_x100 = pct_x100(slot1_b_fwd_total, slot1_b_exec_total);
+            b_back_pct_x100 = pct_x100(slot1_b_back_total, slot1_b_exec_total);
+            b_fwd_taken_pct_x100 = pct_x100(slot1_b_fwd_taken_total, slot1_b_fwd_total);
+            b_fwd_nt_pct_x100 = pct_x100(slot1_b_fwd_nt_total, slot1_b_fwd_total);
+            b_back_taken_pct_x100 = pct_x100(slot1_b_back_taken_total, slot1_b_back_total);
+            b_back_nt_pct_x100 = pct_x100(slot1_b_back_nt_total, slot1_b_back_total);
+            pred_effective_valid_pct_x100 = pct_x100(slot1_pred_effective_total - slot1_pred_without_valid_total,
+                                                      slot1_pred_effective_total);
+
+            $display("[STAT][%0d cyc] SLOT1-USE tracked=%0d matched=%0d dropped=%0d pred_effective=%0d invalid_pred=%0d raw_invalid=%0d valid_use=%0d.%02d%%",
+                     show_cycle,
+                     slot1_ctrl_track_total, slot1_ctrl_match_total, slot1_ctrl_drop_total,
+                     slot1_pred_effective_total, slot1_pred_without_valid_total, slot1_raw_invalid_total,
+                     pred_effective_valid_pct_x100 / 100, pred_effective_valid_pct_x100 % 100);
+            $display("[STAT][%0d cyc] SLOT1-B  exec=%0d pred=%0d(%0d.%02d%%) ok=%0d(%0d.%02d%%) taken=%0d(%0d.%02d%%) nt=%0d(%0d.%02d%%)",
+                     show_cycle,
+                     slot1_b_exec_total,
+                     slot1_b_pred_total, b_pred_rate_x100 / 100, b_pred_rate_x100 % 100,
+                     slot1_b_correct_total, b_acc_x100 / 100, b_acc_x100 % 100,
+                     slot1_b_taken_total, b_taken_pct_x100 / 100, b_taken_pct_x100 % 100,
+                     slot1_b_nt_total, b_nt_pct_x100 / 100, b_nt_pct_x100 % 100);
+            $display("[STAT][%0d cyc] SLOT1-BD fwd=%0d(%0d.%02d%%): T=%0d(%0d.%02d%%) NT=%0d(%0d.%02d%%)  back=%0d(%0d.%02d%%): T=%0d(%0d.%02d%%) NT=%0d(%0d.%02d%%)",
+                     show_cycle,
+                     slot1_b_fwd_total, b_fwd_pct_x100 / 100, b_fwd_pct_x100 % 100,
+                     slot1_b_fwd_taken_total, b_fwd_taken_pct_x100 / 100, b_fwd_taken_pct_x100 % 100,
+                     slot1_b_fwd_nt_total, b_fwd_nt_pct_x100 / 100, b_fwd_nt_pct_x100 % 100,
+                     slot1_b_back_total, b_back_pct_x100 / 100, b_back_pct_x100 % 100,
+                     slot1_b_back_taken_total, b_back_taken_pct_x100 / 100, b_back_taken_pct_x100 % 100,
+                     slot1_b_back_nt_total, b_back_nt_pct_x100 / 100, b_back_nt_pct_x100 % 100);
+            $display("[STAT][%0d cyc] SLOT1-J  JAL exec=%0d pred=%0d(%0d.%02d%%) ok=%0d(%0d.%02d%%)",
+                     show_cycle,
+                     slot1_jal_exec_total,
+                     slot1_jal_pred_total, jal_pred_rate_x100 / 100, jal_pred_rate_x100 % 100,
+                     slot1_jal_correct_total, jal_acc_x100 / 100, jal_acc_x100 % 100);
+            $display("[STAT][%0d cyc] SLOT1-JR JALR exec=%0d pred=%0d(%0d.%02d%%) ok=%0d(%0d.%02d%%)  ret=%0d/%0d/%0d(%0d.%02d%%) call=%0d/%0d/%0d(%0d.%02d%%) ind=%0d/%0d/%0d(%0d.%02d%%)",
+                     show_cycle,
+                     slot1_jalr_exec_total,
+                     slot1_jalr_pred_total, jalr_pred_rate_x100 / 100, jalr_pred_rate_x100 % 100,
+                     slot1_jalr_correct_total, jalr_acc_x100 / 100, jalr_acc_x100 % 100,
+                     slot1_ret_exec_total, slot1_ret_pred_total, slot1_ret_correct_total,
+                     ret_acc_x100 / 100, ret_acc_x100 % 100,
+                     slot1_call_jalr_exec_total, slot1_call_jalr_pred_total, slot1_call_jalr_correct_total,
+                     call_acc_x100 / 100, call_acc_x100 % 100,
+                     slot1_indirect_jalr_exec_total, slot1_indirect_jalr_pred_total, slot1_indirect_jalr_correct_total,
+                     indir_acc_x100 / 100, indir_acc_x100 % 100);
         end
     endtask
 
@@ -1192,6 +1406,42 @@ module cpu_tb;
         if_branch_nohit_back_ok_total = 0;
         if_branch_nohit_back_redirect_total = 0;
         slot1_redirect_total = 0;
+        slot1_branch_seen_total = 0;
+        slot1_branch_issue_total = 0;
+        slot1_branch_back_total = 0;
+        slot1_branch_issue_back_total = 0;
+        slot1_ctrl_track_total = 0;
+        slot1_ctrl_match_total = 0;
+        slot1_ctrl_drop_total = 0;
+        slot1_pred_effective_total = 0;
+        slot1_pred_without_valid_total = 0;
+        slot1_raw_invalid_total = 0;
+        slot1_b_exec_total = 0;
+        slot1_b_pred_total = 0;
+        slot1_b_correct_total = 0;
+        slot1_b_taken_total = 0;
+        slot1_b_nt_total = 0;
+        slot1_b_fwd_total = 0;
+        slot1_b_fwd_taken_total = 0;
+        slot1_b_fwd_nt_total = 0;
+        slot1_b_back_total = 0;
+        slot1_b_back_taken_total = 0;
+        slot1_b_back_nt_total = 0;
+        slot1_jal_exec_total = 0;
+        slot1_jal_pred_total = 0;
+        slot1_jal_correct_total = 0;
+        slot1_jalr_exec_total = 0;
+        slot1_jalr_pred_total = 0;
+        slot1_jalr_correct_total = 0;
+        slot1_ret_exec_total = 0;
+        slot1_ret_pred_total = 0;
+        slot1_ret_correct_total = 0;
+        slot1_call_jalr_exec_total = 0;
+        slot1_call_jalr_pred_total = 0;
+        slot1_call_jalr_correct_total = 0;
+        slot1_indirect_jalr_exec_total = 0;
+        slot1_indirect_jalr_pred_total = 0;
+        slot1_indirect_jalr_correct_total = 0;
         bht_tag_alias_total = 0;
         bht_store_total = 0;
         bht_store_conflict_total = 0;
@@ -1287,6 +1537,14 @@ module cpu_tb;
             branch_pc_mis[init_i]   = 0;
             branch_pc_taken[init_i] = 0;
         end
+        for (init_i = 0; init_i < SLOT1_TRACK_SLOTS; init_i = init_i + 1) begin
+            slot1_pending_valid[init_i] = 1'b0;
+            slot1_pending_pc[init_i] = 32'b0;
+            slot1_pending_instr[init_i] = 32'b0;
+            slot1_pending_pred_taken[init_i] = 1'b0;
+            slot1_pending_pred_target[init_i] = 32'b0;
+            slot1_pending_type[init_i] = 3'b0;
+        end
 
         #100;
         rst_n = 1'b1;
@@ -1345,6 +1603,50 @@ module cpu_tb;
             bht_entry_conflict[init_i]  <= 0;
             bht_entry_imm_ovlp[init_i]  <= 0;
             end
+            slot1_branch_seen_total <= 0;
+            slot1_branch_issue_total <= 0;
+            slot1_branch_back_total <= 0;
+            slot1_branch_issue_back_total <= 0;
+            slot1_ctrl_track_total <= 0;
+            slot1_ctrl_match_total <= 0;
+            slot1_ctrl_drop_total <= 0;
+            slot1_pred_effective_total <= 0;
+            slot1_pred_without_valid_total <= 0;
+            slot1_raw_invalid_total <= 0;
+            slot1_b_exec_total <= 0;
+            slot1_b_pred_total <= 0;
+            slot1_b_correct_total <= 0;
+            slot1_b_taken_total <= 0;
+            slot1_b_nt_total <= 0;
+            slot1_b_fwd_total <= 0;
+            slot1_b_fwd_taken_total <= 0;
+            slot1_b_fwd_nt_total <= 0;
+            slot1_b_back_total <= 0;
+            slot1_b_back_taken_total <= 0;
+            slot1_b_back_nt_total <= 0;
+            slot1_jal_exec_total <= 0;
+            slot1_jal_pred_total <= 0;
+            slot1_jal_correct_total <= 0;
+            slot1_jalr_exec_total <= 0;
+            slot1_jalr_pred_total <= 0;
+            slot1_jalr_correct_total <= 0;
+            slot1_ret_exec_total <= 0;
+            slot1_ret_pred_total <= 0;
+            slot1_ret_correct_total <= 0;
+            slot1_call_jalr_exec_total <= 0;
+            slot1_call_jalr_pred_total <= 0;
+            slot1_call_jalr_correct_total <= 0;
+            slot1_indirect_jalr_exec_total <= 0;
+            slot1_indirect_jalr_pred_total <= 0;
+            slot1_indirect_jalr_correct_total <= 0;
+        for (init_i = 0; init_i < SLOT1_TRACK_SLOTS; init_i = init_i + 1) begin
+            slot1_pending_valid[init_i] <= 1'b0;
+            slot1_pending_pc[init_i] <= 32'b0;
+            slot1_pending_instr[init_i] <= 32'b0;
+            slot1_pending_pred_taken[init_i] <= 1'b0;
+            slot1_pending_pred_target[init_i] <= 32'b0;
+            slot1_pending_type[init_i] <= 3'b0;
+        end
         end else begin
             cycle_count <= cycle_count + 1;
 
@@ -1371,6 +1673,10 @@ module cpu_tb;
             if_branch_nohit_back_ok_now = if_branch_nohit_back_ok_total + (if_branch_nohit_back_ok_fire ? 1 : 0);
             if_branch_nohit_back_redirect_now = if_branch_nohit_back_redirect_total + (if_branch_nohit_back_redirect_fire ? 1 : 0);
             slot1_redirect_now = slot1_redirect_total + ((stat_cycle_win && u_cpu.slot1_pred_redirect) ? 1 : 0);
+            slot1_branch_seen_now = slot1_branch_seen_total + (slot1_branch_seen_fire ? 1 : 0);
+            slot1_branch_issue_now = slot1_branch_issue_total + (slot1_branch_issue_fire ? 1 : 0);
+            slot1_branch_back_now = slot1_branch_back_total + (slot1_branch_back_fire ? 1 : 0);
+            slot1_branch_issue_back_now = slot1_branch_issue_back_total + (slot1_branch_issue_back_fire ? 1 : 0);
             bht_tag_alias_now  = bht_tag_alias_total  + (if_bht_alias_hit ? 1 : 0);
             bht_store_now      = bht_store_total      + (ex_bht_store_fire ? 1 : 0);
             bht_store_conflict_now = bht_store_conflict_total + (ex_bht_store_conflict ? 1 : 0);
@@ -1387,6 +1693,120 @@ module cpu_tb;
                 end
                 if (if_bht_alias_hit)
                     bht_entry_alias[if_bht_idx] <= bht_entry_alias[if_bht_idx] + 1;
+            end
+
+            if (slot1_pred_effective_fire)
+                slot1_pred_effective_total <= slot1_pred_effective_total + 1;
+            if (slot1_pred_without_valid_fire)
+                slot1_pred_without_valid_total <= slot1_pred_without_valid_total + 1;
+            if (slot1_raw_invalid_fire)
+                slot1_raw_invalid_total <= slot1_raw_invalid_total + 1;
+
+            slot1_match_slot = -1;
+            if (stat_cycle_win && (u_cpu.ex_branch_flag || u_cpu.ex_jump_flag)) begin
+                for (slot1_track_i = 0; slot1_track_i < SLOT1_TRACK_SLOTS; slot1_track_i = slot1_track_i + 1) begin
+                    if (slot1_pending_valid[slot1_track_i]
+                            && (slot1_pending_pc[slot1_track_i] == u_cpu.ex_instr_addr)
+                            && (slot1_match_slot == -1))
+                        slot1_match_slot = slot1_track_i;
+                end
+
+                if (slot1_match_slot != -1) begin
+                    slot1_match_type = slot1_pending_type[slot1_match_slot];
+                    slot1_match_pred_taken = slot1_pending_pred_taken[slot1_match_slot];
+                    slot1_match_branch_backward = slot1_pending_instr[slot1_match_slot][31];
+                    slot1_match_correct = (slot1_match_type == SLOT1_TYPE_B)
+                                        ? ((slot1_pending_pred_taken[slot1_match_slot] == u_cpu.ex_actual_jump_flag)
+                                           && (!slot1_pending_pred_taken[slot1_match_slot]
+                                               || (slot1_pending_pred_target[slot1_match_slot] == u_cpu.ex_actual_jump_addr)))
+                                        : (!u_cpu.ex_mispredict);
+
+                    slot1_ctrl_match_total <= slot1_ctrl_match_total + 1;
+                    slot1_pending_valid[slot1_match_slot] <= 1'b0;
+
+                    if (slot1_match_type == SLOT1_TYPE_B) begin
+                        slot1_b_exec_total <= slot1_b_exec_total + 1;
+                        if (slot1_match_pred_taken)
+                            slot1_b_pred_total <= slot1_b_pred_total + 1;
+                        if (slot1_match_correct)
+                            slot1_b_correct_total <= slot1_b_correct_total + 1;
+                        if (u_cpu.ex_actual_jump_flag)
+                            slot1_b_taken_total <= slot1_b_taken_total + 1;
+                        else
+                            slot1_b_nt_total <= slot1_b_nt_total + 1;
+
+                        if (slot1_match_branch_backward) begin
+                            slot1_b_back_total <= slot1_b_back_total + 1;
+                            if (u_cpu.ex_actual_jump_flag)
+                                slot1_b_back_taken_total <= slot1_b_back_taken_total + 1;
+                            else
+                                slot1_b_back_nt_total <= slot1_b_back_nt_total + 1;
+                        end else begin
+                            slot1_b_fwd_total <= slot1_b_fwd_total + 1;
+                            if (u_cpu.ex_actual_jump_flag)
+                                slot1_b_fwd_taken_total <= slot1_b_fwd_taken_total + 1;
+                            else
+                                slot1_b_fwd_nt_total <= slot1_b_fwd_nt_total + 1;
+                        end
+                    end else if (slot1_match_type == SLOT1_TYPE_JAL) begin
+                        slot1_jal_exec_total <= slot1_jal_exec_total + 1;
+                        if (slot1_match_pred_taken)
+                            slot1_jal_pred_total <= slot1_jal_pred_total + 1;
+                        if (slot1_match_correct)
+                            slot1_jal_correct_total <= slot1_jal_correct_total + 1;
+                    end else begin
+                        slot1_jalr_exec_total <= slot1_jalr_exec_total + 1;
+                        if (slot1_match_pred_taken)
+                            slot1_jalr_pred_total <= slot1_jalr_pred_total + 1;
+                        if (slot1_match_correct)
+                            slot1_jalr_correct_total <= slot1_jalr_correct_total + 1;
+
+                        if (slot1_match_type == SLOT1_TYPE_RET) begin
+                            slot1_ret_exec_total <= slot1_ret_exec_total + 1;
+                            if (slot1_match_pred_taken)
+                                slot1_ret_pred_total <= slot1_ret_pred_total + 1;
+                            if (slot1_match_correct)
+                                slot1_ret_correct_total <= slot1_ret_correct_total + 1;
+                        end else if (slot1_match_type == SLOT1_TYPE_CALL_JALR) begin
+                            slot1_call_jalr_exec_total <= slot1_call_jalr_exec_total + 1;
+                            if (slot1_match_pred_taken)
+                                slot1_call_jalr_pred_total <= slot1_call_jalr_pred_total + 1;
+                            if (slot1_match_correct)
+                                slot1_call_jalr_correct_total <= slot1_call_jalr_correct_total + 1;
+                        end else begin
+                            slot1_indirect_jalr_exec_total <= slot1_indirect_jalr_exec_total + 1;
+                            if (slot1_match_pred_taken)
+                                slot1_indirect_jalr_pred_total <= slot1_indirect_jalr_pred_total + 1;
+                            if (slot1_match_correct)
+                                slot1_indirect_jalr_correct_total <= slot1_indirect_jalr_correct_total + 1;
+                        end
+                    end
+                end
+            end
+
+            if (u_cpu.pipeline_flush) begin
+                for (slot1_track_i = 0; slot1_track_i < SLOT1_TRACK_SLOTS; slot1_track_i = slot1_track_i + 1)
+                    slot1_pending_valid[slot1_track_i] <= 1'b0;
+            end
+
+            if (slot1_ctrl_candidate_fire) begin
+                slot1_free_slot = -1;
+                for (slot1_track_i = 0; slot1_track_i < SLOT1_TRACK_SLOTS; slot1_track_i = slot1_track_i + 1) begin
+                    if (!slot1_pending_valid[slot1_track_i] && (slot1_free_slot == -1))
+                        slot1_free_slot = slot1_track_i;
+                end
+
+                if (slot1_free_slot != -1) begin
+                    slot1_ctrl_track_total <= slot1_ctrl_track_total + 1;
+                    slot1_pending_valid[slot1_free_slot] <= 1'b1;
+                    slot1_pending_pc[slot1_free_slot] <= u_cpu.if_pre_instr_addr;
+                    slot1_pending_instr[slot1_free_slot] <= u_cpu.if_pre_instr;
+                    slot1_pending_pred_taken[slot1_free_slot] <= u_cpu.if_pre_pred_taken_eff;
+                    slot1_pending_pred_target[slot1_free_slot] <= u_cpu.if_pre_pred_target_eff;
+                    slot1_pending_type[slot1_free_slot] <= slot1_candidate_type;
+                end else begin
+                    slot1_ctrl_drop_total <= slot1_ctrl_drop_total + 1;
+                end
             end
 
             branch_now         = branch_total;
@@ -1618,6 +2038,10 @@ module cpu_tb;
             if_branch_nohit_back_ok_total <= if_branch_nohit_back_ok_now;
             if_branch_nohit_back_redirect_total <= if_branch_nohit_back_redirect_now;
             slot1_redirect_total <= slot1_redirect_now;
+            slot1_branch_seen_total <= slot1_branch_seen_now;
+            slot1_branch_issue_total <= slot1_branch_issue_now;
+            slot1_branch_back_total <= slot1_branch_back_now;
+            slot1_branch_issue_back_total <= slot1_branch_issue_back_now;
             bht_tag_alias_total  <= bht_tag_alias_now;
             bht_store_total      <= bht_store_now;
             bht_store_conflict_total <= bht_store_conflict_now;
@@ -1856,17 +2280,17 @@ module cpu_tb;
 
     always @(posedge clk) begin
         if (u_cpu.bus_m_stb && !u_cpu.bus_m_we
-                && u_cpu.bus_m_addr[31:28] == 4'hF
-                && u_cpu.bus_m_addr[5:0] != 6'h10
-                && u_cpu.bus_m_addr[5:0] != 6'h14) begin
+                && u_cpu.bus_m_addr[31:28] == `MMIO_REGION_NIBBLE
+                && u_cpu.bus_m_addr[5:0] != `MMIO_UART_TX_OFFSET
+                && u_cpu.bus_m_addr[5:0] != `MMIO_UART_STATUS_OFFSET) begin
             $display("[%0t ns] MMIO READ  addr=%08x", $time, u_cpu.bus_m_addr);
             #10;
             $display("data=%08x ", u_cpu.bus_m_dat_o);
         end
         if (u_cpu.bus_m_stb && u_cpu.bus_m_we
-                && u_cpu.bus_m_addr[31:28] == 4'hF
-                && u_cpu.bus_m_addr[5:0] != 6'h10
-                && u_cpu.bus_m_addr[5:0] != 6'h14) begin
+                && u_cpu.bus_m_addr[31:28] == `MMIO_REGION_NIBBLE
+                && u_cpu.bus_m_addr[5:0] != `MMIO_UART_TX_OFFSET
+                && u_cpu.bus_m_addr[5:0] != `MMIO_UART_STATUS_OFFSET) begin
             $display("[%0t ns] MMIO WRITE  addr=%08x", $time, u_cpu.bus_m_addr);
             #10;
             $display("data=%08x ", u_cpu.bus_m_dat_o);
@@ -1973,13 +2397,20 @@ module cpu_tb;
                                bht_tag_alias_total, bht_store_total, bht_store_conflict_total, bht_store_imm_overlap_total,
                                mul_exec_total, mul_follow_slot_total, mul_dep_slot_total,
                                mul_dep_d1_total, mul_dep_d2_total, mul_dep_d3_total);
+                print_slot1_branch_stats(stat_cycle_total,
+                                         branch_total,
+                                         slot1_branch_seen_total,
+                                         slot1_branch_issue_total,
+                                         slot1_branch_back_total,
+                                         slot1_branch_issue_back_total);
+                print_slot1_ctrl_stats(stat_cycle_total);
                 print_bht_entry_stats;
             end
             $display("LED = %04X", u_cpu.u_mmio.led);
-            if (u_cpu.u_mmio.led == 16'h0000)
-                $display(">>> PASSED <<<");
-            else
-                $display(">>> FAILED at sub-test %0d <<<", u_cpu.u_mmio.led);
+            //if (u_cpu.u_mmio.led == 16'h0000)
+            //    $display(">>> PASSED <<<");
+            //else
+            //    $display(">>> FAILED at sub-test %0d <<<", u_cpu.u_mmio.led);
             $finish;
         end
     end

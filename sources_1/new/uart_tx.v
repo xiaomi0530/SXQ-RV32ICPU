@@ -1,17 +1,18 @@
 `timescale 1ns / 1ps
+`include "defines.v"
 /*
  * UART TX module for RV32I CoreMark output
  *
  * Features:
- *  - Parameterised clock frequency / baud rate (default 100 MHz / 115200 baud)
- *  - Simple FIFO buffer to absorb burst writes from mmio (default 64 bytes)
+ *  - Parameterised clock frequency / baud rate (defaults come from defines.v)
+ *  - Simple FIFO buffer to absorb burst writes from mmio
  *  - 8N1 framing, LSB first, idle high
  */
 
 module uart_tx #(
-    parameter integer CLK_FREQ   = 100_000_000,
-    parameter integer BAUD_RATE  = 115_200,
-    parameter integer FIFO_DEPTH = 4
+    parameter integer CLK_FREQ   = `CPU_CLK_FREQ_HZ,
+    parameter integer BAUD_RATE  = `CPU_UART_BAUD_RATE,
+    parameter integer FIFO_DEPTH = `CPU_UART_FIFO_DEPTH
 )(
     input  wire       clk,
     input  wire       rst_n,
@@ -19,8 +20,8 @@ module uart_tx #(
     input  wire [7:0] tx_data,
     output wire       tx_busy,
     output wire       tx_ready,
-    output reg        tx,          // UART TX line
-    output reg        overflow     // set when FIFO overflows (sticky)
+    output reg         tx,          // UART TX line
+    output reg         overflow     // set when FIFO overflows (sticky)
 );
     function integer clog2;
         input integer value;

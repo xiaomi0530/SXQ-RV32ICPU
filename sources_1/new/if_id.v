@@ -20,11 +20,11 @@ module if_id(
     input  wire [31:0] if_pre_pred_target_i,
     input  wire        if_pre_valid_i,
 
-    output reg  [31:0] id_instr_o,
-    output reg  [31:0] id_instr_addr_o,
-    output reg         id_branch_nohit_o,
-    output reg         id_pred_taken_o,
-    output reg  [31:0] id_pred_target_o
+    output reg   [31:0] id_instr_o,
+    output reg   [31:0] id_instr_addr_o,
+    output reg          id_branch_nohit_o,
+    output reg          id_pred_taken_o,
+    output reg   [31:0] id_pred_target_o
 );
 
     reg kill_fetch_r;

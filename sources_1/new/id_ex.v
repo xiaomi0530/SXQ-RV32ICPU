@@ -32,26 +32,26 @@ module id_ex #(
     input  wire        id_call_flag,
     input  wire        id_ret_flag,
 
-    output reg  [31:0] ex_instr_addr,
-    output reg         ex_branch_nohit,
-    output reg         ex_pred_taken,
-    output reg  [31:0] ex_pred_target,
-    output reg  [31:0] ex_alu_num1,
-    output reg  [31:0] ex_alu_num2,
-    output reg  [3:0]  ex_alu_op,
-    output reg  [4:0]  ex_regs_w_addr,
-    output reg         ex_regs_we,
-    output reg  [2:0]  ex_mem_op,
-    output reg         ex_dmem_we,
-    output reg         ex_dmem_re,
-    output reg  [31:0] ex_dmem_w_data,
-    output reg         ex_branch_flag,
-    output reg  [31:0] ex_branch_jump_addr,
-    output reg  [BR_HASH_BITS-1:0]  ex_branch_hash,
-    output reg         ex_jump_flag,
-    output reg         ex_jalr_flag,
-    output reg         ex_call_flag,
-    output reg         ex_ret_flag
+    output reg   [31:0] ex_instr_addr,
+    output reg          ex_branch_nohit,
+    output reg          ex_pred_taken,
+    output reg   [31:0] ex_pred_target,
+    output reg   [31:0] ex_alu_num1,
+    output reg   [31:0] ex_alu_num2,
+    output reg   [3:0]  ex_alu_op,
+    output reg   [4:0]  ex_regs_w_addr,
+    output reg          ex_regs_we,
+    output reg   [2:0]  ex_mem_op,
+    output reg          ex_dmem_we,
+    output reg          ex_dmem_re,
+    output reg   [31:0] ex_dmem_w_data,
+    output reg          ex_branch_flag,
+    output reg   [31:0] ex_branch_jump_addr,
+    output reg   [BR_HASH_BITS-1:0]  ex_branch_hash,
+    output reg          ex_jump_flag,
+    output reg          ex_jalr_flag,
+    output reg          ex_call_flag,
+    output reg          ex_ret_flag
 );
 
     always @(posedge clk) begin
@@ -125,7 +125,7 @@ module id_ex #(
             ex_dmem_w_data      <= 32'b0;
             ex_branch_jump_addr <= 32'b0;
             ex_branch_hash      <= {BR_HASH_BITS{1'b0}};
-        end else if(!(pipeline_stall || pipeline_hold))begin
+        end else if (!(pipeline_stall || pipeline_hold)) begin
             ex_instr_addr       <= id_instr_addr;
             ex_pred_target      <= id_pred_target;
             ex_alu_num1         <= id_alu_num1;

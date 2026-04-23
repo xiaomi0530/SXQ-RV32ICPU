@@ -7,8 +7,8 @@ module div_unit(
     input  wire [1:0]  op,
     input  wire [31:0] op_a,
     input  wire [31:0] op_b,
-    output reg  [31:0] result,
-    output reg         ready
+    output reg   [31:0] result,
+    output reg          ready
 );
 
     localparam [2:0] S_IDLE   = 3'd0;

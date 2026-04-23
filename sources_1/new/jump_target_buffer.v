@@ -1,8 +1,9 @@
 `timescale 1ns / 1ps
+`include "defines.v"
 
 module jump_target_buffer #(
-    parameter integer ENTRY_NUM  = 8,
-    parameter integer INDEX_BITS = 3
+    parameter integer ENTRY_NUM  = `JTB_ENTRY_NUM,
+    parameter integer INDEX_BITS = `JTB_INDEX_BITS
 )(
     input  wire        clk,
     input  wire        rst_n,

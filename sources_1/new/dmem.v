@@ -9,14 +9,14 @@ module dmem(
     input  wire [31:0] wr_addr,
     input  wire        bus_we,
     input  wire [2:0]  mem_op,
-    output reg  [31:0] r_data
+    output reg   [31:0] r_data
 );
 
     (* ram_style = "block" *) reg [7:0] dmem0 [0:8191];
     (* ram_style = "block" *) reg [7:0] dmem1 [0:8191];
     (* ram_style = "block" *) reg [7:0] dmem2 [0:8191];
     (* ram_style = "block" *) reg [7:0] dmem3 [0:8191];
-    
+
     integer i;
     initial begin
         for (i = 0; i < 8192; i = i + 1) begin
@@ -36,7 +36,7 @@ module dmem(
     reg re_r;
 
     reg [3:0] byte_en;
-    always @(*) begin
+    always @* begin
         byte_en = 4'b0000;
         if (we) begin
             case (mem_op)
@@ -56,13 +56,13 @@ module dmem(
             endcase
         end
     end
- 
+
     wire [7:0] wdata0 = w_data[7:0];
     wire [7:0] wdata1 = (mem_op == 3'b000) ? w_data[7:0] : w_data[15:8];
     wire [7:0] wdata2 = (mem_op == 3'b010) ? w_data[23:16] : w_data[7:0];
     wire [7:0] wdata3 = (mem_op == 3'b010) ? w_data[31:24] :
                         (mem_op == 3'b001) ? w_data[15:8]  : w_data[7:0];
- 
+
     always @(posedge clk) begin
         if (byte_en[0]) dmem0[word_addr] <= wdata0;
     end
@@ -78,7 +78,7 @@ module dmem(
 
     always@(posedge clk) begin
         bus_ack_w <= 1'b0;
-        if(we)begin
+        if (we) begin
             bus_ack_w <= 1'b1;
         end
     end
@@ -86,11 +86,11 @@ module dmem(
     reg [31:0]  word_data;
     reg [2:0]   mem_op_r;
     reg [1:0]   wr_addr_r;
-    
+
     always@(posedge clk) begin
         bus_ack_r <= 1'b0;
-        if(re)begin
-            word_data <= {dmem3[word_addr], dmem2[word_addr],dmem1[word_addr], dmem0[word_addr]};  
+        if (re) begin
+            word_data <= {dmem3[word_addr], dmem2[word_addr],dmem1[word_addr], dmem0[word_addr]};
             bus_ack_r <= 1'b1;
         end
         mem_op_r <= mem_op;
@@ -100,8 +100,8 @@ module dmem(
 
     assign bus_ack = bus_ack_w || bus_ack_r;
 
-    always @(*) begin
-        if(re_r)begin
+    always @* begin
+        if (re_r) begin
             case (mem_op_r)
                 3'b000: // LB
                     case (wr_addr_r[1:0])
@@ -133,7 +133,6 @@ module dmem(
         end else begin
             r_data = 32'h0;
         end
-    end 
-
+    end
 
 endmodule

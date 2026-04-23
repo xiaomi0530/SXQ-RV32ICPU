@@ -8,7 +8,9 @@ module seg7_display(
     output reg  [6:0]  seg        // segment {CA,CB,CC,CD,CE,CF,CG} = {a,b,c,d,e,f,g} active low
 );
 
-    // ---- Refresh counter: ~763 Hz scan rate ----
+    // ------------------------------------------------------------------------
+    // Refresh counter
+    // ------------------------------------------------------------------------
     reg [16:0] refresh_cnt;
     wire [2:0] digit_sel = refresh_cnt[16:14];
 
@@ -19,11 +21,13 @@ module seg7_display(
             refresh_cnt <= refresh_cnt + 1;
     end
 
-    // ---- Binary to BCD (Double Dabble) — combinational ----
+    // ------------------------------------------------------------------------
+    // Binary to BCD (Double Dabble), combinational
+    // ------------------------------------------------------------------------
     reg [3:0] bcd_comb [0:9];
     integer i, j;
 
-    always @(*) begin
+    always @* begin
         for (j = 0; j < 10; j = j + 1)
             bcd_comb[j] = 4'd0;
 
@@ -33,20 +37,21 @@ module seg7_display(
                 if (bcd_comb[j] >= 5)
                     bcd_comb[j] = bcd_comb[j] + 3;
 
-            // Step 2: 先保存每个 nibble 的进位位，再统一移位
-            // 避免组合逻辑中顺序赋值导致进位串扰
+            // Step 2: shift all digits left by one and inject the next input bit.
             begin : shift_block
                 reg [9:0] c;
                 for (j = 0; j < 10; j = j + 1)
                     c[j] = bcd_comb[j][3];
                 for (j = 9; j >= 1; j = j - 1)
-                    bcd_comb[j] = {bcd_comb[j][2:0], c[j-1]};
+                    bcd_comb[j] = {bcd_comb[j][2:0], c[j - 1]};
                 bcd_comb[0] = {bcd_comb[0][2:0], value[i]};
             end
         end
     end
 
-    // ---- Register BCD to break deep combinational timing path ----
+    // ------------------------------------------------------------------------
+    // Register BCD to break deep combinational timing path
+    // ------------------------------------------------------------------------
     reg [3:0] bcd [0:7];
     always @(posedge clk) begin
         if (!rst_n) begin
@@ -64,9 +69,11 @@ module seg7_display(
         end
     end
 
-    // ---- Leading zero blanking ----
+    // ------------------------------------------------------------------------
+    // Leading zero blanking
+    // ------------------------------------------------------------------------
     reg [7:0] digit_active;
-    always @(*) begin
+    always @* begin
         digit_active[7] = (bcd[7] != 0);
         digit_active[6] = (bcd[7] != 0) || (bcd[6] != 0);
         digit_active[5] = (bcd[7] != 0) || (bcd[6] != 0) || (bcd[5] != 0);
@@ -77,9 +84,11 @@ module seg7_display(
         digit_active[0] = 1'b1; // ones digit always shown
     end
 
-    // ---- Select current digit ----
+    // ------------------------------------------------------------------------
+    // Select current digit
+    // ------------------------------------------------------------------------
     reg [3:0] cur_digit;
-    always @(*) begin
+    always @* begin
         case (digit_sel)
             3'd0: cur_digit = bcd[0];
             3'd1: cur_digit = bcd[1];
@@ -93,16 +102,20 @@ module seg7_display(
         endcase
     end
 
-    // ---- Anode select (active low) ----
-    always @(*) begin
+    // ------------------------------------------------------------------------
+    // Anode select (active low)
+    // ------------------------------------------------------------------------
+    always @* begin
         an = 8'b11111111;
         if (digit_active[digit_sel])
             an[digit_sel] = 1'b0;
     end
 
-    // ---- Seven-segment decode ----
+    // ------------------------------------------------------------------------
+    // Seven-segment decode
+    // ------------------------------------------------------------------------
     // seg[6:0] = {CA,CB,CC,CD,CE,CF,CG} = {a,b,c,d,e,f,g}, active low
-    always @(*) begin
+    always @* begin
         case (cur_digit)
             4'd0: seg = 7'b0000001; // abcdef ON, g OFF
             4'd1: seg = 7'b1001111; // bc ON

@@ -14,6 +14,11 @@ module branch_predictor #(
     input  wire [INDEX_BITS-1:0] lookup_hash0,
     output wire        pred_taken0,
     output wire        branch_hit0,
+    input  wire        lookup_is_branch1,
+    input  wire [31:0] lookup_pc1,
+    input  wire [INDEX_BITS-1:0] lookup_hash1,
+    output wire        pred_taken1,
+    output wire        branch_hit1,
     input  wire        update_en,
     input  wire [31:0] update_pc,
     input  wire [INDEX_BITS-1:0] update_hash,
@@ -42,11 +47,15 @@ module branch_predictor #(
 
     wire [INDEX_BITS-1:0] lookup_idx0 = lookup_pc0[INDEX_BITS+1:2] ^ lookup_hash0;
     wire [TAG_BITS-1:0]   lookup_tag0 = pack_branch_tag(lookup_pc0);
+    wire [INDEX_BITS-1:0] lookup_idx1 = lookup_pc1[INDEX_BITS+1:2] ^ lookup_hash1;
+    wire [TAG_BITS-1:0]   lookup_tag1 = pack_branch_tag(lookup_pc1);
     wire [INDEX_BITS-1:0] update_idx  = update_pc[INDEX_BITS+1:2] ^ update_hash;
     wire [TAG_BITS-1:0]   update_tag  = pack_branch_tag(update_pc);
 
     assign branch_hit0     = lookup_is_branch0 && branch_valid[lookup_idx0] && (branch_tag[lookup_idx0] == lookup_tag0);
     assign pred_taken0  = branch_hit0 && bht_ctr[lookup_idx0][1];
+    assign branch_hit1     = lookup_is_branch1 && branch_valid[lookup_idx1] && (branch_tag[lookup_idx1] == lookup_tag1);
+    assign pred_taken1  = branch_hit1 && bht_ctr[lookup_idx1][1];
 
     integer i;
     always @(posedge clk) begin

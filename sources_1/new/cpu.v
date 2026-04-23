@@ -8,16 +8,6 @@ module cpu(
     output wire        uart_tx
 );
 
-`ifdef SYNTHESIS
-    localparam integer UART_BAUD_RATE = 115_200;
-`else
-    localparam integer UART_BAUD_RATE = 3_000_000;
-`endif
-    localparam integer BR_PRED_PC_CANON_BITS = `BR_PRED_PC_CANON_BITS;
-    localparam integer BR_PRED_ENTRY_NUM  = `BR_PRED_ENTRY_NUM;
-    localparam integer BR_PRED_INDEX_BITS = `BR_PRED_INDEX_BITS;
-    localparam integer BR_PRED_TAG_BITS   = `BR_PRED_TAG_BITS;
-
     // ------------------------------------------------------------------------
     // Global control
     // ------------------------------------------------------------------------
@@ -25,8 +15,8 @@ module cpu(
     wire        pipeline_flush;
     wire        ex_mul_busy;
     wire        ex_div_busy;
-    wire        pipeline_hold         = ex_mul_busy | ex_div_busy;
-    wire        pipeline_block        = pipeline_stall | pipeline_hold;
+    wire        pipeline_hold  = ex_mul_busy | ex_div_busy;
+    wire        pipeline_block = pipeline_stall | pipeline_hold;
 
     // ------------------------------------------------------------------------
     // PREIF
@@ -39,7 +29,6 @@ module cpu(
     wire        preif_next_jtb_hit;
     wire [31:0] preif_next_jtb_target;
 
-    wire        slot0_jump_redirect;
     wire        slot0_ctrl_redirect;
     wire        slot1_pred_redirect;
     wire        frontend_redirect_flag;
@@ -62,42 +51,23 @@ module cpu(
     reg  [31:0] if_pre_jtb_target;
 
     wire        if_is_b;
-    wire        if_is_jal;
-    wire        if_is_jalr;
     wire        if_is_call;
     wire        if_is_ret;
-    wire [10:1] if_b_imm_lo;
-    wire [31:0] if_jal_imm;
-    wire [31:0] if_jalr_pred_target;
-    wire [14:0] if_jalr_pred_target_low;
-    wire        if_jalr_pred_hit;
     wire [31:0] if_b_imm;
-    wire [14:0] if_b_target_low;
-    wire [31:0] if_b_target_canon;
-    wire [14:0] if_jal_target_low;
-    wire [31:0] if_jal_target_canon;
-    wire [31:0] if_jtb_target_canon;
-    wire [BR_PRED_INDEX_BITS-1:0] if_branch_hash;
+    wire [`BR_PRED_INDEX_BITS-1:0] if_branch_hash;
     wire        if_branch_pred_taken;
     wire        if_branch_hit;
     wire        if_branch_pred_taken_eff;
     wire        if_pred_taken_eff;
-    wire [14:0] if_pred_target_low;
     wire [31:0] if_pred_target_eff;
 
-    wire        if_pre_is_jal;
-    wire        if_pre_is_jalr;
+    wire        if_pre_is_b;
     wire        if_pre_is_call;
     wire        if_pre_is_ret;
-    wire [31:0] if_pre_jal_imm;
-    wire [14:0] if_pre_jal_target_low;
-    wire [31:0] if_pre_jal_target_canon;
-    wire        if_pre_jalr_pred_hit;
-    wire [31:0] if_pre_jalr_pred_target;
-    wire [14:0] if_pre_jalr_pred_target_low;
-    wire [31:0] if_pre_jtb_target_canon;
+    wire [`BR_PRED_INDEX_BITS-1:0] if_pre_branch_hash;
+    wire        if_pre_branch_pred_taken;
+    wire        if_pre_branch_hit;
     wire        if_pre_pred_taken_eff;
-    wire [14:0] if_pre_pred_target_low;
     wire [31:0] if_pre_pred_target_eff;
     wire        id_take_live_if;
     wire        id_take_recovery_if;
@@ -151,14 +121,14 @@ module cpu(
     wire        id_call_flag;
     wire        id_ret_flag;
     wire [10:1] id_b_imm_lo;
-    wire [BR_PRED_INDEX_BITS-1:0] id_branch_hash;
+    wire [`BR_PRED_INDEX_BITS-1:0] id_branch_hash;
     wire [31:0] id_branch_jump_addr;
 
     // ------------------------------------------------------------------------
     // EX
     // ------------------------------------------------------------------------
     wire [31:0] ex_instr_addr;
-    wire [BR_PRED_INDEX_BITS-1:0] ex_branch_hash;
+    wire [`BR_PRED_INDEX_BITS-1:0] ex_branch_hash;
     wire        ex_branch_nohit;
     wire        ex_pred_taken;
     wire [31:0] ex_pred_target;
@@ -182,19 +152,6 @@ module cpu(
     wire        ex_jalr_flag;
     wire        ex_call_flag;
     wire        ex_ret_flag;
-
-    function [BR_PRED_INDEX_BITS-1:0] branch_hash_mix;
-        input [31:0] pc_value;
-        input [10:1] imm_lo_value;
-        integer bit_idx;
-        begin
-            branch_hash_mix = {BR_PRED_INDEX_BITS{1'b0}};
-            for (bit_idx = 0; bit_idx < BR_PRED_INDEX_BITS; bit_idx = bit_idx + 1) begin
-                if (((6 + bit_idx) < BR_PRED_PC_CANON_BITS) && ((5 + bit_idx) <= 10))
-                    branch_hash_mix[bit_idx] = pc_value[6 + bit_idx] ^ imm_lo_value[5 + bit_idx];
-            end
-        end
-    endfunction
     wire [31:0] ex_branch_jump_addr;
 
     wire        ex_actual_jump_flag;
@@ -256,20 +213,12 @@ module cpu(
     // ------------------------------------------------------------------------
     // RAS
     // ------------------------------------------------------------------------
-    localparam integer RAS_DEPTH = 8;
-    localparam integer RAS_PTR_W = 3;
-    reg  [31:0] ras_stack [0:RAS_DEPTH-1];
-    reg  [RAS_PTR_W-1:0] ras_sp;
-    reg  [RAS_PTR_W:0]   ras_count;
-    reg  [31:0]          ras_top_target_q;
-    reg  [31:0]          ras_next_target_q;
     wire                 ras_valid;
     wire                 ras_slot1_valid_shadow;
+    wire [14:0]          ras_top_target_low;
     wire [14:0]          ras_slot1_top_target_shadow_low;
     wire                 frontend_issue_ok;
     wire                 slot0_jump_pred_base;
-    wire                 slot0_ctrl_pred_base;
-    wire                 slot1_pred_base;
 
     // ------------------------------------------------------------------------
     // WB
@@ -279,135 +228,86 @@ module cpu(
     wire [4:0]  wb_regs_w_addr;
     wire [31:0] wb_actual_regs_w_data;
 
-    localparam [3:0] ALU_OP_MUL    = 4'b1001;
-    localparam [3:0] ALU_OP_MULH   = 4'b1010;
-    localparam [3:0] ALU_OP_MULHSU = 4'b1011;
-    localparam [3:0] ALU_OP_MULHU  = 4'b1111;
-    localparam [3:0] ALU_OP_DIVREM = 4'b1100;
-
     // ------------------------------------------------------------------------
-    // Timing helper / fanout split signals
+    // Frontend control
     // ------------------------------------------------------------------------
-    assign ras_valid            = (ras_count != 0);
-    assign ras_slot1_valid_shadow = slot0_jump_pred_base && if_is_ret
-                                  ? (ras_count > 1)
-                                  : (slot0_jump_pred_base && if_is_call)
-                                  ? 1'b1
-                                  : ras_valid;
-    assign ras_slot1_top_target_shadow_low = (slot0_jump_pred_base && if_is_call)
-                                           ? (if_instr_addr[14:0] + 15'd4)
-                                           : ((slot0_jump_pred_base && if_is_ret)
-                                           ? ras_next_target_q[14:0]
-                                           : ras_top_target_q[14:0]);
-
-    assign if_is_b               = (if_instr[6:2] == 5'b11000);
-    assign if_is_jal             = (if_instr[6:2] == 5'b11011);
-    assign if_is_jalr            = (if_instr[6:2] == 5'b11001);
-    assign if_is_call            = (if_is_jal || if_is_jalr)
-                                 && ((if_instr[11:7] == 5'd1) || (if_instr[11:7] == 5'd5));
-    assign if_is_ret             = if_is_jalr
-                                 && (if_instr[11:7] == 5'd0)
-                                 && ((if_instr[19:15] == 5'd1) || (if_instr[19:15] == 5'd5))
-                                 && (if_instr[31:20] == 12'b0);
-    assign if_b_imm_lo           = {if_instr[7], if_instr[30:25], if_instr[11:8]};
-    assign if_b_imm              = {{20{if_instr[31]}}, if_b_imm_lo, 1'b0};
-    assign if_b_target_low       = if_instr_addr[14:0] + if_b_imm[14:0];
-    assign if_b_target_canon     = {17'b0, if_b_target_low};
-    assign if_branch_hash        = branch_hash_mix(if_instr_addr, if_b_imm_lo);
-    assign if_branch_pred_taken_eff = if_branch_hit ? if_branch_pred_taken : if_b_imm[31];
-    assign if_jal_imm            = {{12{if_instr[31]}}, if_instr[19:12], if_instr[20], if_instr[30:21], 1'b0};
-    assign if_jal_target_low     = if_instr_addr[14:0] + if_jal_imm[14:0];
-    assign if_jal_target_canon   = {17'b0, if_jal_target_low};
-    assign if_jtb_target_canon   = {17'b0, if_jtb_target[14:0]};
-    assign if_jalr_pred_hit      = if_is_ret ? ras_valid : if_jtb_hit;
-    assign if_jalr_pred_target_low = if_is_ret ? ras_top_target_q[14:0] : if_jtb_target[14:0];
-    assign if_jalr_pred_target   = {17'b0, if_jalr_pred_target_low};
-    assign if_pred_taken_eff     = slot0_ctrl_redirect;
-    assign if_pred_target_low    = if_is_jal ? if_jal_target_low
-                                  : (if_is_jalr ? if_jalr_pred_target_low
-                                  : (if_is_b ? if_b_target_low : 15'b0));
-    assign if_pred_target_eff    = {17'b0, if_pred_target_low};
-
-    assign if_pre_is_jal         = (if_pre_instr[6:2] == 5'b11011);
-    assign if_pre_is_jalr        = (if_pre_instr[6:2] == 5'b11001);
-    assign if_pre_is_call        = if_pre_is_jalr
-                                 && ((if_pre_instr[11:7] == 5'd1) || (if_pre_instr[11:7] == 5'd5));
-    assign if_pre_is_ret         = if_pre_is_jalr
-                                 && (if_pre_instr[11:7] == 5'd0)
-                                 && ((if_pre_instr[19:15] == 5'd1) || (if_pre_instr[19:15] == 5'd5))
-                                 && (if_pre_instr[31:20] == 12'b0);
-    assign if_pre_jal_imm        = {{12{if_pre_instr[31]}}, if_pre_instr[19:12], if_pre_instr[20], if_pre_instr[30:21], 1'b0};
-    assign if_pre_jal_target_low = if_pre_instr_addr[14:0] + if_pre_jal_imm[14:0];
-    assign if_pre_jal_target_canon = {17'b0, if_pre_jal_target_low};
-    assign if_pre_jtb_target_canon = {17'b0, if_pre_jtb_target[14:0]};
-    assign if_pre_jalr_pred_hit  = if_pre_is_ret ? ras_slot1_valid_shadow
-                                  : (if_pre_is_call ? if_pre_jtb_hit : 1'b0);
-    assign if_pre_jalr_pred_target_low = if_pre_is_ret ? ras_slot1_top_target_shadow_low
-                                         : if_pre_jtb_target[14:0];
-    assign if_pre_jalr_pred_target = {17'b0, if_pre_jalr_pred_target_low};
-    assign if_pre_pred_taken_eff = if_pre_is_jal ? 1'b1
-                                  : (if_pre_is_jalr ? if_pre_jalr_pred_hit : 1'b0);
-    assign if_pre_pred_target_low= if_pre_is_jal ? if_pre_jal_target_low
-                                  : (if_pre_is_jalr ? if_pre_jalr_pred_target_low : 15'b0);
-    assign if_pre_pred_target_eff= {17'b0, if_pre_pred_target_low};
-
-    assign frontend_issue_ok     = !pipeline_block_if && !frontend_redirect_kill_q;
-    assign slot0_jump_pred_base  = if_is_jal || (if_is_jalr && if_jalr_pred_hit);
-    assign slot0_ctrl_pred_base  = slot0_jump_pred_base || if_branch_pred_taken_eff;
-    assign slot1_pred_base       = if_pre_valid && if_pre_pred_taken_eff;
-    assign slot0_jump_redirect   = frontend_issue_ok && slot0_jump_pred_base;
-    assign slot0_ctrl_redirect   = frontend_issue_ok && slot0_ctrl_pred_base;
-    assign slot1_pred_redirect   = frontend_issue_ok && slot1_pred_base;
-    assign frontend_redirect_flag = ex_mispredict | slot0_ctrl_redirect | slot1_pred_redirect;
-    assign frontend_redirect_addr = ex_mispredict        ? ex_redirect_addr[14:0]
-                                  : slot0_ctrl_redirect ? if_pred_target_low
-                                  :                       if_pre_pred_target_low;
     assign if_pre_valid          = if_pre_valid_q;
     assign id_take_recovery_if   = preif_valid && !frontend_redirect_kill_q;
     assign id_take_live_if       = if_pre_valid || id_take_recovery_if;
     assign id_b_imm_lo           = {id_instr[7], id_instr[30:25], id_instr[11:8]};
-    assign id_branch_hash        = branch_hash_mix(id_instr_addr, id_b_imm_lo);
     assign imem_bus_re           = bus_s0_stb && !bus_s0_we;
     assign slot1_capture_en      = preif_valid && !imem_bus_re;
     assign mem_actual_regs_w_data = mem_dmem_re ? mem_dmem_r_data : mem_regs_w_data;
-    assign id_mul_op             = (id_alu_op == ALU_OP_MUL)
-                                || (id_alu_op == ALU_OP_MULH)
-                                || (id_alu_op == ALU_OP_MULHSU)
-                                || (id_alu_op == ALU_OP_MULHU);
-    assign id_mul_signed_a       = (id_alu_op == ALU_OP_MUL)
-                                || (id_alu_op == ALU_OP_MULH)
-                                || (id_alu_op == ALU_OP_MULHSU);
-    assign id_mul_signed_b       = (id_alu_op == ALU_OP_MUL)
-                                || (id_alu_op == ALU_OP_MULH);
+    assign id_mul_op             = (id_alu_op == `ALU_OP_MUL)
+                                || (id_alu_op == `ALU_OP_MULH)
+                                || (id_alu_op == `ALU_OP_MULHSU)
+                                || (id_alu_op == `ALU_OP_MULHU);
+    assign id_mul_signed_a       = (id_alu_op == `ALU_OP_MUL)
+                                || (id_alu_op == `ALU_OP_MULH)
+                                || (id_alu_op == `ALU_OP_MULHSU);
+    assign id_mul_signed_b       = (id_alu_op == `ALU_OP_MUL)
+                                || (id_alu_op == `ALU_OP_MULH);
     assign id_mul_preload        = id_mul_op
                                 && !pipeline_flush
                                 && !pipeline_stall
                                 && !pipeline_hold;
-    assign id_div_op             = (id_alu_op == ALU_OP_DIVREM);
+    assign id_div_op             = (id_alu_op == `ALU_OP_DIVREM);
     assign id_div_preload        = id_div_op
                                 && !pipeline_flush
                                 && !pipeline_stall
                                 && !pipeline_hold;
 
-    wire        pipeline_hold_if          = pipeline_hold;
-    wire        pipeline_hold_id          = pipeline_hold;
-    wire        pipeline_hold_exm         = pipeline_hold;
-    wire        pipeline_block_pc         = pipeline_block;
-    wire        pipeline_block_imem       = pipeline_block;
-    wire        pipeline_block_if         = pipeline_block;
-    wire        pipeline_flush_if         = pipeline_flush;
-    wire        slot1_pred_redirect_if    = slot1_pred_redirect;
-    wire        frontend_redirect_flag_pc = frontend_redirect_flag;
-    wire [14:0] frontend_redirect_addr_pc = frontend_redirect_addr;
-    wire        pipeline_flush_imem       = pipeline_flush;
-    wire        pipeline_flush_if_id      = pipeline_flush;
-    wire        pipeline_flush_id_ex      = pipeline_flush;
-    branch_predictor #(
-        .ENTRY_NUM     (BR_PRED_ENTRY_NUM     ),
-        .INDEX_BITS    (BR_PRED_INDEX_BITS    ),
-        .PC_CANON_BITS (BR_PRED_PC_CANON_BITS ),
-        .TAG_BITS      (BR_PRED_TAG_BITS      )
-    ) u_branch_predictor (
+    frontend_ctrl u_frontend_ctrl (
+        .if_instr                     (if_instr                     ),
+        .if_instr_addr                (if_instr_addr                ),
+        .if_jtb_hit                   (if_jtb_hit                   ),
+        .if_jtb_target                (if_jtb_target                ),
+        .if_branch_hit                (if_branch_hit                ),
+        .if_branch_pred_taken         (if_branch_pred_taken         ),
+        .if_pre_instr                 (if_pre_instr                 ),
+        .if_pre_instr_addr            (if_pre_instr_addr            ),
+        .if_pre_jtb_hit               (if_pre_jtb_hit               ),
+        .if_pre_jtb_target            (if_pre_jtb_target            ),
+        .if_pre_branch_hit            (if_pre_branch_hit            ),
+        .if_pre_branch_pred_taken     (if_pre_branch_pred_taken     ),
+        .if_pre_valid                 (if_pre_valid                 ),
+        .ras_valid                    (ras_valid                    ),
+        .ras_top_target_low           (ras_top_target_low           ),
+        .ras_slot1_valid_shadow       (ras_slot1_valid_shadow       ),
+        .ras_slot1_top_target_shadow_low(ras_slot1_top_target_shadow_low),
+        .pipeline_block_if            (pipeline_block               ),
+        .frontend_redirect_kill_q     (frontend_redirect_kill_q     ),
+        .ex_mispredict                (ex_mispredict                ),
+        .ex_redirect_addr             (ex_redirect_addr             ),
+        .if_is_b                      (if_is_b                      ),
+        .if_is_call                   (if_is_call                   ),
+        .if_is_ret                    (if_is_ret                    ),
+        .if_b_imm                     (if_b_imm                     ),
+        .if_branch_hash               (if_branch_hash               ),
+        .if_branch_pred_taken_eff     (if_branch_pred_taken_eff     ),
+        .if_pred_taken_eff            (if_pred_taken_eff            ),
+        .if_pred_target_eff           (if_pred_target_eff           ),
+        .if_pre_is_b                  (if_pre_is_b                  ),
+        .if_pre_is_call               (if_pre_is_call               ),
+        .if_pre_is_ret                (if_pre_is_ret                ),
+        .if_pre_branch_hash           (if_pre_branch_hash           ),
+        .if_pre_pred_taken_eff        (if_pre_pred_taken_eff        ),
+        .if_pre_pred_target_eff       (if_pre_pred_target_eff       ),
+        .frontend_issue_ok            (frontend_issue_ok            ),
+        .slot0_jump_pred_base         (slot0_jump_pred_base         ),
+        .slot0_ctrl_redirect          (slot0_ctrl_redirect          ),
+        .slot1_pred_redirect          (slot1_pred_redirect          ),
+        .frontend_redirect_flag       (frontend_redirect_flag       ),
+        .frontend_redirect_addr       (frontend_redirect_addr       )
+    );
+
+    branch_hash_mix u_id_branch_hash (
+        .pc_value      (id_instr_addr),
+        .imm_lo_value  (id_b_imm_lo  ),
+        .hash_value    (id_branch_hash)
+    );
+
+    branch_predictor u_branch_predictor (
         .clk         (clk               ),
         .rst_n       (rst_n             ),
         .lookup_is_branch0(if_is_b          ),
@@ -415,16 +315,18 @@ module cpu(
         .lookup_hash0(if_branch_hash        ),
         .pred_taken0 (if_branch_pred_taken  ),
         .branch_hit0 (if_branch_hit         ),
+        .lookup_is_branch1(if_pre_is_b          ),
+        .lookup_pc1  (if_pre_instr_addr       ),
+        .lookup_hash1(if_pre_branch_hash      ),
+        .pred_taken1 (if_pre_branch_pred_taken),
+        .branch_hit1 (if_pre_branch_hit       ),
         .update_en   (ex_branch_flag        ),
         .update_pc   (ex_instr_addr         ),
         .update_hash (ex_branch_hash        ),
         .update_taken(ex_actual_jump_flag   )
     );
 
-    jump_target_buffer #(
-        .ENTRY_NUM  (8),
-        .INDEX_BITS (3)
-    ) u_jump_target_buffer (
+    jump_target_buffer u_jump_target_buffer (
         .clk         (clk               ),
         .rst_n       (rst_n             ),
         .lookup_pc0  (preif_pc_addr     ),
@@ -438,42 +340,33 @@ module cpu(
         .update_target({17'b0, ex_actual_jump_addr[14:0]})
     );
 
-    always @(posedge clk) begin
-        if (rst_n == `RST_ENABLE) begin
-            ras_sp    <= {RAS_PTR_W{1'b0}};
-            ras_count <= {(RAS_PTR_W+1){1'b0}};
-            ras_top_target_q  <= 32'b0;
-            ras_next_target_q <= 32'b0;
-        end else if (ex_jump_flag) begin
-            if (ex_ret_flag) begin
-                if (ras_count != 0) begin
-                    ras_sp    <= ras_sp - 1'b1;
-                    ras_count <= ras_count - 1'b1;
-                    ras_top_target_q <= (ras_count > 1) ? ras_next_target_q : 32'b0;
-                    if (ras_count > 2)
-                        ras_next_target_q <= ras_stack[ras_sp - 3'd3];
-                    else
-                        ras_next_target_q <= 32'b0;
-                end
-            end else if (ex_call_flag) begin
-                ras_stack[ras_sp] <= ex_instr_addr + 32'd4;
-                ras_sp            <= ras_sp + 1'b1;
-                if (ras_count != RAS_DEPTH)
-                    ras_count <= ras_count + 1'b1;
-                ras_next_target_q <= ras_valid ? ras_top_target_q : 32'b0;
-                ras_top_target_q  <= ex_instr_addr + 32'd4;
-            end
-        end
-    end
+    ras u_ras (
+        .clk                         (clk                            ),
+        .rst_n                       (rst_n                          ),
+        .slot0_jump_pred_base        (slot0_jump_pred_base           ),
+        .if_is_call                  (if_is_call                     ),
+        .if_is_ret                   (if_is_ret                      ),
+        .if_instr_addr               (if_instr_addr                  ),
+        .ras_valid                   (ras_valid                      ),
+        .ras_top_target_low          (ras_top_target_low             ),
+        .slot1_valid_shadow          (ras_slot1_valid_shadow         ),
+        .slot1_top_target_shadow_low (ras_slot1_top_target_shadow_low),
+        .ex_jump_flag                (ex_jump_flag                   ),
+        .ex_call_flag                (ex_call_flag                   ),
+        .ex_ret_flag                 (ex_ret_flag                    ),
+        .ex_instr_addr               (ex_instr_addr                  )
+    );
 
-    //PREIF
+    // ------------------------------------------------------------------------
+    // PREIF
+    // ------------------------------------------------------------------------
     pc u_pc(
         .clk            (clk                  ),
         .rst_n          (rst_n                ),
-        .redirect_flag  (frontend_redirect_flag_pc),
-        .redirect_addr  (frontend_redirect_addr_pc),
+        .redirect_flag  (frontend_redirect_flag),
+        .redirect_addr  (frontend_redirect_addr),
         .preif_ready    (!imem_bus_re         ),
-        .pipeline_stall (pipeline_block_pc    ),
+        .pipeline_stall (pipeline_block       ),
         .pc_o           (preif_pc_addr        ),
         .preif_valid_o  (preif_valid          )
     );
@@ -481,16 +374,15 @@ module cpu(
     imem u_imem(
         .clk                (clk               ),
         .rst_n              (rst_n             ),
-        .pipeline_stall     (pipeline_block_imem),
-        .pipeline_flush     (pipeline_flush_imem),
+        .pipeline_stall     (pipeline_block    ),
+        .pipeline_flush     (pipeline_flush    ),
         .preif_pc_addr_i    (preif_pc_addr     ),
         .if_instr_o         (if_instr          ),
         .if_instr_addr_o    (if_instr_addr     ),
         .preif_valid_i      (preif_valid       ),
         .if_pre_instr_o     (if_pre_instr      ),
         .if_pre_instr_addr_o(if_pre_instr_addr ),
-        .if_pre_valid_o     (                 ),
-        
+
         .bus_stb            (bus_s0_stb        ),
         .bus_ack            (bus_s0_ack        ),
         .r_addr             (bus_s0_addr       ),
@@ -502,9 +394,9 @@ module cpu(
     always @(posedge clk) begin
         if (rst_n == `RST_ENABLE) begin
             frontend_redirect_kill_q <= 1'b0;
-        end else if (pipeline_flush_if || slot0_ctrl_redirect || slot1_pred_redirect) begin
+        end else if (pipeline_flush || slot0_ctrl_redirect || slot1_pred_redirect) begin
             frontend_redirect_kill_q <= 1'b1;
-        end else if (!pipeline_block_if) begin
+        end else if (!pipeline_block) begin
             frontend_redirect_kill_q <= 1'b0;
         end
     end
@@ -516,19 +408,19 @@ module cpu(
             if_jtb_target     <= 32'b0;
             if_pre_jtb_hit    <= 1'b0;
             if_pre_jtb_target <= 32'b0;
-        end else if (slot0_ctrl_redirect || slot1_pred_redirect_if) begin
+        end else if (slot0_ctrl_redirect || slot1_pred_redirect) begin
             if_pre_valid_q     <= 1'b0;
             if_jtb_hit         <= 1'b0;
             if_jtb_target      <= 32'b0;
             if_pre_jtb_hit     <= 1'b0;
             if_pre_jtb_target  <= 32'b0;
-        end else if (pipeline_flush_if) begin
+        end else if (pipeline_flush) begin
             if_pre_valid_q     <= 1'b0;
             if_jtb_hit         <= 1'b0;
             if_jtb_target      <= 32'b0;
             if_pre_jtb_hit     <= 1'b0;
             if_pre_jtb_target  <= 32'b0;
-        end else if (!pipeline_block_if) begin
+        end else if (!pipeline_block) begin
             if_pre_valid_q <= slot1_capture_en;
             if_jtb_hit     <= preif_jtb_hit;
             if_jtb_target  <= preif_jtb_target;
@@ -541,8 +433,8 @@ module cpu(
         .clk             (clk             ),
         .rst_n           (rst_n           ),
         .pipeline_stall  (pipeline_stall  ),
-        .pipeline_hold   (pipeline_hold_if),
-        .pipeline_flush  (pipeline_flush_if_id),
+        .pipeline_hold   (pipeline_hold   ),
+        .pipeline_flush  (pipeline_flush  ),
         .frontend_kill   (frontend_redirect_kill_q),
         .slot0_drop_buf  (if_pre_valid && slot0_ctrl_redirect),
         .if_instr_i      (if_instr        ),
@@ -562,7 +454,9 @@ module cpu(
         .id_pred_target_o(id_pred_target_reg  )
     );
 
-    //ID
+    // ------------------------------------------------------------------------
+    // ID
+    // ------------------------------------------------------------------------
     assign id_instr       = id_take_live_if ? if_instr          : id_instr_reg;
     assign id_instr_addr  = id_take_live_if ? if_instr_addr     : id_instr_addr_reg;
     assign id_branch_nohit= id_take_live_if ? (if_is_b && !if_branch_hit) : id_branch_nohit_reg;
@@ -595,14 +489,16 @@ module cpu(
         .id_call_flag       (id_call_flag       ),
         .id_ret_flag        (id_ret_flag        )
     );
-    
-    //ID_EX
+
+    // ------------------------------------------------------------------------
+    // ID_EX
+    // ------------------------------------------------------------------------
     id_ex u_id_ex(
         .clk                 (clk                 ),
         .rst_n               (rst_n               ),
         .pipeline_stall      (pipeline_stall      ),
-        .pipeline_hold       (pipeline_hold_id    ),
-        .pipeline_flush      (pipeline_flush_id_ex),
+        .pipeline_hold       (pipeline_hold       ),
+        .pipeline_flush      (pipeline_flush      ),
 
         .id_instr_addr       (id_instr_addr       ),
         .id_branch_nohit     (id_branch_nohit     ),
@@ -646,9 +542,10 @@ module cpu(
         .ex_call_flag        (ex_call_flag        ),
         .ex_ret_flag         (ex_ret_flag         )
     );
-    
 
-    //EX
+    // ------------------------------------------------------------------------
+    // EX
+    // ------------------------------------------------------------------------
     assign pipeline_flush = ex_mispredict;
 
     ex u_ex(
@@ -682,12 +579,14 @@ module cpu(
         .ex_mul_busy           (ex_mul_busy           ),
         .ex_div_busy           (ex_div_busy           )
     );
-    
-    //EX_MEM
+
+    // ------------------------------------------------------------------------
+    // EX_MEM
+    // ------------------------------------------------------------------------
     ex_mem u_ex_mem(
         .clk                    (clk                    ),
         .rst_n                  (rst_n                  ),
-        .pipeline_hold          (pipeline_hold_exm      ),
+        .pipeline_hold          (pipeline_hold          ),
         .ex_regs_we             (ex_regs_we             ),
         .ex_regs_w_addr         (ex_regs_w_addr         ),
         .ex_regs_w_data         (ex_regs_w_data         ),
@@ -706,8 +605,10 @@ module cpu(
         .mem_dmem_re            (mem_dmem_re            ),
         .mem_mem_op             (mem_mem_op             )
     );
-    
-    //MEM
+
+    // ------------------------------------------------------------------------
+    // MEM
+    // ------------------------------------------------------------------------
 
     assign bus_m_stb = ex_dmem_we || ex_dmem_re;
     assign bus_m_we = ex_dmem_we;
@@ -776,12 +677,8 @@ module cpu(
         .uart_ready (uart_ready     ),
         .uart_overflow (uart_overflow)
     );
-    
-    uart_tx #(
-        .CLK_FREQ   (100_000_000),
-        .BAUD_RATE  (UART_BAUD_RATE),
-        .FIFO_DEPTH (4)
-    ) u_uart_tx (
+
+    uart_tx u_uart_tx (
         .clk       (clk          ),
         .rst_n     (rst_n        ),
         .tx_valid  (uart_valid   ),
@@ -793,9 +690,10 @@ module cpu(
     );
 
     assign uart_tx = uart_line;
-    
-    
-    //WB
+
+    // ------------------------------------------------------------------------
+    // WB
+    // ------------------------------------------------------------------------
     mem_wb u_mem_wb(
         .clk             (clk             ),
         .rst_n           (rst_n           ),
@@ -808,8 +706,10 @@ module cpu(
         .wb_regs_w_addr  (wb_regs_w_addr  ),
         .wb_regs_w_data  (wb_actual_regs_w_data)
     );
-    
-    //REGS
+
+    // ------------------------------------------------------------------------
+    // REGS
+    // ------------------------------------------------------------------------
     regs u_regs(
         .clk      (clk                   ),
         .rst_n    (rst_n                 ),
@@ -841,12 +741,14 @@ module cpu(
         .wb_regs_we            (wb_regs_we            ),
         .wb_regs_w_addr        (wb_regs_w_addr        ),
         .wb_actual_regs_w_data (wb_actual_regs_w_data ),
-        
+
         .id_rs1_data_fwd       (id_rs1_data_fwd       ),
         .id_rs2_data_fwd       (id_rs2_data_fwd       )
     );
-    
-    //Pipeline Stall
+
+    // ------------------------------------------------------------------------
+    // Pipeline stall
+    // ------------------------------------------------------------------------
     pipeline_stall u_pipeline_stall(
         .id_rs1_addr     (id_rs1_addr     ),
         .id_rs2_addr     (id_rs2_addr     ),
@@ -856,6 +758,5 @@ module cpu(
         .mem_regs_w_addr (mem_regs_w_addr ),
         .pipeline_stall  (pipeline_stall  )
     );
-    
-    
+
 endmodule

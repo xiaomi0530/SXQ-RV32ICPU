@@ -14,28 +14,34 @@ module mul_unit(
 
     localparam integer MUL_LATENCY = 3;
 
+    // ------------------------------------------------------------------------
+    // Front-end handshake
+    // ------------------------------------------------------------------------
     reg        busy;
     reg [1:0]  latency_cnt;
     wire       preload_en = preload && !busy;
     wire       dsp_ce     = busy | preload_en;
 
+    // ------------------------------------------------------------------------
+    // Operand staging
+    // ------------------------------------------------------------------------
     reg signed [16:0] a_hi_q;
     reg signed [16:0] b_hi_q;
     reg signed [16:0] a_lo_q;
     reg signed [16:0] b_lo_q;
 
     always @(posedge clk) begin
-        if(!rst_n) begin
+        if (!rst_n) begin
             busy        <= 1'b0;
             ready       <= 1'b0;
             latency_cnt <= 2'd0;
         end else begin
             ready <= 1'b0;
-            if(preload_en) begin
+            if (preload_en) begin
                 busy        <= 1'b1;
                 latency_cnt <= MUL_LATENCY - 1;
-            end else if(busy) begin
-                if(latency_cnt == 0) begin
+            end else if (busy) begin
+                if (latency_cnt == 0) begin
                     busy  <= 1'b0;
                     ready <= 1'b1;
                 end else begin
@@ -46,12 +52,12 @@ module mul_unit(
     end
 
     always @(posedge clk) begin
-        if(!rst_n) begin
+        if (!rst_n) begin
             a_hi_q <= 17'sd0;
             b_hi_q <= 17'sd0;
             a_lo_q <= 17'sd0;
             b_lo_q <= 17'sd0;
-        end else if(preload_en) begin
+        end else if (preload_en) begin
             a_hi_q <= signed_a ? {op_a[31], op_a[31:16]} : {1'b0, op_a[31:16]};
             b_hi_q <= signed_b ? {op_b[31], op_b[31:16]} : {1'b0, op_b[31:16]};
             a_lo_q <= {1'b0, op_a[15:0]};
@@ -59,6 +65,9 @@ module mul_unit(
         end
     end
 
+    // ------------------------------------------------------------------------
+    // Partial products
+    // ------------------------------------------------------------------------
     wire signed [33:0] pp_ll;
     wire signed [33:0] pp_lh;
     wire signed [33:0] pp_hl;
@@ -105,15 +114,14 @@ module mul_unit(
     wire signed [63:0] term_hl = ({{30{pp_hl[33]}}, pp_hl}) <<< 16;
     wire signed [63:0] term_hh = ({{30{pp_hh[33]}}, pp_hh}) <<< 32;
 
-    // balanced adder tree to reduce logic depth
-    wire signed [63:0] sum_lo = term_ll + term_lh;
-    wire signed [63:0] sum_hi = term_hl + term_hh;
+    // Balanced adder tree to reduce logic depth.
+    wire signed [63:0] sum_lo      = term_ll + term_lh;
+    wire signed [63:0] sum_hi      = term_hl + term_hh;
     wire signed [63:0] product_sum = sum_lo + sum_hi;
 
     assign result = product_sum;
 
 endmodule
-
 
 module dsp_mul_17x17(
     input  wire        clk,

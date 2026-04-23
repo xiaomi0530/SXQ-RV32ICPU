@@ -1,4 +1,5 @@
 `timescale 1ns / 1ps
+`include "defines.v"
 
 module id(
     input  wire        clk,
@@ -15,7 +16,7 @@ module id(
     output wire [4:0]  id_rd_addr,
     output wire        id_regs_we,
 
-    output reg  [3:0]  id_alu_op,
+    output reg   [3:0]  id_alu_op,
     output wire [31:0] id_alu_num1,
     output wire [31:0] id_alu_num2,
 
@@ -32,7 +33,7 @@ module id(
     output wire        id_call_flag,
     output wire        id_ret_flag
 );
-    
+
     wire [6:0] opcode = id_instr[6:0];
     wire [2:0] funct3 = id_instr[14:12];
     wire [6:0] funct7 = id_instr[31:25];
@@ -65,7 +66,7 @@ module id(
     wire [31:0] u_imm = {id_instr[31:12], 12'b0};
     wire [31:0] j_imm = {{12{id_instr[31]}}, id_instr[19:12], id_instr[20], id_instr[30:21], 1'b0};
 
-    always @(*) begin
+    always @* begin
         case (opcode_hi)
             5'b00000, 5'b00100, 5'b11001: imm = i_imm; // load / I-ALU / JALR
             5'b01000:                     imm = s_imm; // store
@@ -82,11 +83,11 @@ module id(
 
     assign id_regs_we  = type_r | type_i_alu | type_i_load | type_i_jalr | type_u_lui | type_u_auipc | type_j_jal;
     assign id_regs_re  = type_r | type_i_alu | type_i_load | type_i_jalr | type_s | type_b;
-    
+
     assign id_dmem_we  = type_s;
     assign id_dmem_re  = type_i_load;
     assign id_dmem_w_data = id_rs2_data;
-    assign id_mem_op   = funct3; 
+    assign id_mem_op   = funct3;
 
     assign id_branch_flag = type_b;
     assign id_branch_jump_addr = b_imm + id_instr_addr;
@@ -105,31 +106,25 @@ module id(
     wire rv32m_mul = rv32m_any && (funct3[2] == 1'b0);
     wire rv32m_div = rv32m_any && (funct3[2] == 1'b1);
 
-    localparam [3:0] ALU_OP_MUL     = 4'b1001;
-    localparam [3:0] ALU_OP_MULH    = 4'b1010;
-    localparam [3:0] ALU_OP_MULHSU  = 4'b1011;
-    localparam [3:0] ALU_OP_MULHU   = 4'b1111;
-    localparam [3:0] ALU_OP_DIVREM  = 4'b1100;
-
-    always @(*) begin 
+    always @* begin
         if (rv32m_mul) begin
             case (funct3)
-                3'b000: id_alu_op = ALU_OP_MUL;
-                3'b001: id_alu_op = ALU_OP_MULH;
-                3'b010: id_alu_op = ALU_OP_MULHSU;
-                3'b011: id_alu_op = ALU_OP_MULHU;
-                default: id_alu_op = 4'b0000;
+                3'b000:  id_alu_op = `ALU_OP_MUL;
+                3'b001:  id_alu_op = `ALU_OP_MULH;
+                3'b010:  id_alu_op = `ALU_OP_MULHSU;
+                3'b011:  id_alu_op = `ALU_OP_MULHU;
+                default: id_alu_op = `ALU_OP_ADD;
             endcase
         end else if (rv32m_div) begin
-            id_alu_op = ALU_OP_DIVREM;
+            id_alu_op = `ALU_OP_DIVREM;
         end else if (rv32m_any) begin
-            id_alu_op = 4'b0000;
+            id_alu_op = `ALU_OP_ADD;
         end else if (type_r || type_i_alu) begin
             id_alu_op = { ( (type_r && funct7[5]) || (type_i_alu && funct3==3'b101 && funct7[5]) ), funct3 };
         end else if (type_b) begin
-            id_alu_op = 4'b1000;
+            id_alu_op = `ALU_OP_SUB;
         end else begin
-            id_alu_op = 4'b0000; 
+            id_alu_op = `ALU_OP_ADD;
         end
     end
 
