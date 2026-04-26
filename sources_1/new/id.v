@@ -10,6 +10,8 @@ module id(
     output wire        id_regs_re,
     output wire [4:0]  id_rs1_addr,
     output wire [4:0]  id_rs2_addr,
+    output wire        id_rs1_used,
+    output wire        id_rs2_used,
     input  wire [31:0] id_rs1_data,
     input  wire [31:0] id_rs2_data,
 
@@ -83,6 +85,8 @@ module id(
 
     assign id_regs_we  = type_r | type_i_alu | type_i_load | type_i_jalr | type_u_lui | type_u_auipc | type_j_jal;
     assign id_regs_re  = type_r | type_i_alu | type_i_load | type_i_jalr | type_s | type_b;
+    assign id_rs1_used = type_r | type_i_alu | type_i_load | type_i_jalr | type_s | type_b;
+    assign id_rs2_used = type_r | type_s | type_b;
 
     assign id_dmem_we  = type_s;
     assign id_dmem_re  = type_i_load;

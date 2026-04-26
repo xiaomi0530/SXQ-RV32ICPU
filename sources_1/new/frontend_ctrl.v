@@ -28,7 +28,7 @@ module frontend_ctrl #(
     input  wire        pipeline_block_if,
     input  wire        frontend_redirect_kill_q,
     input  wire        ex_mispredict,
-    input  wire [31:0] ex_redirect_addr,
+    input  wire [14:0] ex_redirect_addr,
 
     output wire        if_is_b,
     output wire        if_is_call,
@@ -135,7 +135,7 @@ module frontend_ctrl #(
     assign slot1_pred_redirect    = frontend_issue_ok && slot1_pred_base;
     assign if_pred_taken_eff      = slot0_ctrl_redirect;
     assign frontend_redirect_flag = ex_mispredict | slot0_ctrl_redirect | slot1_pred_redirect;
-    assign frontend_redirect_addr = ex_mispredict        ? ex_redirect_addr[14:0]
+    assign frontend_redirect_addr = ex_mispredict        ? ex_redirect_addr
                                   : slot0_ctrl_redirect ? if_pred_target_low
                                   :                       if_pre_pred_target_low;
 

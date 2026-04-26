@@ -34,6 +34,10 @@ module cpu_tb;
     integer flush_total;
     integer load_stall_total;
     integer false_load_stall_total;
+    integer lduse3_base_total;
+    integer lduse3_i2_dep_i0_total;
+    integer lduse3_i2_dep_i1_total;
+    integer lduse3_i2_dep_both_total;
     integer mul_hold_total;
     integer other_bubble_total;
     integer wb_commit_total;
@@ -199,6 +203,10 @@ module cpu_tb;
     integer flush_now;
     integer load_stall_now;
     integer false_load_stall_now;
+    integer lduse3_base_now;
+    integer lduse3_i2_dep_i0_now;
+    integer lduse3_i2_dep_i1_now;
+    integer lduse3_i2_dep_both_now;
     integer mul_hold_now;
     integer other_bubble_now;
     integer wb_commit_now;
@@ -327,6 +335,17 @@ module cpu_tb;
     reg         prev_issue_we;
     reg  [4:0]  prev_issue_rd;
     reg  [31:0] prev_issue_instr;
+    reg         lduse3_seq0_valid;
+    reg         lduse3_seq0_load;
+    reg  [4:0]  lduse3_seq0_rd;
+    reg         lduse3_seq1_valid;
+    reg         lduse3_seq1_load;
+    reg         lduse3_seq1_we;
+    reg  [4:0]  lduse3_seq1_rd;
+    reg         lduse3_seq1_rs1_used;
+    reg         lduse3_seq1_rs2_used;
+    reg  [4:0]  lduse3_seq1_rs1_addr;
+    reg  [4:0]  lduse3_seq1_rs2_addr;
     reg         mul_dep1_valid;
     reg         mul_dep2_valid;
     reg         mul_dep3_valid;
@@ -393,6 +412,32 @@ module cpu_tb;
     wire       issue_is_mul     = issue_instr_fire
                                && (issue_opcode == 7'b0110011)
                                && (u_cpu.id_instr[31:25] == 7'b0000001);
+    wire       issue_is_load    = issue_instr_fire
+                               && (issue_opcode == 7'b0000011);
+    wire       issue_dep_lduse3_seq0 = lduse3_seq0_valid
+                                    && (lduse3_seq0_rd != 5'd0)
+                                    && (((issue_rs1_used && (u_cpu.id_rs1_addr == lduse3_seq0_rd))
+                                      || (issue_rs2_used && (u_cpu.id_rs2_addr == lduse3_seq0_rd))));
+    wire       issue_dep_lduse3_seq1 = lduse3_seq1_valid
+                                    && lduse3_seq1_we
+                                    && (lduse3_seq1_rd != 5'd0)
+                                    && (((issue_rs1_used && (u_cpu.id_rs1_addr == lduse3_seq1_rd))
+                                      || (issue_rs2_used && (u_cpu.id_rs2_addr == lduse3_seq1_rd))));
+    wire       lduse3_seq1_dep_seq0 = lduse3_seq1_valid
+                                   && lduse3_seq0_valid
+                                   && lduse3_seq0_load
+                                   && (lduse3_seq0_rd != 5'd0)
+                                   && (((lduse3_seq1_rs1_used && (lduse3_seq1_rs1_addr == lduse3_seq0_rd))
+                                     || (lduse3_seq1_rs2_used && (lduse3_seq1_rs2_addr == lduse3_seq0_rd))));
+    wire       lduse3_base_fire = stat_cycle_win
+                               && issue_instr_fire
+                               && lduse3_seq1_dep_seq0;
+    wire       lduse3_i2_dep_i0_fire = lduse3_base_fire
+                                    && issue_dep_lduse3_seq0;
+    wire       lduse3_i2_dep_i1_fire = lduse3_base_fire
+                                    && issue_dep_lduse3_seq1;
+    wire       lduse3_i2_dep_both_fire = lduse3_i2_dep_i0_fire
+                                      && lduse3_i2_dep_i1_fire;
     wire [6:0] stall_opcode     = u_cpu.id_instr[6:0];
     wire       stall_rs1_used   = !(stall_opcode == 7'b0110111)
                                && !(stall_opcode == 7'b0010111)
@@ -727,6 +772,37 @@ module cpu_tb;
                      total_load_stall, total_load_stall_share_x100 / 100, total_load_stall_share_x100 % 100,
                      total_mul_hold, total_mul_hold_share_x100 / 100, total_mul_hold_share_x100 % 100,
                      total_other_bubble, total_other_bubble_share_x100 / 100, total_other_bubble_share_x100 % 100);
+        end
+    endtask
+
+    task print_lduse3_stats;
+        input integer show_cycle;
+        input integer total_base;
+        input integer total_i2_dep_i0;
+        input integer total_i2_dep_i1;
+        input integer total_both;
+        integer base_cycle_pct_x100;
+        integer i2_dep_i0_pct_x100;
+        integer i2_dep_i1_pct_x100;
+        integer both_pct_x100;
+        begin
+            base_cycle_pct_x100 = pct_x100(total_base, show_cycle);
+            i2_dep_i0_pct_x100  = pct_x100(total_i2_dep_i0, total_base);
+            i2_dep_i1_pct_x100  = pct_x100(total_i2_dep_i1, total_base);
+            both_pct_x100       = pct_x100(total_both, total_base);
+
+            $display("[STAT][%0d cyc] LDUSE3 base=%0d(%0d.%02d%% cyc): I0=LOAD && I1 depends on I0",
+                     show_cycle,
+                     total_base,
+                     base_cycle_pct_x100 / 100, base_cycle_pct_x100 % 100);
+            $display("[STAT][%0d cyc] LDUSE3 dep : I2<-I0=%0d(%0d.%02d%%)  I2<-I1=%0d(%0d.%02d%%)  both=%0d(%0d.%02d%%)",
+                     show_cycle,
+                     total_i2_dep_i0,
+                     i2_dep_i0_pct_x100 / 100, i2_dep_i0_pct_x100 % 100,
+                     total_i2_dep_i1,
+                     i2_dep_i1_pct_x100 / 100, i2_dep_i1_pct_x100 % 100,
+                     total_both,
+                     both_pct_x100 / 100, both_pct_x100 % 100);
         end
     endtask
 
@@ -1361,6 +1437,10 @@ module cpu_tb;
         flush_total = 0;
         load_stall_total = 0;
         false_load_stall_total = 0;
+        lduse3_base_total = 0;
+        lduse3_i2_dep_i0_total = 0;
+        lduse3_i2_dep_i1_total = 0;
+        lduse3_i2_dep_both_total = 0;
         mul_hold_total = 0;
         other_bubble_total = 0;
         wb_commit_total = 0;
@@ -1557,6 +1637,17 @@ module cpu_tb;
             prev_issue_we    <= 1'b0;
             prev_issue_rd    <= 5'd0;
             prev_issue_instr <= 32'b0;
+            lduse3_seq0_valid <= 1'b0;
+            lduse3_seq0_load  <= 1'b0;
+            lduse3_seq0_rd    <= 5'd0;
+            lduse3_seq1_valid <= 1'b0;
+            lduse3_seq1_load  <= 1'b0;
+            lduse3_seq1_we    <= 1'b0;
+            lduse3_seq1_rd    <= 5'd0;
+            lduse3_seq1_rs1_used <= 1'b0;
+            lduse3_seq1_rs2_used <= 1'b0;
+            lduse3_seq1_rs1_addr <= 5'd0;
+            lduse3_seq1_rs2_addr <= 5'd0;
             mul_dep1_valid   <= 1'b0;
             mul_dep2_valid   <= 1'b0;
             mul_dep3_valid   <= 1'b0;
@@ -1831,6 +1922,10 @@ module cpu_tb;
             ret_prev_wr_rs1_now = ret_prev_wr_rs1_total;
             call_jalr_prev_wr_rs1_now = call_jalr_prev_wr_rs1_total;
             indirect_jalr_prev_wr_rs1_now = indirect_jalr_prev_wr_rs1_total;
+            lduse3_base_now = lduse3_base_total;
+            lduse3_i2_dep_i0_now = lduse3_i2_dep_i0_total;
+            lduse3_i2_dep_i1_now = lduse3_i2_dep_i1_total;
+            lduse3_i2_dep_both_now = lduse3_i2_dep_both_total;
             auipc_jalr_now = auipc_jalr_total;
             auipc_ret_now = auipc_ret_total;
             auipc_call_jalr_now = auipc_call_jalr_total;
@@ -1975,6 +2070,16 @@ module cpu_tb;
                     indirect_jalr_prev_wr_rs1_now = indirect_jalr_prev_wr_rs1_now + 1;
             end
 
+            if (lduse3_base_fire) begin
+                lduse3_base_now = lduse3_base_now + 1;
+                if (lduse3_i2_dep_i0_fire)
+                    lduse3_i2_dep_i0_now = lduse3_i2_dep_i0_now + 1;
+                if (lduse3_i2_dep_i1_fire)
+                    lduse3_i2_dep_i1_now = lduse3_i2_dep_i1_now + 1;
+                if (lduse3_i2_dep_both_fire)
+                    lduse3_i2_dep_both_now = lduse3_i2_dep_both_now + 1;
+            end
+
             if (auipc_jalr_fire) begin
                 auipc_jalr_now = auipc_jalr_now + 1;
                 if (u_cpu.id_ret_flag)
@@ -2068,6 +2173,10 @@ module cpu_tb;
             ret_prev_wr_rs1_total <= ret_prev_wr_rs1_now;
             call_jalr_prev_wr_rs1_total <= call_jalr_prev_wr_rs1_now;
             indirect_jalr_prev_wr_rs1_total <= indirect_jalr_prev_wr_rs1_now;
+            lduse3_base_total <= lduse3_base_now;
+            lduse3_i2_dep_i0_total <= lduse3_i2_dep_i0_now;
+            lduse3_i2_dep_i1_total <= lduse3_i2_dep_i1_now;
+            lduse3_i2_dep_both_total <= lduse3_i2_dep_both_now;
             auipc_jalr_total <= auipc_jalr_now;
             auipc_ret_total <= auipc_ret_now;
             auipc_call_jalr_total <= auipc_call_jalr_now;
@@ -2134,6 +2243,17 @@ module cpu_tb;
                 prev_issue_we    <= u_cpu.id_regs_we;
                 prev_issue_rd    <= u_cpu.id_regs_w_addr;
                 prev_issue_instr <= u_cpu.id_instr;
+                lduse3_seq0_valid <= lduse3_seq1_valid;
+                lduse3_seq0_load  <= lduse3_seq1_load;
+                lduse3_seq0_rd    <= lduse3_seq1_rd;
+                lduse3_seq1_valid <= 1'b1;
+                lduse3_seq1_load  <= issue_is_load;
+                lduse3_seq1_we    <= u_cpu.id_regs_we;
+                lduse3_seq1_rd    <= u_cpu.id_regs_w_addr;
+                lduse3_seq1_rs1_used <= issue_rs1_used;
+                lduse3_seq1_rs2_used <= issue_rs2_used;
+                lduse3_seq1_rs1_addr <= u_cpu.id_rs1_addr;
+                lduse3_seq1_rs2_addr <= u_cpu.id_rs2_addr;
                 mul_dep3_valid   <= mul_dep2_valid;
                 mul_dep3_rd      <= mul_dep2_rd;
                 mul_dep2_valid   <= mul_dep1_valid;
@@ -2219,6 +2339,11 @@ module cpu_tb;
                                bht_tag_alias_now, bht_store_now, bht_store_conflict_now, bht_store_imm_overlap_now,
                                mul_exec_total, mul_follow_slot_total, mul_dep_slot_total,
                                mul_dep_d1_total, mul_dep_d2_total, mul_dep_d3_total);
+                print_lduse3_stats(stat_cycle_total,
+                                   lduse3_base_now,
+                                   lduse3_i2_dep_i0_now,
+                                   lduse3_i2_dep_i1_now,
+                                   lduse3_i2_dep_both_now);
 
                 cycle_snap          <= stat_cycle_total;
                 instr_snap          <= instr_now;
@@ -2397,6 +2522,11 @@ module cpu_tb;
                                bht_tag_alias_total, bht_store_total, bht_store_conflict_total, bht_store_imm_overlap_total,
                                mul_exec_total, mul_follow_slot_total, mul_dep_slot_total,
                                mul_dep_d1_total, mul_dep_d2_total, mul_dep_d3_total);
+                print_lduse3_stats(stat_cycle_total,
+                                   lduse3_base_total,
+                                   lduse3_i2_dep_i0_total,
+                                   lduse3_i2_dep_i1_total,
+                                   lduse3_i2_dep_both_total);
                 print_slot1_branch_stats(stat_cycle_total,
                                          branch_total,
                                          slot1_branch_seen_total,

@@ -94,6 +94,8 @@ module cpu(
     wire        id_regs_we;
     wire [4:0]  id_rs1_addr;
     wire [4:0]  id_rs2_addr;
+    wire        id_rs1_used;
+    wire        id_rs2_used;
     wire [4:0]  id_regs_w_addr;
     wire [31:0] id_rs1_data;
     wire [31:0] id_rs2_data;
@@ -120,6 +122,9 @@ module cpu(
     wire        id_jalr_flag;
     wire        id_call_flag;
     wire        id_ret_flag;
+    wire        id_ctrl_defer;
+    wire        id_ctrl_dep_rs1;
+    wire        id_ctrl_dep_rs2;
     wire [10:1] id_b_imm_lo;
     wire [`BR_PRED_INDEX_BITS-1:0] id_branch_hash;
     wire [31:0] id_branch_jump_addr;
@@ -152,12 +157,21 @@ module cpu(
     wire        ex_jalr_flag;
     wire        ex_call_flag;
     wire        ex_ret_flag;
+    wire        ex_ctrl_defer;
+    wire        ex_ctrl_dep_rs1;
+    wire        ex_ctrl_dep_rs2;
     wire [31:0] ex_branch_jump_addr;
+    wire [14:0] ex_ctrl_pc_low;
+    wire [14:0] ex_ctrl_pred_target_low;
+    wire [14:0] ex_ctrl_branch_target_low;
+    wire [31:0] ex_ctrl_other_operand;
+    wire [11:0] ex_ctrl_jalr_imm12;
+    wire        ex_ctrl_both_dep;
 
     wire        ex_actual_jump_flag;
     wire [31:0] ex_actual_jump_addr;
     wire        ex_mispredict;
-    wire [31:0] ex_redirect_addr;
+    wire [14:0] ex_redirect_addr;
 
     // ------------------------------------------------------------------------
     // MEM
@@ -166,6 +180,38 @@ module cpu(
     wire [4:0]  mem_regs_w_addr;
     wire [31:0] mem_regs_w_data;
     wire [31:0] mem_actual_regs_w_data;
+    wire [14:0] mem_ctrl_pc_low;
+    wire        mem_pred_taken;
+    wire [14:0] mem_ctrl_pred_target_low;
+    wire [14:0] mem_ctrl_branch_target_low;
+    wire [31:0] mem_ctrl_other_operand;
+    wire [11:0] mem_ctrl_jalr_imm12;
+    wire        mem_ctrl_both_dep;
+    wire        mem_branch_flag;
+    wire [`BR_PRED_INDEX_BITS-1:0] mem_branch_hash;
+    wire        mem_jalr_flag;
+    wire        mem_ret_flag;
+    wire        mem_ctrl_defer;
+    wire        mem_ctrl_dep_rs1;
+    wire        mem_ctrl_resolve_en;
+    wire        mem_ctrl_actual_jump_flag;
+    wire [14:0] mem_ctrl_actual_jump_addr_low;
+    wire        mem_ctrl_mispredict;
+    wire [14:0] mem_ctrl_redirect_addr;
+    wire        ctrl_resolve_mispredict;
+    wire [14:0] ctrl_resolve_redirect_addr;
+    wire        bp_update_sel_mem;
+    wire        bp_update_en;
+    wire [31:0] bp_update_pc;
+    wire [`BR_PRED_INDEX_BITS-1:0] bp_update_hash;
+    wire        bp_update_taken;
+    wire        jtb_update_sel_mem;
+    wire        jtb_update_en;
+    wire [31:0] jtb_update_pc;
+    wire [31:0] jtb_update_target;
+    wire        ras_ex_jump_flag;
+    wire        ras_ex_call_flag;
+    wire        ras_ex_ret_flag;
 
     wire        mem_dmem_we;
     wire        mem_dmem_re;
@@ -256,6 +302,38 @@ module cpu(
                                 && !pipeline_flush
                                 && !pipeline_stall
                                 && !pipeline_hold;
+    assign ex_ctrl_pc_low        = ex_instr_addr[14:0];
+    assign ex_ctrl_pred_target_low = ex_pred_target[14:0];
+    assign ex_ctrl_branch_target_low = ex_branch_jump_addr[14:0];
+    assign ex_ctrl_other_operand = ex_ctrl_dep_rs1 ? ex_alu_num2 : ex_alu_num1;
+    assign ex_ctrl_jalr_imm12    = ex_alu_num2[11:0];
+    assign ex_ctrl_both_dep      = ex_ctrl_dep_rs1 && ex_ctrl_dep_rs2;
+    assign ctrl_resolve_mispredict = mem_ctrl_mispredict || ex_mispredict;
+    assign ctrl_resolve_redirect_addr = mem_ctrl_mispredict ? mem_ctrl_redirect_addr
+                                                            : ex_redirect_addr;
+    assign bp_update_sel_mem     = mem_ctrl_resolve_en && mem_branch_flag;
+    assign bp_update_en          = bp_update_sel_mem
+                                || (!bp_update_sel_mem
+                                 && !mem_ctrl_mispredict
+                                 && ex_branch_flag
+                                 && !ex_ctrl_defer);
+    assign bp_update_pc          = bp_update_sel_mem ? {17'b0, mem_ctrl_pc_low} : ex_instr_addr;
+    assign bp_update_hash        = bp_update_sel_mem ? mem_branch_hash : ex_branch_hash;
+    assign bp_update_taken       = bp_update_sel_mem ? mem_ctrl_actual_jump_flag
+                                                     : ex_actual_jump_flag;
+    assign jtb_update_sel_mem    = mem_ctrl_resolve_en && mem_jalr_flag && !mem_ret_flag;
+    assign jtb_update_en         = jtb_update_sel_mem
+                                || (!jtb_update_sel_mem
+                                 && !mem_ctrl_mispredict
+                                 && ex_jalr_flag
+                                 && !ex_ret_flag
+                                 && !ex_ctrl_defer);
+    assign jtb_update_pc         = jtb_update_sel_mem ? {17'b0, mem_ctrl_pc_low} : ex_instr_addr;
+    assign jtb_update_target     = jtb_update_sel_mem ? {17'b0, mem_ctrl_actual_jump_addr_low}
+                                                      : {17'b0, ex_actual_jump_addr[14:0]};
+    assign ras_ex_jump_flag      = ex_jump_flag && !ex_ctrl_defer && !mem_ctrl_mispredict;
+    assign ras_ex_call_flag      = ex_call_flag && !ex_ctrl_defer && !mem_ctrl_mispredict;
+    assign ras_ex_ret_flag       = ex_ret_flag && !ex_ctrl_defer && !mem_ctrl_mispredict;
 
     frontend_ctrl u_frontend_ctrl (
         .if_instr                     (if_instr                     ),
@@ -277,8 +355,8 @@ module cpu(
         .ras_slot1_top_target_shadow_low(ras_slot1_top_target_shadow_low),
         .pipeline_block_if            (pipeline_block               ),
         .frontend_redirect_kill_q     (frontend_redirect_kill_q     ),
-        .ex_mispredict                (ex_mispredict                ),
-        .ex_redirect_addr             (ex_redirect_addr             ),
+        .ex_mispredict                (ctrl_resolve_mispredict      ),
+        .ex_redirect_addr             (ctrl_resolve_redirect_addr   ),
         .if_is_b                      (if_is_b                      ),
         .if_is_call                   (if_is_call                   ),
         .if_is_ret                    (if_is_ret                    ),
@@ -320,10 +398,10 @@ module cpu(
         .lookup_hash1(if_pre_branch_hash      ),
         .pred_taken1 (if_pre_branch_pred_taken),
         .branch_hit1 (if_pre_branch_hit       ),
-        .update_en   (ex_branch_flag        ),
-        .update_pc   (ex_instr_addr         ),
-        .update_hash (ex_branch_hash        ),
-        .update_taken(ex_actual_jump_flag   )
+        .update_en   (bp_update_en          ),
+        .update_pc   (bp_update_pc          ),
+        .update_hash (bp_update_hash        ),
+        .update_taken(bp_update_taken       )
     );
 
     jump_target_buffer u_jump_target_buffer (
@@ -335,9 +413,9 @@ module cpu(
         .lookup_pc1  (preif_pc_addr + 32'd4),
         .hit1        (preif_next_jtb_hit   ),
         .target1     (preif_next_jtb_target),
-        .update_en   (ex_jalr_flag && !ex_ret_flag),
-        .update_pc   (ex_instr_addr     ),
-        .update_target({17'b0, ex_actual_jump_addr[14:0]})
+        .update_en   (jtb_update_en     ),
+        .update_pc   (jtb_update_pc     ),
+        .update_target(jtb_update_target)
     );
 
     ras u_ras (
@@ -351,9 +429,9 @@ module cpu(
         .ras_top_target_low          (ras_top_target_low             ),
         .slot1_valid_shadow          (ras_slot1_valid_shadow         ),
         .slot1_top_target_shadow_low (ras_slot1_top_target_shadow_low),
-        .ex_jump_flag                (ex_jump_flag                   ),
-        .ex_call_flag                (ex_call_flag                   ),
-        .ex_ret_flag                 (ex_ret_flag                    ),
+        .ex_jump_flag                (ras_ex_jump_flag               ),
+        .ex_call_flag                (ras_ex_call_flag               ),
+        .ex_ret_flag                 (ras_ex_ret_flag                ),
         .ex_instr_addr               (ex_instr_addr                  )
     );
 
@@ -471,6 +549,8 @@ module cpu(
         .id_regs_re         (id_regs_re         ),
         .id_rs1_addr        (id_rs1_addr        ),
         .id_rs2_addr        (id_rs2_addr        ),
+        .id_rs1_used        (id_rs1_used        ),
+        .id_rs2_used        (id_rs2_used        ),
         .id_rs1_data        (id_rs1_data_fwd    ),
         .id_rs2_data        (id_rs2_data_fwd    ),
         .id_rd_addr         (id_regs_w_addr     ),
@@ -488,6 +568,18 @@ module cpu(
         .id_jalr_flag       (id_jalr_flag       ),
         .id_call_flag       (id_call_flag       ),
         .id_ret_flag        (id_ret_flag        )
+    );
+
+    ctrl_late_detect u_ctrl_late_detect(
+        .id_branch_flag (id_branch_flag ),
+        .id_jalr_flag   (id_jalr_flag   ),
+        .id_rs1_addr    (id_rs1_addr    ),
+        .id_rs2_addr    (id_rs2_addr    ),
+        .ex_dmem_re     (ex_dmem_re     ),
+        .ex_regs_w_addr (ex_regs_w_addr ),
+        .id_ctrl_defer  (id_ctrl_defer  ),
+        .id_ctrl_dep_rs1(id_ctrl_dep_rs1),
+        .id_ctrl_dep_rs2(id_ctrl_dep_rs2)
     );
 
     // ------------------------------------------------------------------------
@@ -520,6 +612,9 @@ module cpu(
         .id_jalr_flag        (id_jalr_flag        ),
         .id_call_flag        (id_call_flag        ),
         .id_ret_flag         (id_ret_flag         ),
+        .id_ctrl_defer       (id_ctrl_defer       ),
+        .id_ctrl_dep_rs1     (id_ctrl_dep_rs1     ),
+        .id_ctrl_dep_rs2     (id_ctrl_dep_rs2     ),
 
         .ex_instr_addr       (ex_instr_addr       ),
         .ex_branch_nohit     (ex_branch_nohit     ),
@@ -540,13 +635,16 @@ module cpu(
         .ex_jump_flag        (ex_jump_flag        ),
         .ex_jalr_flag        (ex_jalr_flag        ),
         .ex_call_flag        (ex_call_flag        ),
-        .ex_ret_flag         (ex_ret_flag         )
+        .ex_ret_flag         (ex_ret_flag         ),
+        .ex_ctrl_defer       (ex_ctrl_defer       ),
+        .ex_ctrl_dep_rs1     (ex_ctrl_dep_rs1     ),
+        .ex_ctrl_dep_rs2     (ex_ctrl_dep_rs2     )
     );
 
     // ------------------------------------------------------------------------
     // EX
     // ------------------------------------------------------------------------
-    assign pipeline_flush = ex_mispredict;
+    assign pipeline_flush = ctrl_resolve_mispredict;
 
     ex u_ex(
         .mul_preload           (id_mul_preload         ),
@@ -570,6 +668,7 @@ module cpu(
         .ex_branch_flag        (ex_branch_flag        ),
         .ex_branch_jump_addr   (ex_branch_jump_addr   ),
         .ex_jump_flag          (ex_jump_flag          ),
+        .ex_ctrl_defer         (ex_ctrl_defer         ),
         .ex_regs_w_data        (ex_regs_w_data        ),
         .ex_dmem_wr_addr       (ex_dmem_wr_addr       ),
         .ex_actual_jump_flag   (ex_actual_jump_flag   ),
@@ -587,6 +686,7 @@ module cpu(
         .clk                    (clk                    ),
         .rst_n                  (rst_n                  ),
         .pipeline_hold          (pipeline_hold          ),
+        .older_flush            (mem_ctrl_mispredict    ),
         .ex_regs_we             (ex_regs_we             ),
         .ex_regs_w_addr         (ex_regs_w_addr         ),
         .ex_regs_w_data         (ex_regs_w_data         ),
@@ -595,6 +695,19 @@ module cpu(
         .ex_dmem_we             (ex_dmem_we             ),
         .ex_dmem_re             (ex_dmem_re             ),
         .ex_mem_op              (ex_mem_op              ),
+        .ex_ctrl_pc_low         (ex_ctrl_pc_low         ),
+        .ex_pred_taken          (ex_pred_taken          ),
+        .ex_ctrl_pred_target_low(ex_ctrl_pred_target_low),
+        .ex_ctrl_branch_target_low(ex_ctrl_branch_target_low),
+        .ex_ctrl_other_operand  (ex_ctrl_other_operand  ),
+        .ex_ctrl_jalr_imm12     (ex_ctrl_jalr_imm12     ),
+        .ex_ctrl_both_dep       (ex_ctrl_both_dep       ),
+        .ex_branch_flag         (ex_branch_flag         ),
+        .ex_branch_hash         (ex_branch_hash         ),
+        .ex_jalr_flag           (ex_jalr_flag           ),
+        .ex_ret_flag            (ex_ret_flag            ),
+        .ex_ctrl_defer          (ex_ctrl_defer          ),
+        .ex_ctrl_dep_rs1        (ex_ctrl_dep_rs1        ),
 
         .mem_regs_we            (mem_regs_we            ),
         .mem_regs_w_addr        (mem_regs_w_addr        ),
@@ -603,15 +716,49 @@ module cpu(
         .mem_dmem_w_data        (mem_dmem_w_data        ),
         .mem_dmem_we            (mem_dmem_we            ),
         .mem_dmem_re            (mem_dmem_re            ),
-        .mem_mem_op             (mem_mem_op             )
+        .mem_mem_op             (mem_mem_op             ),
+        .mem_ctrl_pc_low        (mem_ctrl_pc_low        ),
+        .mem_pred_taken         (mem_pred_taken         ),
+        .mem_ctrl_pred_target_low(mem_ctrl_pred_target_low),
+        .mem_ctrl_branch_target_low(mem_ctrl_branch_target_low),
+        .mem_ctrl_other_operand (mem_ctrl_other_operand ),
+        .mem_ctrl_jalr_imm12    (mem_ctrl_jalr_imm12    ),
+        .mem_ctrl_both_dep      (mem_ctrl_both_dep      ),
+        .mem_branch_flag        (mem_branch_flag        ),
+        .mem_branch_hash        (mem_branch_hash        ),
+        .mem_jalr_flag          (mem_jalr_flag          ),
+        .mem_ret_flag           (mem_ret_flag           ),
+        .mem_ctrl_defer         (mem_ctrl_defer         ),
+        .mem_ctrl_dep_rs1       (mem_ctrl_dep_rs1       )
     );
 
     // ------------------------------------------------------------------------
     // MEM
     // ------------------------------------------------------------------------
 
-    assign bus_m_stb = ex_dmem_we || ex_dmem_re;
-    assign bus_m_we = ex_dmem_we;
+    mem_ctrl_resolve u_mem_ctrl_resolve(
+        .mem_ctrl_defer        (mem_ctrl_defer        ),
+        .mem_ctrl_dep_rs1      (mem_ctrl_dep_rs1      ),
+        .mem_ctrl_both_dep     (mem_ctrl_both_dep     ),
+        .mem_branch_flag       (mem_branch_flag       ),
+        .mem_jalr_flag         (mem_jalr_flag         ),
+        .mem_mem_op            (mem_mem_op            ),
+        .mem_ctrl_pc_low       (mem_ctrl_pc_low       ),
+        .mem_pred_taken        (mem_pred_taken        ),
+        .mem_ctrl_pred_target_low(mem_ctrl_pred_target_low),
+        .mem_ctrl_branch_target_low(mem_ctrl_branch_target_low),
+        .mem_ctrl_other_operand(mem_ctrl_other_operand),
+        .mem_ctrl_jalr_imm12   (mem_ctrl_jalr_imm12   ),
+        .wb_late_data          (wb_actual_regs_w_data ),
+        .mem_ctrl_resolve_en   (mem_ctrl_resolve_en   ),
+        .mem_ctrl_actual_jump_flag(mem_ctrl_actual_jump_flag),
+        .mem_ctrl_actual_jump_addr_low(mem_ctrl_actual_jump_addr_low),
+        .mem_ctrl_mispredict   (mem_ctrl_mispredict   ),
+        .mem_ctrl_redirect_addr(mem_ctrl_redirect_addr)
+    );
+
+    assign bus_m_stb = (ex_dmem_we || ex_dmem_re) && !mem_ctrl_mispredict;
+    assign bus_m_we = ex_dmem_we && !mem_ctrl_mispredict;
     assign bus_m_dat_i = ex_dmem_w_data;
     assign bus_m_addr = ex_dmem_wr_addr;
     assign mem_dmem_r_data = bus_m_dat_o;
@@ -752,6 +899,9 @@ module cpu(
     pipeline_stall u_pipeline_stall(
         .id_rs1_addr     (id_rs1_addr     ),
         .id_rs2_addr     (id_rs2_addr     ),
+        .id_rs1_used     (id_rs1_used     ),
+        .id_rs2_used     (id_rs2_used     ),
+        .id_ctrl_defer   (id_ctrl_defer   ),
         .ex_dmem_re      (ex_dmem_re      ),
         .ex_regs_w_addr  (ex_regs_w_addr  ),
         .mem_dmem_re     (mem_dmem_re     ),

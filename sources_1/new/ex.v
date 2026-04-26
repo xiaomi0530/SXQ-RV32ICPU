@@ -24,6 +24,7 @@ module ex(
     input  wire        ex_branch_flag,
     input  wire [31:0] ex_branch_jump_addr,
     input  wire        ex_jump_flag,
+    input  wire        ex_ctrl_defer,
 
     output reg  [31:0] ex_regs_w_data,
     output wire [31:0] ex_dmem_wr_addr,
@@ -31,7 +32,7 @@ module ex(
     output reg         ex_actual_jump_flag,
     output wire [31:0] ex_actual_jump_addr,
     output wire        ex_mispredict,
-    output wire [31:0] ex_redirect_addr,
+    output wire [14:0] ex_redirect_addr,
     output wire        ex_mul_busy,
     output wire        ex_div_busy
 );
@@ -125,21 +126,24 @@ module ex(
     wire jump_mispredict;
 
     assign ex_actual_jump_addr   = ex_jump_flag ? add_res : ex_branch_jump_addr;
-    assign ex_redirect_addr      = ex_actual_jump_flag ? ex_actual_jump_addr : ex_instr_addr_plus4;
-    assign branch_taken          = ex_actual_jump_flag;
+    assign ex_redirect_addr      = ex_actual_jump_flag ? ex_actual_jump_addr[14:0]
+                                                       : ex_instr_addr_plus4[14:0];
+    assign branch_taken          = ex_jump_flag ? 1'b1 : ex_actual_jump_flag;
     assign branch_dir_mismatch   = ex_pred_taken ^ branch_taken;
     assign branch_target_mismatch = ex_pred_taken && branch_taken && (ex_pred_target != ex_branch_jump_addr);
-    assign branch_mispredict      = ex_branch_flag && (branch_dir_mismatch || branch_target_mismatch);
+    assign branch_mispredict      = ex_branch_flag && !ex_ctrl_defer && (branch_dir_mismatch || branch_target_mismatch);
     assign jump_dir_mismatch      = !ex_pred_taken;
     assign jump_target_mismatch   = ex_pred_taken && (ex_pred_target != add_res);
-    assign jump_mispredict        = ex_jump_flag && (jump_dir_mismatch || jump_target_mismatch);
+    assign jump_mispredict        = ex_jump_flag && !ex_ctrl_defer && (jump_dir_mismatch || jump_target_mismatch);
     assign ex_mispredict          = branch_mispredict || jump_mispredict;
 
     // ------------------------------------------------------------------------
     // Control outputs
     // ------------------------------------------------------------------------
     always @* begin
-        if (ex_jump_flag) begin
+        if (ex_ctrl_defer) begin
+            ex_actual_jump_flag = 1'b0;
+        end else if (ex_jump_flag) begin
             ex_actual_jump_flag = 1'b1;
         end else if (ex_branch_flag) begin
             case (ex_mem_op)

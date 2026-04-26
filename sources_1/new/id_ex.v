@@ -31,6 +31,9 @@ module id_ex #(
     input  wire        id_jalr_flag,
     input  wire        id_call_flag,
     input  wire        id_ret_flag,
+    input  wire        id_ctrl_defer,
+    input  wire        id_ctrl_dep_rs1,
+    input  wire        id_ctrl_dep_rs2,
 
     output reg   [31:0] ex_instr_addr,
     output reg          ex_branch_nohit,
@@ -51,7 +54,10 @@ module id_ex #(
     output reg          ex_jump_flag,
     output reg          ex_jalr_flag,
     output reg          ex_call_flag,
-    output reg          ex_ret_flag
+    output reg          ex_ret_flag,
+    output reg          ex_ctrl_defer,
+    output reg          ex_ctrl_dep_rs1,
+    output reg          ex_ctrl_dep_rs2
 );
 
     always @(posedge clk) begin
@@ -66,6 +72,9 @@ module id_ex #(
             ex_ret_flag    <= 1'b0;
             ex_branch_nohit <= 1'b0;
             ex_pred_taken  <= 1'b0;
+            ex_ctrl_defer  <= 1'b0;
+            ex_ctrl_dep_rs1 <= 1'b0;
+            ex_ctrl_dep_rs2 <= 1'b0;
         end else if (pipeline_flush) begin
             ex_regs_we     <= 1'b0;
             ex_dmem_we     <= 1'b0;
@@ -77,6 +86,9 @@ module id_ex #(
             ex_ret_flag    <= 1'b0;
             ex_branch_nohit <= 1'b0;
             ex_pred_taken  <= 1'b0;
+            ex_ctrl_defer  <= 1'b0;
+            ex_ctrl_dep_rs1 <= 1'b0;
+            ex_ctrl_dep_rs2 <= 1'b0;
         end else if (pipeline_stall) begin
             ex_regs_we     <= 1'b0;
             ex_dmem_we     <= 1'b0;
@@ -88,6 +100,9 @@ module id_ex #(
             ex_ret_flag    <= 1'b0;
             ex_branch_nohit <= 1'b0;
             ex_pred_taken  <= 1'b0;
+            ex_ctrl_defer  <= 1'b0;
+            ex_ctrl_dep_rs1 <= 1'b0;
+            ex_ctrl_dep_rs2 <= 1'b0;
         end else if (!pipeline_hold) begin
             ex_regs_we     <= id_regs_we;
             ex_dmem_we     <= id_dmem_we;
@@ -99,6 +114,9 @@ module id_ex #(
             ex_ret_flag    <= id_ret_flag;
             ex_branch_nohit <= id_branch_nohit;
             ex_pred_taken  <= id_pred_taken;
+            ex_ctrl_defer  <= id_ctrl_defer;
+            ex_ctrl_dep_rs1 <= id_ctrl_dep_rs1;
+            ex_ctrl_dep_rs2 <= id_ctrl_dep_rs2;
         end
     end
 
