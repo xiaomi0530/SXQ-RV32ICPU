@@ -1,0 +1,633 @@
+Archive member included to satisfy reference by file (symbol)
+
+c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_divdi3.o)
+                              C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o (__divdi3)
+c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_moddi3.o)
+                              C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o (__moddi3)
+c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_udivdi3.o)
+                              C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o (__udivdi3)
+c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_umoddi3.o)
+                              C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o (__umoddi3)
+c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(adddf3.o)
+                              C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o (__adddf3)
+c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(divdf3.o)
+                              C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o (__divdf3)
+c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(ledf2.o)
+                              C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o (__ltdf2)
+c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(muldf3.o)
+                              C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o (__muldf3)
+c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(subdf3.o)
+                              C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o (__subdf3)
+c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(fixdfsi.o)
+                              C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o (__fixdfsi)
+c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(fixunsdfsi.o)
+                              C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o (__fixunsdfsi)
+c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(floatsidf.o)
+                              C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o (__floatsidf)
+c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(floatunsidf.o)
+                              C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o (__floatunsidf)
+c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(div.o)
+                              C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_main.o (__divsi3)
+c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_clz.o)
+                              c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_divdi3.o) (__clz_tab)
+c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_clzsi2.o)
+                              c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(adddf3.o) (__clzsi2)
+
+Discarded input sections
+
+ .text          0x0000000000000000        0x0 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_list_join.o
+ .data          0x0000000000000000        0x0 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_list_join.o
+ .bss           0x0000000000000000        0x0 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_list_join.o
+ .text.copy_info
+                0x0000000000000000       0x14 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_list_join.o
+ .text.core_list_insert_new
+                0x0000000000000000       0x60 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_list_join.o
+ .text.core_list_remove
+                0x0000000000000000       0x28 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_list_join.o
+ .text.core_list_undo_remove
+                0x0000000000000000       0x20 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_list_join.o
+ .text.core_list_find
+                0x0000000000000000       0x58 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_list_join.o
+ .text.core_list_reverse
+                0x0000000000000000       0x24 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_list_join.o
+ .comment       0x0000000000000000       0x13 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_list_join.o
+ .riscv.attributes
+                0x0000000000000000       0x21 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_list_join.o
+ .text          0x0000000000000000        0x0 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_main.o
+ .data          0x0000000000000000        0x0 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_main.o
+ .bss           0x0000000000000000        0x0 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_main.o
+ .rodata.str1.4
+                0x0000000000000000       0x16 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_main.o
+ .data.mem_name
+                0x0000000000000000        0xc C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_main.o
+ .comment       0x0000000000000000       0x13 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_main.o
+ .riscv.attributes
+                0x0000000000000000       0x21 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_main.o
+ .text          0x0000000000000000        0x0 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_matrix.o
+ .data          0x0000000000000000        0x0 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_matrix.o
+ .bss           0x0000000000000000        0x0 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_matrix.o
+ .text.matrix_sum
+                0x0000000000000000       0x98 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_matrix.o
+ .text.matrix_mul_const
+                0x0000000000000000       0x5c C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_matrix.o
+ .text.matrix_add_const
+                0x0000000000000000       0x50 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_matrix.o
+ .comment       0x0000000000000000       0x13 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_matrix.o
+ .riscv.attributes
+                0x0000000000000000       0x21 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_matrix.o
+ .text          0x0000000000000000        0x0 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_state.o
+ .data          0x0000000000000000        0x0 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_state.o
+ .bss           0x0000000000000000        0x0 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_state.o
+ .comment       0x0000000000000000       0x13 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_state.o
+ .riscv.attributes
+                0x0000000000000000       0x21 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_state.o
+ .text          0x0000000000000000        0x0 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_util.o
+ .data          0x0000000000000000        0x0 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_util.o
+ .bss           0x0000000000000000        0x0 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_util.o
+ .text.crcu8    0x0000000000000000       0x44 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_util.o
+ .comment       0x0000000000000000       0x13 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_util.o
+ .riscv.attributes
+                0x0000000000000000       0x21 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_util.o
+ .text          0x0000000000000000        0x0 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+ .data          0x0000000000000000        0x0 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+ .bss           0x0000000000000000        0x0 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+ .text.time_in_secs
+                0x0000000000000000       0x30 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+ .text.portable_malloc
+                0x0000000000000000        0x8 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+ .text.portable_free
+                0x0000000000000000        0x4 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+ .text.memcpy   0x0000000000000000       0x24 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+ .text.memset   0x0000000000000000       0x20 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+ .text.memmove  0x0000000000000000       0x50 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+ .text.strcmp   0x0000000000000000       0x3c C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+ .text.strlen   0x0000000000000000       0x28 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+ .text.abort    0x0000000000000000       0x24 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+ .text.exit     0x0000000000000000       0x24 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+ .sbss.memblock_volatile
+                0x0000000000000000        0x4 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+ .comment       0x0000000000000000       0x13 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+ .riscv.attributes
+                0x0000000000000000       0x21 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+ .text          0x0000000000000000        0x0 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\crt0.o
+ .data          0x0000000000000000        0x0 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\crt0.o
+ .bss           0x0000000000000000        0x0 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\crt0.o
+ .riscv.attributes
+                0x0000000000000000       0x1f C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\crt0.o
+ .text          0x0000000000000000      0x480 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_divdi3.o)
+ .data          0x0000000000000000        0x0 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_divdi3.o)
+ .bss           0x0000000000000000        0x0 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_divdi3.o)
+ .debug_info    0x0000000000000000      0x7e8 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_divdi3.o)
+ .debug_abbrev  0x0000000000000000      0x1b5 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_divdi3.o)
+ .debug_loc     0x0000000000000000      0x9fa c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_divdi3.o)
+ .debug_aranges
+                0x0000000000000000       0x20 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_divdi3.o)
+ .debug_ranges  0x0000000000000000       0xf8 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_divdi3.o)
+ .debug_line    0x0000000000000000      0x81b c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_divdi3.o)
+ .debug_str     0x0000000000000000      0x2e5 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_divdi3.o)
+ .comment       0x0000000000000000       0x13 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_divdi3.o)
+ .eh_frame      0x0000000000000000       0x28 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_divdi3.o)
+ .riscv.attributes
+                0x0000000000000000       0x21 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_divdi3.o)
+ .text          0x0000000000000000      0x450 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_moddi3.o)
+ .data          0x0000000000000000        0x0 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_moddi3.o)
+ .bss           0x0000000000000000        0x0 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_moddi3.o)
+ .debug_info    0x0000000000000000      0x837 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_moddi3.o)
+ .debug_abbrev  0x0000000000000000      0x1c0 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_moddi3.o)
+ .debug_loc     0x0000000000000000      0x867 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_moddi3.o)
+ .debug_aranges
+                0x0000000000000000       0x20 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_moddi3.o)
+ .debug_ranges  0x0000000000000000       0xc8 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_moddi3.o)
+ .debug_line    0x0000000000000000      0x89d c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_moddi3.o)
+ .debug_str     0x0000000000000000      0x2e5 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_moddi3.o)
+ .comment       0x0000000000000000       0x13 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_moddi3.o)
+ .eh_frame      0x0000000000000000       0x28 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_moddi3.o)
+ .riscv.attributes
+                0x0000000000000000       0x21 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_moddi3.o)
+ .data          0x0000000000000000        0x0 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_udivdi3.o)
+ .bss           0x0000000000000000        0x0 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_udivdi3.o)
+ .comment       0x0000000000000000       0x13 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_udivdi3.o)
+ .eh_frame      0x0000000000000000       0x28 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_udivdi3.o)
+ .riscv.attributes
+                0x0000000000000000       0x21 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_udivdi3.o)
+ .data          0x0000000000000000        0x0 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_umoddi3.o)
+ .bss           0x0000000000000000        0x0 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_umoddi3.o)
+ .comment       0x0000000000000000       0x13 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_umoddi3.o)
+ .eh_frame      0x0000000000000000       0x28 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_umoddi3.o)
+ .riscv.attributes
+                0x0000000000000000       0x21 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_umoddi3.o)
+ .data          0x0000000000000000        0x0 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(adddf3.o)
+ .bss           0x0000000000000000        0x0 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(adddf3.o)
+ .comment       0x0000000000000000       0x13 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(adddf3.o)
+ .riscv.attributes
+                0x0000000000000000       0x21 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(adddf3.o)
+ .text          0x0000000000000000      0x6f0 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(divdf3.o)
+ .data          0x0000000000000000        0x0 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(divdf3.o)
+ .bss           0x0000000000000000        0x0 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(divdf3.o)
+ .rodata        0x0000000000000000       0x3c c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(divdf3.o)
+ .debug_info    0x0000000000000000      0x72a c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(divdf3.o)
+ .debug_abbrev  0x0000000000000000      0x173 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(divdf3.o)
+ .debug_loc     0x0000000000000000     0x1494 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(divdf3.o)
+ .debug_aranges
+                0x0000000000000000       0x20 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(divdf3.o)
+ .debug_ranges  0x0000000000000000      0x198 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(divdf3.o)
+ .debug_line    0x0000000000000000      0xf7f c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(divdf3.o)
+ .debug_str     0x0000000000000000      0x403 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(divdf3.o)
+ .comment       0x0000000000000000       0x13 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(divdf3.o)
+ .debug_frame   0x0000000000000000       0x58 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(divdf3.o)
+ .riscv.attributes
+                0x0000000000000000       0x21 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(divdf3.o)
+ .data          0x0000000000000000        0x0 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(ledf2.o)
+ .bss           0x0000000000000000        0x0 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(ledf2.o)
+ .comment       0x0000000000000000       0x13 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(ledf2.o)
+ .riscv.attributes
+                0x0000000000000000       0x21 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(ledf2.o)
+ .data          0x0000000000000000        0x0 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(muldf3.o)
+ .bss           0x0000000000000000        0x0 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(muldf3.o)
+ .comment       0x0000000000000000       0x13 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(muldf3.o)
+ .riscv.attributes
+                0x0000000000000000       0x21 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(muldf3.o)
+ .data          0x0000000000000000        0x0 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(subdf3.o)
+ .bss           0x0000000000000000        0x0 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(subdf3.o)
+ .comment       0x0000000000000000       0x13 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(subdf3.o)
+ .riscv.attributes
+                0x0000000000000000       0x21 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(subdf3.o)
+ .data          0x0000000000000000        0x0 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(fixdfsi.o)
+ .bss           0x0000000000000000        0x0 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(fixdfsi.o)
+ .comment       0x0000000000000000       0x13 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(fixdfsi.o)
+ .riscv.attributes
+                0x0000000000000000       0x21 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(fixdfsi.o)
+ .data          0x0000000000000000        0x0 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(fixunsdfsi.o)
+ .bss           0x0000000000000000        0x0 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(fixunsdfsi.o)
+ .comment       0x0000000000000000       0x13 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(fixunsdfsi.o)
+ .riscv.attributes
+                0x0000000000000000       0x21 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(fixunsdfsi.o)
+ .data          0x0000000000000000        0x0 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(floatsidf.o)
+ .bss           0x0000000000000000        0x0 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(floatsidf.o)
+ .comment       0x0000000000000000       0x13 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(floatsidf.o)
+ .riscv.attributes
+                0x0000000000000000       0x21 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(floatsidf.o)
+ .data          0x0000000000000000        0x0 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(floatunsidf.o)
+ .bss           0x0000000000000000        0x0 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(floatunsidf.o)
+ .comment       0x0000000000000000       0x13 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(floatunsidf.o)
+ .riscv.attributes
+                0x0000000000000000       0x21 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(floatunsidf.o)
+ .data          0x0000000000000000        0x0 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(div.o)
+ .bss           0x0000000000000000        0x0 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(div.o)
+ .riscv.attributes
+                0x0000000000000000       0x1f c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(div.o)
+ .text          0x0000000000000000        0x0 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_clz.o)
+ .data          0x0000000000000000        0x0 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_clz.o)
+ .bss           0x0000000000000000        0x0 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_clz.o)
+ .comment       0x0000000000000000       0x13 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_clz.o)
+ .riscv.attributes
+                0x0000000000000000       0x21 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_clz.o)
+ .data          0x0000000000000000        0x0 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_clzsi2.o)
+ .bss           0x0000000000000000        0x0 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_clzsi2.o)
+ .comment       0x0000000000000000       0x13 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_clzsi2.o)
+ .riscv.attributes
+                0x0000000000000000       0x21 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_clzsi2.o)
+
+Memory Configuration
+
+Name             Origin             Length             Attributes
+IMEM             0x0000000000000000 0x0000000000008000 xr
+DMEM             0x0000000000010000 0x0000000000008000 xrw
+*default*        0x0000000000000000 0xffffffffffffffff
+
+Linker script and memory map
+
+LOAD C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_list_join.o
+LOAD C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_main.o
+LOAD C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_matrix.o
+LOAD C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_state.o
+LOAD C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_util.o
+LOAD C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+LOAD C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\crt0.o
+LOAD c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a
+
+.text           0x0000000000000000     0x5d70
+ *(.text.start)
+ .text.start    0x0000000000000000       0x74 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\crt0.o
+                0x0000000000000000                _start
+ *(.text*)
+ .text.cmp_idx  0x0000000000000074       0x5c C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_list_join.o
+                0x0000000000000074                cmp_idx
+ .text.calc_func
+                0x00000000000000d0      0x134 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_list_join.o
+                0x00000000000000d0                calc_func
+ .text.cmp_complex
+                0x0000000000000204       0x4c C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_list_join.o
+                0x0000000000000204                cmp_complex
+ .text.core_list_mergesort
+                0x0000000000000250      0x14c C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_list_join.o
+                0x0000000000000250                core_list_mergesort
+ .text.core_bench_list
+                0x000000000000039c      0x284 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_list_join.o
+                0x000000000000039c                core_bench_list
+ .text.core_list_init
+                0x0000000000000620      0x18c C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_list_join.o
+                0x0000000000000620                core_list_init
+ .text.coremark_div_to_fixed6.part.0
+                0x00000000000007ac      0x1dc C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_main.o
+ .text.iterate  0x0000000000000988       0x88 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_main.o
+                0x0000000000000988                iterate
+ .text.startup.main
+                0x0000000000000a10      0x870 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_main.o
+                0x0000000000000a10                main
+ .text.core_init_matrix
+                0x0000000000001280      0x160 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_matrix.o
+                0x0000000000001280                core_init_matrix
+ .text.matrix_mul_vect
+                0x00000000000013e0       0x5c C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_matrix.o
+                0x00000000000013e0                matrix_mul_vect
+ .text.matrix_mul_matrix
+                0x000000000000143c       0xac C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_matrix.o
+                0x000000000000143c                matrix_mul_matrix
+ .text.matrix_mul_matrix_bitextract
+                0x00000000000014e8       0xc0 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_matrix.o
+                0x00000000000014e8                matrix_mul_matrix_bitextract
+ .text.matrix_test
+                0x00000000000015a8      0x44c C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_matrix.o
+                0x00000000000015a8                matrix_test
+ .text.core_bench_matrix
+                0x00000000000019f4       0x3c C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_matrix.o
+                0x00000000000019f4                core_bench_matrix
+ .text.core_init_state
+                0x0000000000001a30      0x17c C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_state.o
+                0x0000000000001a30                core_init_state
+ .text.core_state_transition
+                0x0000000000001bac      0x318 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_state.o
+                0x0000000000001bac                core_state_transition
+ .text.core_bench_state
+                0x0000000000001ec4      0x1c8 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_state.o
+                0x0000000000001ec4                core_bench_state
+ .text.get_seed_32
+                0x000000000000208c       0x64 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_util.o
+                0x000000000000208c                get_seed_32
+ .text.crcu16   0x00000000000020f0       0x84 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_util.o
+                0x00000000000020f0                crcu16
+ .text.crcu32   0x0000000000002174      0x10c C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_util.o
+                0x0000000000002174                crcu32
+ .text.crc16    0x0000000000002280       0x8c C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_util.o
+                0x0000000000002280                crc16
+ .text.check_data_types
+                0x000000000000230c        0x8 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_util.o
+                0x000000000000230c                check_data_types
+ .text.uart_puts_blocking
+                0x0000000000002314       0x8c C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+ .text.uart_put_u64.isra.0
+                0x00000000000023a0      0x140 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+ .text.uart_put_uint
+                0x00000000000024e0      0x140 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+ .text.uart_putc_blocking
+                0x0000000000002620       0x58 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+ .text.uart_put_fixed6
+                0x0000000000002678      0x170 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+ .text.start_time
+                0x00000000000027e8       0x4c C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+                0x00000000000027e8                start_time
+ .text.stop_time
+                0x0000000000002834       0x4c C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+                0x0000000000002834                stop_time
+ .text.get_time
+                0x0000000000002880       0x18 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+                0x0000000000002880                get_time
+ .text.align_mem
+                0x0000000000002898       0x14 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+                0x0000000000002898                align_mem
+ .text.portable_init
+                0x00000000000028ac       0x24 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+                0x00000000000028ac                portable_init
+ .text.coremark_set_report_iterations
+                0x00000000000028d0       0x1c C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+                0x00000000000028d0                coremark_set_report_iterations
+ .text.coremark_print_fixed6_line
+                0x00000000000028ec       0x6c C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+                0x00000000000028ec                coremark_print_fixed6_line
+ .text.coremark_print_score_line
+                0x0000000000002958       0xc4 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+                0x0000000000002958                coremark_print_score_line
+ .text.portable_fini
+                0x0000000000002a1c      0x3e4 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+                0x0000000000002a1c                portable_fini
+ .text.ee_printf
+                0x0000000000002e00      0x64c C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+                0x0000000000002e00                ee_printf
+ .text          0x000000000000344c      0x434 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_udivdi3.o)
+                0x000000000000344c                __udivdi3
+ .text          0x0000000000003880      0x404 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_umoddi3.o)
+                0x0000000000003880                __umoddi3
+ .text          0x0000000000003c84      0x7d8 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(adddf3.o)
+                0x0000000000003c84                __adddf3
+ .text          0x000000000000445c       0xe4 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(ledf2.o)
+                0x000000000000445c                __ledf2
+                0x000000000000445c                __ltdf2
+ .text          0x0000000000004540      0x5c8 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(muldf3.o)
+                0x0000000000004540                __muldf3
+ .text          0x0000000000004b08      0x7ec c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(subdf3.o)
+                0x0000000000004b08                __subdf3
+ .text          0x00000000000052f4       0x80 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(fixdfsi.o)
+                0x00000000000052f4                __fixdfsi
+ .text          0x0000000000005374       0x7c c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(fixunsdfsi.o)
+                0x0000000000005374                __fixunsdfsi
+ .text          0x00000000000053f0       0xa8 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(floatsidf.o)
+                0x00000000000053f0                __floatsidf
+ .text          0x0000000000005498       0x80 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(floatunsidf.o)
+                0x0000000000005498                __floatunsidf
+ .text          0x0000000000005518       0xb4 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(div.o)
+                0x0000000000005518                __divsi3
+                0x0000000000005520                __udivsi3
+                0x0000000000005568                __umodsi3
+                0x000000000000559c                __modsi3
+ .text          0x00000000000055cc       0x4c c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_clzsi2.o)
+                0x00000000000055cc                __clzsi2
+ *(.rodata*)
+ .rodata.main.str1.4
+                0x0000000000005618      0x41f C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_main.o
+ *fill*         0x0000000000005a37        0x1 
+ .rodata.list_known_crc
+                0x0000000000005a38        0xa C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_main.o
+ *fill*         0x0000000000005a42        0x2 
+ .rodata.matrix_known_crc
+                0x0000000000005a44        0xa C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_main.o
+ *fill*         0x0000000000005a4e        0x2 
+ .rodata.state_known_crc
+                0x0000000000005a50        0xa C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_main.o
+ *fill*         0x0000000000005a5a        0x2 
+ .rodata.str1.4
+                0x0000000000005a5c       0xad C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_state.o
+ *fill*         0x0000000000005b09        0x3 
+ .rodata.errpat
+                0x0000000000005b0c       0x10 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_state.o
+ .rodata.floatpat
+                0x0000000000005b1c       0x10 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_state.o
+ .rodata.intpat
+                0x0000000000005b2c       0x10 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_state.o
+ .rodata.scipat
+                0x0000000000005b3c       0x10 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_state.o
+ .rodata.get_seed_32
+                0x0000000000005b4c       0x18 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_util.o
+ .rodata.uart_puts_blocking.str1.4
+                0x0000000000005b64        0x7 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+ *fill*         0x0000000000005b6b        0x1 
+ .rodata.coremark_print_score_line.str1.4
+                0x0000000000005b6c       0x14 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+                                         0x6b (size before relaxing)
+ .rodata.portable_fini.str1.4
+                0x0000000000005b80       0x15 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+ *fill*         0x0000000000005b95        0x3 
+ .rodata.ee_printf
+                0x0000000000005b98       0x84 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+ .rodata        0x0000000000005c1c       0x3c c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(muldf3.o)
+ .rodata        0x0000000000005c58      0x100 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_clz.o)
+                0x0000000000005c58                __clz_tab
+ *(.srodata*)
+ .srodata.cst8  0x0000000000005d58       0x18 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+                0x0000000000005d70                . = ALIGN (0x4)
+                0x0000000000005d70                _text_end = .
+
+.rela.dyn       0x0000000000005d70        0x0
+ .rela.text.start
+                0x0000000000005d70        0x0 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_list_join.o
+
+.data           0x0000000000010000        0xc load address 0x0000000000005d70
+                0x0000000000010000                _data_start = .
+ *(.data*)
+ *(.sdata*)
+ .sdata.default_num_contexts
+                0x0000000000010000        0x4 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+                0x0000000000010000                default_num_contexts
+ .sdata.seed3_volatile
+                0x0000000000010004        0x4 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+                0x0000000000010004                seed3_volatile
+ .sdata.seed4_volatile
+                0x0000000000010008        0x4 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+                0x0000000000010008                seed4_volatile
+                0x000000000001000c                . = ALIGN (0x4)
+                0x000000000001000c                _data_end = .
+                0x0000000000005d70                _data_lma = LOADADDR (.data)
+
+.bss            0x000000000001000c      0x7fc load address 0x0000000000005d7c
+                0x000000000001000c                _bss_start = .
+ *(.bss*)
+ .bss.static_memblk
+                0x000000000001000c      0x7d0 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark\core_main.o
+                0x000000000001000c                static_memblk
+ *(.sbss*)
+ .sbss.g_start_hi
+                0x00000000000107dc        0x4 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+ .sbss.g_start_instret_hi
+                0x00000000000107e0        0x4 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+ .sbss.g_start_instret_lo
+                0x00000000000107e4        0x4 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+ .sbss.g_start_ticks
+                0x00000000000107e8        0x4 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+ .sbss.g_stop_hi
+                0x00000000000107ec        0x4 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+ .sbss.g_stop_instret_hi
+                0x00000000000107f0        0x4 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+ .sbss.g_stop_instret_lo
+                0x00000000000107f4        0x4 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+ .sbss.g_stop_ticks
+                0x00000000000107f8        0x4 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+ .sbss.seed1_volatile
+                0x00000000000107fc        0x4 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+                0x00000000000107fc                seed1_volatile
+ .sbss.seed2_volatile
+                0x0000000000010800        0x4 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+                0x0000000000010800                seed2_volatile
+ .sbss.seed5_volatile
+                0x0000000000010804        0x4 C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\core_portme.o
+                0x0000000000010804                seed5_volatile
+ *(COMMON)
+                0x0000000000010808                . = ALIGN (0x4)
+                0x0000000000010808                _bss_end = .
+                0x0000000000018000                _stack_top = (ORIGIN (DMEM) + LENGTH (DMEM))
+
+/DISCARD/
+ *(.eh_frame)
+ *(.eh_frame_hdr)
+ *(.comment)
+ *(.note*)
+ *(.riscv.attributes)
+                0x0000000000000001                ASSERT (((_text_end + (_data_end - _data_start)) <= 0x8000), ERROR: IMEM overflow! .text + .data > 32KB)
+                0x0000000000000001                ASSERT ((_bss_end <= 0x18000), ERROR: DMEM overflow! .data + .bss > 32KB)
+                0x0000000000000001                ASSERT (((_stack_top - _bss_end) >= 0x1000), ERROR: Stack space < 4KB, consider reducing ITERATIONS or DMEM data)
+OUTPUT(C:\Users\xiaom\Documents\Vivado_Project\QXW_RV32I_CPU\QXW_RV32I_CPU.srcs\benchmarks\CoreMark\CoreMark\coremark.elf elf32-littleriscv)
+
+.debug_info     0x0000000000000000     0x2f9f
+ .debug_info    0x0000000000000000      0x7b2 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_udivdi3.o)
+ .debug_info    0x00000000000007b2      0x80c c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_umoddi3.o)
+ .debug_info    0x0000000000000fbe      0x581 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(adddf3.o)
+ .debug_info    0x000000000000153f      0x253 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(ledf2.o)
+ .debug_info    0x0000000000001792      0x766 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(muldf3.o)
+ .debug_info    0x0000000000001ef8      0x581 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(subdf3.o)
+ .debug_info    0x0000000000002479      0x1e7 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(fixdfsi.o)
+ .debug_info    0x0000000000002660      0x1d5 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(fixunsdfsi.o)
+ .debug_info    0x0000000000002835      0x29b c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(floatsidf.o)
+ .debug_info    0x0000000000002ad0      0x28e c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(floatunsidf.o)
+ .debug_info    0x0000000000002d5e       0x26 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(div.o)
+ .debug_info    0x0000000000002d84       0xd7 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_clz.o)
+ .debug_info    0x0000000000002e5b      0x144 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_clzsi2.o)
+
+.debug_abbrev   0x0000000000000000      0xff1
+ .debug_abbrev  0x0000000000000000      0x19d c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_udivdi3.o)
+ .debug_abbrev  0x000000000000019d      0x1b9 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_umoddi3.o)
+ .debug_abbrev  0x0000000000000356      0x173 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(adddf3.o)
+ .debug_abbrev  0x00000000000004c9      0x15e c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(ledf2.o)
+ .debug_abbrev  0x0000000000000627      0x185 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(muldf3.o)
+ .debug_abbrev  0x00000000000007ac      0x173 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(subdf3.o)
+ .debug_abbrev  0x000000000000091f      0x15e c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(fixdfsi.o)
+ .debug_abbrev  0x0000000000000a7d      0x15e c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(fixunsdfsi.o)
+ .debug_abbrev  0x0000000000000bdb      0x164 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(floatsidf.o)
+ .debug_abbrev  0x0000000000000d3f      0x164 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(floatunsidf.o)
+ .debug_abbrev  0x0000000000000ea3       0x14 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(div.o)
+ .debug_abbrev  0x0000000000000eb7       0x70 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_clz.o)
+ .debug_abbrev  0x0000000000000f27       0xca c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_clzsi2.o)
+
+.debug_loc      0x0000000000000000     0x4c3c
+ .debug_loc     0x0000000000000000      0xbcd c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_udivdi3.o)
+ .debug_loc     0x0000000000000bcd      0x930 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_umoddi3.o)
+ .debug_loc     0x00000000000014fd     0x11ec c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(adddf3.o)
+ .debug_loc     0x00000000000026e9      0x135 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(ledf2.o)
+ .debug_loc     0x000000000000281e      0xd56 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(muldf3.o)
+ .debug_loc     0x0000000000003574     0x114d c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(subdf3.o)
+ .debug_loc     0x00000000000046c1      0x181 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(fixdfsi.o)
+ .debug_loc     0x0000000000004842       0xe7 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(fixunsdfsi.o)
+ .debug_loc     0x0000000000004929      0x159 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(floatsidf.o)
+ .debug_loc     0x0000000000004a82      0x14f c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(floatunsidf.o)
+ .debug_loc     0x0000000000004bd1       0x6b c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_clzsi2.o)
+
+.debug_aranges  0x0000000000000000      0x198
+ .debug_aranges
+                0x0000000000000000       0x20 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_udivdi3.o)
+ .debug_aranges
+                0x0000000000000020       0x20 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_umoddi3.o)
+ .debug_aranges
+                0x0000000000000040       0x20 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(adddf3.o)
+ .debug_aranges
+                0x0000000000000060       0x20 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(ledf2.o)
+ .debug_aranges
+                0x0000000000000080       0x20 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(muldf3.o)
+ .debug_aranges
+                0x00000000000000a0       0x20 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(subdf3.o)
+ .debug_aranges
+                0x00000000000000c0       0x20 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(fixdfsi.o)
+ .debug_aranges
+                0x00000000000000e0       0x20 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(fixunsdfsi.o)
+ .debug_aranges
+                0x0000000000000100       0x20 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(floatsidf.o)
+ .debug_aranges
+                0x0000000000000120       0x20 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(floatunsidf.o)
+ .debug_aranges
+                0x0000000000000140       0x20 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(div.o)
+ .debug_aranges
+                0x0000000000000160       0x18 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_clz.o)
+ .debug_aranges
+                0x0000000000000178       0x20 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_clzsi2.o)
+
+.debug_ranges   0x0000000000000000      0x9c8
+ .debug_ranges  0x0000000000000000       0xf8 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_udivdi3.o)
+ .debug_ranges  0x00000000000000f8       0xd8 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_umoddi3.o)
+ .debug_ranges  0x00000000000001d0      0x248 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(adddf3.o)
+ .debug_ranges  0x0000000000000418       0x50 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(ledf2.o)
+ .debug_ranges  0x0000000000000468      0x1e0 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(muldf3.o)
+ .debug_ranges  0x0000000000000648      0x250 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(subdf3.o)
+ .debug_ranges  0x0000000000000898       0x18 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(fixdfsi.o)
+ .debug_ranges  0x00000000000008b0       0x20 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(fixunsdfsi.o)
+ .debug_ranges  0x00000000000008d0       0x68 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(floatsidf.o)
+ .debug_ranges  0x0000000000000938       0x70 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(floatunsidf.o)
+ .debug_ranges  0x00000000000009a8       0x20 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_clzsi2.o)
+
+.debug_line     0x0000000000000000     0x4c89
+ .debug_line    0x0000000000000000      0x764 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_udivdi3.o)
+ .debug_line    0x0000000000000764      0x808 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_umoddi3.o)
+ .debug_line    0x0000000000000f6c     0x1028 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(adddf3.o)
+ .debug_line    0x0000000000001f94      0x2fa c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(ledf2.o)
+ .debug_line    0x000000000000228e      0xdba c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(muldf3.o)
+ .debug_line    0x0000000000003048     0x108d c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(subdf3.o)
+ .debug_line    0x00000000000040d5      0x229 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(fixdfsi.o)
+ .debug_line    0x00000000000042fe      0x1ba c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(fixunsdfsi.o)
+ .debug_line    0x00000000000044b8      0x263 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(floatsidf.o)
+ .debug_line    0x000000000000471b      0x283 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(floatunsidf.o)
+ .debug_line    0x000000000000499e      0x183 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(div.o)
+ .debug_line    0x0000000000004b21       0x6e c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_clz.o)
+ .debug_line    0x0000000000004b8f       0xfa c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_clzsi2.o)
+
+.debug_str      0x0000000000000000      0x9ea
+ .debug_str     0x0000000000000000      0x286 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_udivdi3.o)
+                                        0x2e6 (size before relaxing)
+ .debug_str     0x0000000000000286        0xa c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_umoddi3.o)
+                                        0x2e6 (size before relaxing)
+ .debug_str     0x0000000000000290      0x25a c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(adddf3.o)
+                                        0x341 (size before relaxing)
+ .debug_str     0x00000000000004ea       0x92 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(ledf2.o)
+                                        0x276 (size before relaxing)
+ .debug_str     0x000000000000057c      0x229 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(muldf3.o)
+                                        0x45b (size before relaxing)
+ .debug_str     0x00000000000007a5       0x51 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(subdf3.o)
+                                        0x341 (size before relaxing)
+ .debug_str     0x00000000000007f6       0x66 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(fixdfsi.o)
+                                        0x24f (size before relaxing)
+ .debug_str     0x000000000000085c       0x59 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(fixunsdfsi.o)
+                                        0x24e (size before relaxing)
+ .debug_str     0x00000000000008b5       0x84 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(floatsidf.o)
+                                        0x2ee (size before relaxing)
+ .debug_str     0x0000000000000939       0x5b c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(floatunsidf.o)
+                                        0x2eb (size before relaxing)
+ .debug_str     0x0000000000000994       0x56 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(div.o)
+                                         0xbc (size before relaxing)
+ .debug_str     0x00000000000009ea      0x22d c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_clz.o)
+ .debug_str     0x00000000000009ea      0x24a c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_clzsi2.o)
+
+.debug_frame    0x0000000000000000      0x1c8
+ .debug_frame   0x0000000000000000       0x44 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(adddf3.o)
+ .debug_frame   0x0000000000000044       0x20 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(ledf2.o)
+ .debug_frame   0x0000000000000064       0x54 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(muldf3.o)
+ .debug_frame   0x00000000000000b8       0x44 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(subdf3.o)
+ .debug_frame   0x00000000000000fc       0x20 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(fixdfsi.o)
+ .debug_frame   0x000000000000011c       0x20 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(fixunsdfsi.o)
+ .debug_frame   0x000000000000013c       0x38 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(floatsidf.o)
+ .debug_frame   0x0000000000000174       0x34 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(floatunsidf.o)
+ .debug_frame   0x00000000000001a8       0x20 c:/sysgcc/risc-v/bin/../lib/gcc/riscv64-unknown-elf/10.1.0/rv32im/ilp32\libgcc.a(_clzsi2.o)

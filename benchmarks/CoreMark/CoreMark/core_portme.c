@@ -198,6 +198,18 @@ static int uart_put_u64(ee_u64 value)
     return count;
 }
 
+static void uart_put_fixed6(ee_u32 int_part, ee_u32 frac_part)
+{
+    uart_put_u64((ee_u64)int_part);
+    uart_putc_blocking('.');
+    uart_putc_blocking((char)('0' + (int)((frac_part / 100000U) % 10U)));
+    uart_putc_blocking((char)('0' + (int)((frac_part / 10000U) % 10U)));
+    uart_putc_blocking((char)('0' + (int)((frac_part / 1000U) % 10U)));
+    uart_putc_blocking((char)('0' + (int)((frac_part / 100U) % 10U)));
+    uart_putc_blocking((char)('0' + (int)((frac_part / 10U) % 10U)));
+    uart_putc_blocking((char)('0' + (int)(frac_part % 10U)));
+}
+
 static int uart_put_int(long value, int width, int zero_pad)
 {
     int count = 0;
@@ -305,6 +317,28 @@ void coremark_set_report_iterations(core_portable *p, ee_u32 iterations)
     } else {
         p->report_iterations = iterations;
     }
+}
+
+__attribute__((noinline, cold, section(".text.coremark_report")))
+void coremark_print_fixed6_line(const char *label, ee_u32 int_part, ee_u32 frac_part)
+{
+    uart_puts_blocking(label);
+    uart_put_fixed6(int_part, frac_part);
+    uart_putc_blocking('\n');
+}
+
+__attribute__((noinline, cold, section(".text.coremark_report")))
+void coremark_print_score_line(ee_u32 ips_int, ee_u32 ips_frac)
+{
+    uart_puts_blocking("CoreMark 1.0 : ");
+    uart_put_fixed6(ips_int, ips_frac);
+    uart_puts_blocking(" / ");
+    uart_puts_blocking(COMPILER_VERSION);
+    uart_putc_blocking(' ');
+    uart_puts_blocking(COMPILER_FLAGS);
+    uart_puts_blocking(" / ");
+    uart_puts_blocking(MEM_LOCATION);
+    uart_putc_blocking('\n');
 }
 
 void portable_fini(core_portable *p)

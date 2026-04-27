@@ -156,5 +156,7 @@ extern void portable_init(core_portable *p, int *argc, char *argv[]);
 extern void portable_fini(core_portable *p);
 extern void *align_mem(void *ptr);
 extern void coremark_set_report_iterations(core_portable *p, ee_u32 iterations);
+extern void coremark_print_fixed6_line(const char *label, ee_u32 int_part, ee_u32 frac_part);
+extern void coremark_print_score_line(ee_u32 ips_int, ee_u32 ips_frac);
 
 #endif /* CORE_PORTME_H */

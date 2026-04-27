@@ -440,13 +440,13 @@ for (i = 0; i < MULTITHREAD; i++)
     /* and report results */
     ee_printf("CoreMark Size    : %lu\n", (long unsigned)results[0].size);
     ee_printf("Total ticks      : %lu\n", (long unsigned)total_time);
-    ee_printf("Total time (secs): %lu.%06lu\n",
-              (long unsigned)total_secs_int,
-              (long unsigned)total_secs_frac);
+    coremark_print_fixed6_line("Total time (secs): ",
+                               total_secs_int,
+                               total_secs_frac);
     if (total_time > 0)
-        ee_printf("Iterations/Sec   : %lu.%06lu\n",
-                  (long unsigned)ips_int,
-                  (long unsigned)ips_frac);
+        coremark_print_fixed6_line("Iterations/Sec   : ",
+                                   ips_int,
+                                   ips_frac);
     if (total_time < (CORE_TICKS)(10UL * EE_TICKS_PER_SEC))
     {
         ee_printf(
@@ -482,21 +482,7 @@ for (i = 0; i < MULTITHREAD; i++)
             "rules.\n");
         if ((known_id == 3) && (total_time > 0))
         {
-            ee_printf("CoreMark 1.0 : %lu.%06lu / %s %s",
-                      (long unsigned)ips_int,
-                      (long unsigned)ips_frac,
-                      COMPILER_VERSION,
-                      COMPILER_FLAGS);
-#if defined(MEM_LOCATION) && !defined(MEM_LOCATION_UNSPEC)
-            ee_printf(" / %s", MEM_LOCATION);
-#else
-            ee_printf(" / %s", mem_name[MEM_METHOD]);
-#endif
-
-#if (MULTITHREAD > 1)
-            ee_printf(" / %d:%s", default_num_contexts, PARALLEL_METHOD);
-#endif
-            ee_printf("\n");
+            coremark_print_score_line(ips_int, ips_frac);
         }
     }
     if (total_errors > 0)
