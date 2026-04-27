@@ -30,7 +30,7 @@ Board: `xc7a100tcsg324-1` (Artix-7)
 - 拆分并模块化控制路径，新增 ctrl_late_detect 与 mem_ctrl_resolve，整理前后级控制接口。
 - 加入只针对 J/B 控制指令的晚转发：当分支或 JALR 依赖前一条 LOAD 结果时，在 ID 标记 defer，并将比较、方向判定与 JALR 目标计算后移到 MEM 完成。
 
-![4.26 CPU Architecture](docs/SXQCPU_Architecture.svg)
+![4.26 CPU Architecture](docs/SXQCPU_Architecture.png)
 
 ## CoreMark Trend
 ```mermaid
