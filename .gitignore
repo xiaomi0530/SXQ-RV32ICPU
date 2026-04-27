@@ -1,0 +1,15 @@
+/*
+!/.gitignore
+!/README.md
+
+!/sources_1/
+!/sources_1/**
+
+!/sim_1/
+!/sim_1/**
+
+!/constrs_1/
+!/constrs_1/**
+
+!/utils_1/
+!/utils_1/**
