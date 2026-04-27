@@ -2,6 +2,8 @@
 !/.gitignore
 !/.gitmodules
 !/README.md
+!/docs/
+!/docs/**
 
 !/sources_1/
 !/sources_1/**
