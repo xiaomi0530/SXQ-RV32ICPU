@@ -26,6 +26,10 @@ static CORE_TICKS g_start_ticks = 0;
 static ee_u32     g_start_hi    = 0;
 static CORE_TICKS g_stop_ticks  = 0;
 static ee_u32     g_stop_hi     = 0;
+static CORE_TICKS g_start_instret_lo = 0;
+static ee_u32     g_start_instret_hi = 0;
+static CORE_TICKS g_stop_instret_lo  = 0;
+static ee_u32     g_stop_instret_hi  = 0;
 
 /* Software long division to avoid relying on libgcc 64-bit divide helpers
  * on cores without DIV/REM instructions.
@@ -68,14 +72,31 @@ static void snapshot_cycle(CORE_TICKS *lo, ee_u32 *hi)
     *hi = hi_after;
 }
 
+static void snapshot_instret(CORE_TICKS *lo, ee_u32 *hi)
+{
+    ee_u32     hi_before, hi_after;
+    CORE_TICKS lo_val;
+
+    do {
+        hi_before = MMIO_INSTRET_HI;
+        lo_val    = MMIO_INSTRET_LO;
+        hi_after  = MMIO_INSTRET_HI;
+    } while (hi_before != hi_after);
+
+    *lo = lo_val;
+    *hi = hi_after;
+}
+
 void start_time(void)
 {
     snapshot_cycle(&g_start_ticks, &g_start_hi);
+    snapshot_instret(&g_start_instret_lo, &g_start_instret_hi);
 }
 
 void stop_time(void)
 {
     snapshot_cycle(&g_stop_ticks, &g_stop_hi);
+    snapshot_instret(&g_stop_instret_lo, &g_stop_instret_hi);
 }
 
 CORE_TICKS get_time(void)
@@ -97,6 +118,13 @@ secs_ret time_in_secs(CORE_TICKS ticks)
 static void uart_wait_ready(void)
 {
     while ((MMIO_UART_STAT & UART_STATUS_TX_READY) == 0u) {
+        /* busy wait */
+    }
+}
+
+static void uart_drain(void)
+{
+    while ((MMIO_UART_STAT & UART_STATUS_TX_BUSY) != 0u) {
         /* busy wait */
     }
 }
@@ -147,6 +175,23 @@ static int uart_put_uint(unsigned long value, int width, int zero_pad)
     while (pad-- > 0) {
         count += uart_putc_blocking(zero_pad ? '0' : ' ');
     }
+    while (idx-- > 0) {
+        count += uart_putc_blocking(buf[idx]);
+    }
+    return count;
+}
+
+static int uart_put_u64(ee_u64 value)
+{
+    char buf[32];
+    int idx = 0;
+    int count = 0;
+
+    do {
+        buf[idx++] = (char)('0' + (value % 10ULL));
+        value /= 10ULL;
+    } while ((value != 0ULL) && (idx < (int)sizeof(buf)));
+
     while (idx-- > 0) {
         count += uart_putc_blocking(buf[idx]);
     }
@@ -273,6 +318,11 @@ void portable_fini(core_portable *p)
     ee_u64 stop64  = ((ee_u64)g_stop_hi  << 32) | (ee_u64)g_stop_ticks;
     ee_u64 start64 = ((ee_u64)g_start_hi << 32) | (ee_u64)g_start_ticks;
     ee_u64 elapsed = stop64 - start64;
+    ee_u64 stop_instret64  = ((ee_u64)g_stop_instret_hi  << 32) | (ee_u64)g_stop_instret_lo;
+    ee_u64 start_instret64 = ((ee_u64)g_start_instret_hi << 32) | (ee_u64)g_start_instret_lo;
+    ee_u64 elapsed_instret = stop_instret64 - start_instret64;
+    ee_u64 ipc_x1000 = 0ULL;
+    ee_u64 ipc_frac;
 
     if (elapsed == 0ULL) {
         MMIO_LED = 0x8000u;
@@ -288,6 +338,22 @@ void portable_fini(core_portable *p)
     if (rem >= (elapsed - rem)) {
         score_x10++;
     }
+
+    ipc_x1000 = coremark_u64_divmod_u64(elapsed_instret * 1000ULL, elapsed, NULL);
+    ipc_frac = ipc_x1000 % 1000ULL;
+
+    uart_puts_blocking("IPC=");
+    uart_put_u64(ipc_x1000 / 1000ULL);
+    uart_putc_blocking('.');
+    uart_putc_blocking((char)('0' + (int)((ipc_frac / 100ULL) % 10ULL)));
+    uart_putc_blocking((char)('0' + (int)((ipc_frac / 10ULL) % 10ULL)));
+    uart_putc_blocking((char)('0' + (int)(ipc_frac % 10ULL)));
+    uart_puts_blocking("  C=");
+    uart_put_u64(elapsed);
+    uart_puts_blocking("  I=");
+    uart_put_u64(elapsed_instret);
+    uart_putc_blocking('\n');
+    uart_drain();
 
     /* Clamp to 16-bit LED max (65535 -> 6553.5 CoreMark) */
     if (score_x10 > 65535ULL) score_x10 = 0ULL;
@@ -432,5 +498,5 @@ size_t strlen(const char *str)
 /* ===========================================================================
  * 异常桩
  * ========================================================================= */
-void abort(void) { MMIO_LED=0x8000u; MMIO_TOHOST=1u; for(;;){} }
-void exit(int c) { (void)c; MMIO_LED=0x8000u; MMIO_TOHOST=1u; for(;;){} }
+void abort(void) { uart_drain(); MMIO_LED=0x8000u; MMIO_TOHOST=1u; for(;;){} }
+void exit(int c) { (void)c; uart_drain(); MMIO_LED=0x8000u; MMIO_TOHOST=1u; for(;;){} }

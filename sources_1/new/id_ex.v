@@ -10,6 +10,7 @@ module id_ex #(
     input  wire        pipeline_stall,
     input  wire        pipeline_hold,
     input  wire        pipeline_flush,
+    input  wire        id_valid,
 
     input  wire [31:0] id_instr_addr,
     input  wire        id_branch_nohit,
@@ -52,6 +53,7 @@ module id_ex #(
     output reg          ex_branch_flag,
     output reg   [IMEM_ADDR_BITS-1:0] ex_branch_jump_addr,
     output reg   [BR_HASH_BITS-1:0]  ex_branch_hash,
+    output reg          ex_valid,
     output reg          ex_jump_flag,
     output reg          ex_jalr_flag,
     output reg          ex_call_flag,
@@ -63,6 +65,7 @@ module id_ex #(
 
     always @(posedge clk) begin
         if (rst_n == `RST_ENABLE) begin
+            ex_valid       <= 1'b0;
             ex_regs_we     <= 1'b0;
             ex_dmem_we     <= 1'b0;
             ex_dmem_re     <= 1'b0;
@@ -77,6 +80,7 @@ module id_ex #(
             ex_ctrl_dep_rs1 <= 1'b0;
             ex_ctrl_dep_rs2 <= 1'b0;
         end else if (pipeline_flush) begin
+            ex_valid       <= 1'b0;
             ex_regs_we     <= 1'b0;
             ex_dmem_we     <= 1'b0;
             ex_dmem_re     <= 1'b0;
@@ -91,6 +95,7 @@ module id_ex #(
             ex_ctrl_dep_rs1 <= 1'b0;
             ex_ctrl_dep_rs2 <= 1'b0;
         end else if (pipeline_stall) begin
+            ex_valid       <= 1'b0;
             ex_regs_we     <= 1'b0;
             ex_dmem_we     <= 1'b0;
             ex_dmem_re     <= 1'b0;
@@ -105,6 +110,7 @@ module id_ex #(
             ex_ctrl_dep_rs1 <= 1'b0;
             ex_ctrl_dep_rs2 <= 1'b0;
         end else if (!pipeline_hold) begin
+            ex_valid       <= id_valid;
             ex_regs_we     <= id_regs_we;
             ex_dmem_we     <= id_dmem_we;
             ex_dmem_re     <= id_dmem_re;

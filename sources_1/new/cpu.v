@@ -183,6 +183,7 @@ module cpu(
     wire [4:0]  mem_regs_w_addr;
     wire [31:0] mem_regs_w_data;
     wire [31:0] mem_actual_regs_w_data;
+    wire        mem_valid;
     wire [IMEM_ADDR_BITS-1:0] mem_ctrl_pc_low;
     wire        mem_pred_taken;
     wire [IMEM_ADDR_BITS-1:0] mem_ctrl_pred_target_low;
@@ -276,6 +277,10 @@ module cpu(
     wire        wb_dmem_re;
     wire [4:0]  wb_regs_w_addr;
     wire [31:0] wb_actual_regs_w_data;
+    wire        wb_valid;
+    wire        id_valid;
+    wire        ex_valid;
+    wire        instr_retire;
 
     // ------------------------------------------------------------------------
     // Frontend control
@@ -543,6 +548,8 @@ module cpu(
     assign id_branch_nohit= id_take_live_if ? (if_is_b && !if_branch_hit) : id_branch_nohit_reg;
     assign id_pred_taken  = id_take_live_if ? if_pred_taken_eff : id_pred_taken_reg;
     assign id_pred_target = id_take_live_if ? if_pred_target_eff: id_pred_target_reg;
+    assign id_valid       = (id_instr != 32'b0);
+    assign instr_retire   = wb_valid;
 
     id u_id(
         .clk                (clk                ),
@@ -594,6 +601,7 @@ module cpu(
         .pipeline_stall      (pipeline_stall      ),
         .pipeline_hold       (pipeline_hold       ),
         .pipeline_flush      (pipeline_flush      ),
+        .id_valid            (id_valid            ),
 
         .id_instr_addr       (id_instr_addr       ),
         .id_branch_nohit     (id_branch_nohit     ),
@@ -635,6 +643,7 @@ module cpu(
         .ex_branch_flag      (ex_branch_flag      ),
         .ex_branch_jump_addr (ex_branch_jump_addr ),
         .ex_branch_hash      (ex_branch_hash      ),
+        .ex_valid            (ex_valid            ),
         .ex_jump_flag        (ex_jump_flag        ),
         .ex_jalr_flag        (ex_jalr_flag        ),
         .ex_call_flag        (ex_call_flag        ),
@@ -690,6 +699,7 @@ module cpu(
         .rst_n                  (rst_n                  ),
         .pipeline_hold          (pipeline_hold          ),
         .older_flush            (mem_ctrl_mispredict    ),
+        .ex_valid               (ex_valid               ),
         .ex_regs_we             (ex_regs_we             ),
         .ex_regs_w_addr         (ex_regs_w_addr         ),
         .ex_regs_w_data         (ex_regs_w_data         ),
@@ -729,6 +739,7 @@ module cpu(
         .mem_ctrl_both_dep      (mem_ctrl_both_dep      ),
         .mem_branch_flag        (mem_branch_flag        ),
         .mem_branch_hash        (mem_branch_hash        ),
+        .mem_valid              (mem_valid              ),
         .mem_jalr_flag          (mem_jalr_flag          ),
         .mem_ret_flag           (mem_ret_flag           ),
         .mem_ctrl_defer         (mem_ctrl_defer         ),
@@ -813,6 +824,7 @@ module cpu(
     mmio u_mmio(
         .clk        (clk            ),
         .rst_n      (rst_n          ),
+        .instr_retire(instr_retire  ),
         .bus_stb    (bus_s2_stb     ),
         .bus_ack    (bus_s2_ack     ),
         .bus_we     (bus_s2_we      ),
@@ -847,10 +859,12 @@ module cpu(
     mem_wb u_mem_wb(
         .clk             (clk             ),
         .rst_n           (rst_n           ),
+        .mem_valid       (mem_valid       ),
         .mem_dmem_re     (mem_dmem_re     ),
         .mem_regs_we     (mem_regs_we     ),
         .mem_regs_w_addr (mem_regs_w_addr ),
         .mem_regs_w_data (mem_actual_regs_w_data),
+        .wb_valid        (wb_valid        ),
         .wb_dmem_re      (wb_dmem_re      ),
         .wb_regs_we      (wb_regs_we      ),
         .wb_regs_w_addr  (wb_regs_w_addr  ),

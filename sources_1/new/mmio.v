@@ -12,6 +12,7 @@
 module mmio(
     input  wire        clk,
     input  wire        rst_n,
+    input  wire        instr_retire,
 
     input  wire        bus_stb,
     output reg          bus_ack,
@@ -30,9 +31,18 @@ module mmio(
 );
 
     reg [63:0] cycle_cnt;
+    reg [63:0] instret_cnt;
     always @(posedge clk) begin
         if (!rst_n) cycle_cnt <= 64'h0;
         else        cycle_cnt <= cycle_cnt + 1;
+    end
+
+    always @(posedge clk) begin
+        if (!rst_n) begin
+            instret_cnt <= 64'h0;
+        end else if (instr_retire) begin
+            instret_cnt <= instret_cnt + 1'b1;
+        end
     end
 
     always @(posedge clk) begin
@@ -63,6 +73,8 @@ module mmio(
         case (bus_addr[5:0])
             `MMIO_TIMER_LO_OFFSET:   r_data <= cycle_cnt[31:0];
             `MMIO_TIMER_HI_OFFSET:   r_data <= cycle_cnt[63:32];
+            `MMIO_INSTRET_LO_OFFSET: r_data <= instret_cnt[31:0];
+            `MMIO_INSTRET_HI_OFFSET: r_data <= instret_cnt[63:32];
             `MMIO_UART_STATUS_OFFSET:r_data <= {29'd0, uart_overflow, uart_busy, uart_ready};
             default:                 r_data <= 32'h0;
         endcase

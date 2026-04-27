@@ -13,6 +13,9 @@
 
 void debug_printf(const char* str, ...);
 void setStats(int enable);
+unsigned long long dhrystone_get_cycles64(void);
+unsigned long long dhrystone_get_instret64(void);
+void dhrystone_print_ipc(unsigned long long cycles, unsigned long long instret);
 #include <alloca.h>
 
 /* Global Variables: */
@@ -47,6 +50,10 @@ long            Begin_Time,
                 User_Time;
 long            Microseconds,
                 Dhrystones_Per_Second;
+unsigned long long Start_Cycle64,
+                   Stop_Cycle64,
+                   Start_Instret64,
+                   Stop_Instret64;
 
 /* end of variables for time measurement */
 
@@ -110,6 +117,8 @@ int main (int argc, char** argv)
     /***************/
 
     setStats(1);
+    Start_Cycle64 = dhrystone_get_cycles64();
+    Start_Instret64 = dhrystone_get_instret64();
     Start_Timer();
 
     for (Run_Index = 1; Run_Index <= Number_Of_Runs; ++Run_Index)
@@ -163,6 +172,8 @@ int main (int argc, char** argv)
     /**************/
 
     Stop_Timer();
+    Stop_Cycle64 = dhrystone_get_cycles64();
+    Stop_Instret64 = dhrystone_get_instret64();
     setStats(0);
 
     User_Time = End_Time - Begin_Time;
@@ -247,6 +258,8 @@ int main (int argc, char** argv)
 
   printf("Microseconds for one run through Dhrystone: %ld\n", Microseconds);
   printf("Dhrystones per Second:                      %ld\n", Dhrystones_Per_Second);
+  dhrystone_print_ipc(Stop_Cycle64 - Start_Cycle64,
+                      Stop_Instret64 - Start_Instret64);
 
   return 0;
 }

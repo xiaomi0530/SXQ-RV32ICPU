@@ -9,6 +9,7 @@ module ex_mem #(
     input  wire rst_n,
     input  wire pipeline_hold,
     input  wire older_flush,
+    input  wire ex_valid,
 
     input  wire        ex_regs_we,
     input  wire [4:0]  ex_regs_w_addr,
@@ -49,6 +50,7 @@ module ex_mem #(
     output reg         mem_ctrl_both_dep,
     output reg         mem_branch_flag,
     output reg  [BR_HASH_BITS-1:0] mem_branch_hash,
+    output reg         mem_valid,
     output reg         mem_jalr_flag,
     output reg         mem_ret_flag,
     output reg         mem_ctrl_defer,
@@ -57,6 +59,7 @@ module ex_mem #(
 
     always @(posedge clk) begin
         if (rst_n == `RST_ENABLE) begin
+            mem_valid <= 1'b0;
             mem_regs_we <= 1'b0;
             mem_dmem_we <= 1'b0;
             mem_dmem_re <= 1'b0;
@@ -68,6 +71,7 @@ module ex_mem #(
             mem_ctrl_dep_rs1 <= 1'b0;
             mem_ctrl_both_dep <= 1'b0;
         end else if (older_flush) begin
+            mem_valid <= 1'b0;
             mem_regs_we <= 1'b0;
             mem_dmem_we <= 1'b0;
             mem_dmem_re <= 1'b0;
@@ -79,6 +83,7 @@ module ex_mem #(
             mem_ctrl_dep_rs1 <= 1'b0;
             mem_ctrl_both_dep <= 1'b0;
         end else if (!pipeline_hold) begin
+            mem_valid <= ex_valid;
             mem_regs_we <= ex_regs_we;
             mem_dmem_we <= ex_dmem_we;
             mem_dmem_re <= ex_dmem_re;

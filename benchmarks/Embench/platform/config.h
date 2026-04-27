@@ -1,0 +1,14 @@
+#ifndef EMBENCH_PLATFORM_CONFIG_H
+#define EMBENCH_PLATFORM_CONFIG_H
+
+#define HAVE_BOARDSUPPORT_H 1
+
+#ifndef GLOBAL_SCALE_FACTOR
+#define GLOBAL_SCALE_FACTOR 1
+#endif
+
+#ifndef WARMUP_HEAT
+#define WARMUP_HEAT 1
+#endif
+
+#endif

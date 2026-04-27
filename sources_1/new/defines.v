@@ -204,6 +204,14 @@
 `define MMIO_UART_STATUS_OFFSET 6'h14
 `endif
 
+`ifndef MMIO_INSTRET_LO_OFFSET
+`define MMIO_INSTRET_LO_OFFSET 6'h18
+`endif
+
+`ifndef MMIO_INSTRET_HI_OFFSET
+`define MMIO_INSTRET_HI_OFFSET 6'h1C
+`endif
+
 `ifndef MMIO_TIMER_LO_ADDR
 `define MMIO_TIMER_LO_ADDR (`MMIO_BASE_ADDR + 32'h0000_0000)
 `endif
@@ -226,6 +234,14 @@
 
 `ifndef MMIO_UART_STATUS_ADDR
 `define MMIO_UART_STATUS_ADDR (`MMIO_BASE_ADDR + 32'h0000_0014)
+`endif
+
+`ifndef MMIO_INSTRET_LO_ADDR
+`define MMIO_INSTRET_LO_ADDR (`MMIO_BASE_ADDR + 32'h0000_0018)
+`endif
+
+`ifndef MMIO_INSTRET_HI_ADDR
+`define MMIO_INSTRET_HI_ADDR (`MMIO_BASE_ADDR + 32'h0000_001C)
 `endif
 
 // ---------------------------------------------------------------------------

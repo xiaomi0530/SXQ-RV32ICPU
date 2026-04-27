@@ -9,12 +9,43 @@
 #define MMIO_LED       (*(volatile unsigned long *)(MMIO_BASE + 0x0CUL))
 #define MMIO_UART_TX   (*(volatile unsigned long *)(MMIO_BASE + 0x10UL))
 #define MMIO_UART_STAT (*(volatile unsigned long *)(MMIO_BASE + 0x14UL))
+#define MMIO_INSTRET_LO (*(volatile unsigned long *)(MMIO_BASE + 0x18UL))
+#define MMIO_INSTRET_HI (*(volatile unsigned long *)(MMIO_BASE + 0x1CUL))
 
 #define UART_STATUS_TX_READY  (1UL << 0)
+#define UART_STATUS_TX_BUSY   (1UL << 1)
 
 unsigned long dhrystone_get_cycles(void)
 {
     return MMIO_CYCLE_LO;
+}
+
+static unsigned long long mmio_read_counter64(volatile unsigned long *lo_reg,
+                                              volatile unsigned long *hi_reg)
+{
+    unsigned long hi0;
+    unsigned long lo;
+    unsigned long hi1;
+
+    do {
+        hi0 = *hi_reg;
+        lo  = *lo_reg;
+        hi1 = *hi_reg;
+    } while (hi0 != hi1);
+
+    return (((unsigned long long)hi1) << 32) | (unsigned long long)lo;
+}
+
+unsigned long long dhrystone_get_cycles64(void)
+{
+    return mmio_read_counter64((volatile unsigned long *)&MMIO_CYCLE_LO,
+                               (volatile unsigned long *)&MMIO_CYCLE_HI);
+}
+
+unsigned long long dhrystone_get_instret64(void)
+{
+    return mmio_read_counter64((volatile unsigned long *)&MMIO_INSTRET_LO,
+                               (volatile unsigned long *)&MMIO_INSTRET_HI);
 }
 
 void setStats(int enable)
@@ -29,6 +60,12 @@ void setStats(int enable)
 static void uart_wait_ready(void)
 {
     while ((MMIO_UART_STAT & UART_STATUS_TX_READY) == 0UL) {
+    }
+}
+
+static void uart_drain(void)
+{
+    while ((MMIO_UART_STAT & UART_STATUS_TX_BUSY) != 0UL) {
     }
 }
 
@@ -71,6 +108,23 @@ static int uart_put_uint(unsigned long value, int width, int zero_pad)
     while (pad-- > 0) {
         count += uart_putc_blocking(zero_pad ? '0' : ' ');
     }
+    while (idx-- > 0) {
+        count += uart_putc_blocking(buf[idx]);
+    }
+    return count;
+}
+
+static int uart_put_u64(unsigned long long value)
+{
+    char buf[32];
+    int idx = 0;
+    int count = 0;
+
+    do {
+        buf[idx++] = (char)('0' + (value % 10ULL));
+        value /= 10ULL;
+    } while ((value != 0ULL) && (idx < (int)sizeof(buf)));
+
     while (idx-- > 0) {
         count += uart_putc_blocking(buf[idx]);
     }
@@ -218,6 +272,29 @@ int putchar(int ch)
     return uart_putc_blocking((char)ch);
 }
 
+void dhrystone_print_ipc(unsigned long long cycles, unsigned long long instret)
+{
+    unsigned long long ipc_x1000 = 0ULL;
+    unsigned long frac;
+
+    if (cycles != 0ULL) {
+        ipc_x1000 = (instret * 1000ULL) / cycles;
+    }
+
+    uart_puts_blocking("IPC=");
+    uart_put_u64(ipc_x1000 / 1000ULL);
+    uart_putc_blocking('.');
+    frac = (unsigned long)(ipc_x1000 % 1000ULL);
+    uart_putc_blocking((char)('0' + ((frac / 100UL) % 10UL)));
+    uart_putc_blocking((char)('0' + ((frac / 10UL) % 10UL)));
+    uart_putc_blocking((char)('0' + (frac % 10UL)));
+    uart_puts_blocking("  C=");
+    uart_put_u64(cycles);
+    uart_puts_blocking("  I=");
+    uart_put_u64(instret);
+    uart_putc_blocking('\n');
+}
+
 void *memcpy(void *dst, const void *src, size_t n)
 {
     unsigned char *d = (unsigned char *)dst;
@@ -284,6 +361,7 @@ size_t strlen(const char *str)
 
 void abort(void)
 {
+    uart_drain();
     MMIO_LED = 0x8000UL;
     MMIO_TOHOST = 1UL;
     for (;;) {
@@ -292,6 +370,7 @@ void abort(void)
 
 void exit(int code)
 {
+    uart_drain();
     MMIO_LED = (code == 0) ? 0UL : (0x8000UL | (unsigned long)(code & 0xFF));
     MMIO_TOHOST = 1UL;
     for (;;) {

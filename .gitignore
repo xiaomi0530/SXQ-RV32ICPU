@@ -8,6 +8,15 @@
 !/benchmarks/
 !/benchmarks/**
 
+/benchmarks/Embench/build/
+/benchmarks/Embench/build/**
+/benchmarks/Embench/*.elf
+/benchmarks/Embench/*.map
+/benchmarks/Embench/*.dump
+/benchmarks/Embench/crt0.o
+/benchmarks/Embench/imem.mem
+/benchmarks/Embench/imem_*.mem
+
 !/sources_1/
 !/sources_1/**
 
