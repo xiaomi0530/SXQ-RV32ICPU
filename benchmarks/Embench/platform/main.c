@@ -78,9 +78,11 @@ int main(void)
     unsigned long long instret;
     unsigned long long runtime_us;
     unsigned long long score_x1000;
-    unsigned long ipc_x1000;
+    unsigned long long ipc_x1000;
     unsigned long score_x100;
     unsigned int final_led;
+    unsigned long long ipc_numer;
+    unsigned long long ipc_rem;
 
     initialise_board();
     initialise_benchmark();
@@ -99,7 +101,16 @@ int main(void)
     instret = end_instret - start_instret;
     runtime_us = (cycles * 1000000ULL + (EMBENCH_CPU_FREQ_HZ / 2ULL)) / EMBENCH_CPU_FREQ_HZ;
     score_x1000 = (cycles != 0ULL) ? ((unsigned long long)EMBENCH_BASELINE_MS * EMBENCH_CPU_FREQ_HZ) / cycles : 0ULL;
-    ipc_x1000 = (cycles != 0ULL) ? (unsigned long)((instret * 1000ULL) / cycles) : 0UL;
+    if (cycles != 0ULL) {
+        ipc_numer = instret * 1000ULL;
+        ipc_x1000 = ipc_numer / cycles;
+        ipc_rem = ipc_numer % cycles;
+        if (ipc_rem >= (cycles - ipc_rem)) {
+            ipc_x1000++;
+        }
+    } else {
+        ipc_x1000 = 0ULL;
+    }
     score_x100 = (unsigned long)((score_x1000 + 5ULL) / 10ULL);
     if (!correct) {
         final_led = 0xE101U;
@@ -117,7 +128,7 @@ int main(void)
     uart_put_newline();
 
     uart_puts_raw("IPC=");
-    uart_put_fixed3((unsigned long long)ipc_x1000);
+    uart_put_fixed3(ipc_x1000);
     uart_puts_raw("  C=");
     board_put_u64(cycles);
     uart_puts_raw("  I=");

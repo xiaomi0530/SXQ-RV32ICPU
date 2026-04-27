@@ -275,10 +275,17 @@ int putchar(int ch)
 void dhrystone_print_ipc(unsigned long long cycles, unsigned long long instret)
 {
     unsigned long long ipc_x1000 = 0ULL;
+    unsigned long long rem = 0ULL;
+    unsigned long long numer = 0ULL;
     unsigned long frac;
 
     if (cycles != 0ULL) {
-        ipc_x1000 = (instret * 1000ULL) / cycles;
+        numer = instret * 1000ULL;
+        ipc_x1000 = numer / cycles;
+        rem = numer % cycles;
+        if (rem >= (cycles - rem)) {
+            ipc_x1000++;
+        }
     }
 
     uart_puts_blocking("IPC=");

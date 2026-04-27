@@ -99,7 +99,7 @@ typedef ee_u32 secs_ret;
 #  define COMPILER_VERSION "riscv64-unknown-elf-gcc"
 #endif
 #ifndef COMPILER_FLAGS
-#  define COMPILER_FLAGS   "-march=rv32im -mabi=ilp32 -mstrict-align -mno-div -O2"
+#  define COMPILER_FLAGS   "-march=rv32im -mabi=ilp32 -mstrict-align -O2"
 #endif
 #ifndef MEM_LOCATION
 #  define MEM_LOCATION     "STATIC"

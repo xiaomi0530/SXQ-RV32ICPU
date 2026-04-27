@@ -11,7 +11,7 @@ PYTHON     ?= python3
 
 .DEFAULT_GOAL := all
 
-ARCH_FLAGS := -march=rv32im -mabi=ilp32 -mstrict-align -mno-div
+ARCH_FLAGS := -march=rv32im -mabi=ilp32 -mstrict-align
 
 CFLAGS := $(ARCH_FLAGS)                              \
           -O2                                         \

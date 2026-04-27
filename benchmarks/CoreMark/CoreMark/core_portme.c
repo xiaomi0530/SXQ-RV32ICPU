@@ -31,32 +31,6 @@ static ee_u32     g_start_instret_hi = 0;
 static CORE_TICKS g_stop_instret_lo  = 0;
 static ee_u32     g_stop_instret_hi  = 0;
 
-/* Software long division to avoid relying on libgcc 64-bit divide helpers
- * on cores without DIV/REM instructions.
- */
-static ee_u64 coremark_u64_divmod_u64(ee_u64 num, ee_u64 den, ee_u64 *rem_out)
-{
-    ee_u64 q = 0;
-    ee_u64 r = 0;
-    int    bit;
-
-    if (den == 0ULL) {
-        if (rem_out) *rem_out = 0ULL;
-        return 0ULL;
-    }
-
-    for (bit = 63; bit >= 0; bit--) {
-        r = (r << 1) | ((num >> bit) & 1ULL);
-        if (r >= den) {
-            r -= den;
-            q |= (1ULL << bit);
-        }
-    }
-
-    if (rem_out) *rem_out = r;
-    return q;
-}
-
 static void snapshot_cycle(CORE_TICKS *lo, ee_u32 *hi)
 {
     ee_u32     hi_before, hi_after;
@@ -366,14 +340,18 @@ void portable_fini(core_portable *p)
 
     /* score_x10 = round(actual_iterations * 10 * CLK_HZ / elapsed_cycles) */
     ee_u64 numer = (ee_u64)report_iterations * 10ULL * (ee_u64)EE_TICKS_PER_SEC;
-    ee_u64 rem = 0ULL;
-    ee_u64 score_x10 = coremark_u64_divmod_u64(numer, elapsed, &rem);
+    ee_u64 rem = numer % elapsed;
+    ee_u64 score_x10 = numer / elapsed;
     /* Round to nearest integer without multiplying rem by 2 (overflow-safe). */
     if (rem >= (elapsed - rem)) {
         score_x10++;
     }
 
-    ipc_x1000 = coremark_u64_divmod_u64(elapsed_instret * 1000ULL, elapsed, NULL);
+    rem = (elapsed_instret * 1000ULL) % elapsed;
+    ipc_x1000 = (elapsed_instret * 1000ULL) / elapsed;
+    if (rem >= (elapsed - rem)) {
+        ipc_x1000++;
+    }
     ipc_frac = ipc_x1000 % 1000ULL;
 
     uart_puts_blocking("IPC=");

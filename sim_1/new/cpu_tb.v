@@ -7,6 +7,8 @@ module cpu_tb;
     localparam PERIODIC_STATS_ENABLE = `TB_PERIODIC_STATS_ENABLE;
     localparam [31:0] MMIO_TIMER_LO_ADDR = `MMIO_TIMER_LO_ADDR;
     localparam [31:0] MMIO_TIMER_HI_ADDR = `MMIO_TIMER_HI_ADDR;
+    localparam [31:0] MMIO_INSTRET_LO_ADDR = `MMIO_INSTRET_LO_ADDR;
+    localparam [31:0] MMIO_INSTRET_HI_ADDR = `MMIO_INSTRET_HI_ADDR;
     localparam integer BRANCH_PC_STAT_SLOTS = `TB_BRANCH_PC_STAT_SLOTS;
     localparam integer JALR_PC_STAT_SLOTS = `TB_JALR_PC_STAT_SLOTS;
     localparam integer SLOT1_TRACK_SLOTS = `TB_SLOT1_TRACK_SLOTS;
@@ -24,6 +26,12 @@ module cpu_tb;
     localparam integer TB_CPU_FREQ_HZ      = `CPU_CLK_FREQ_HZ;
     localparam integer TB_CPU_FREQ_MHZ     = `CPU_CLK_FREQ_HZ / 1000000;
     localparam integer TB_DHRY_RUNS        = 1800;
+    localparam integer UART_BENCH_PARSE_WAIT_C    = 0;
+    localparam integer UART_BENCH_PARSE_WAIT_C_EQ = 1;
+    localparam integer UART_BENCH_PARSE_CAP_C     = 2;
+    localparam integer UART_BENCH_PARSE_WAIT_I    = 3;
+    localparam integer UART_BENCH_PARSE_WAIT_I_EQ = 4;
+    localparam integer UART_BENCH_PARSE_CAP_I     = 5;
 
     reg  clk;
     reg  rst_n;
@@ -35,11 +43,30 @@ module cpu_tb;
     reg     dhry_capture_active;
     reg     dhry_seen_digit;
     reg     dhry_dps_valid;
+    integer uart_ipc_key_pos;
+    integer uart_bench_parse_state;
+    reg     uart_bench_c_seen_digit;
+    reg     uart_bench_i_seen_digit;
+    reg [63:0] uart_bench_c_accum;
+    reg [63:0] uart_bench_i_accum;
+    reg [63:0] uart_bench_cycle_value;
+    reg [63:0] uart_bench_instret_value;
+    reg     uart_bench_cycle_valid;
+    reg     uart_bench_instret_valid;
 
     integer cycle_count;
     integer stat_cycle_total;
     integer timer_req_count;
     reg     stat_active;
+    reg [63:0] tb_retire_total;
+    reg        tb_wb_instret_hi_q;
+    reg        tb_wb_instret_lo_q;
+    integer    tb_instret_snap_state;
+    integer    tb_instret_snap_count;
+    reg        tb_instret_start_valid;
+    reg        tb_instret_stop_valid;
+    reg [63:0] tb_instret_start_retire;
+    reg [63:0] tb_instret_stop_retire;
 
     integer instr_total;
     integer flush_total;
@@ -623,6 +650,59 @@ module cpu_tb;
         end
     endfunction
 
+    function [7:0] ipc_key_char;
+        input integer idx;
+        begin
+            case (idx)
+                0: ipc_key_char = "I";
+                1: ipc_key_char = "P";
+                2: ipc_key_char = "C";
+                3: ipc_key_char = "=";
+                default: ipc_key_char = 8'd0;
+            endcase
+        end
+    endfunction
+
+    task print_bench_ipc_crosscheck;
+        reg [63:0] tb_retire_delta;
+        reg [63:0] sw_ipc_x1000;
+        reg [63:0] tb_ipc_x1000;
+        begin
+            if (tb_instret_start_valid && tb_instret_stop_valid)
+                tb_retire_delta = tb_instret_stop_retire - tb_instret_start_retire;
+            else
+                tb_retire_delta = 64'd0;
+
+            if (uart_bench_cycle_valid && (uart_bench_cycle_value != 0)) begin
+                sw_ipc_x1000 = (uart_bench_instret_value * 64'd1000 + (uart_bench_cycle_value / 2))
+                             / uart_bench_cycle_value;
+                tb_ipc_x1000 = (tb_retire_delta * 64'd1000 + (uart_bench_cycle_value / 2))
+                             / uart_bench_cycle_value;
+            end else begin
+                sw_ipc_x1000 = 64'd0;
+                tb_ipc_x1000 = 64'd0;
+            end
+
+            if (uart_bench_cycle_valid && uart_bench_instret_valid
+                    && tb_instret_start_valid && tb_instret_stop_valid) begin
+                if (tb_retire_delta == uart_bench_instret_value)
+                    $display("[TBCHK] IPC raw : SW_C=%0d  SW_I=%0d  TB_retire=%0d  match=YES",
+                             uart_bench_cycle_value, uart_bench_instret_value, tb_retire_delta);
+                else
+                    $display("[TBCHK] IPC raw : SW_C=%0d  SW_I=%0d  TB_retire=%0d  match=NO",
+                             uart_bench_cycle_value, uart_bench_instret_value, tb_retire_delta);
+
+                $display("[TBCHK] IPC cmp : SW_IPC=%0d.%03d  TB_IPC=%0d.%03d",
+                         sw_ipc_x1000 / 1000, sw_ipc_x1000 % 1000,
+                         tb_ipc_x1000 / 1000, tb_ipc_x1000 % 1000);
+            end else begin
+                $display("[TBCHK] IPC raw : capture incomplete  swC=%0d swI=%0d tbStart=%0d tbStop=%0d",
+                         uart_bench_cycle_valid, uart_bench_instret_valid,
+                         tb_instret_start_valid, tb_instret_stop_valid);
+            end
+        end
+    endtask
+
     task print_compact_report_stats;
         input integer show_cycle;
         input integer total_instr;
@@ -776,6 +856,12 @@ module cpu_tb;
     wire timer_req_fire = u_cpu.ex_dmem_re
                        && ((u_cpu.ex_dmem_wr_addr == MMIO_TIMER_LO_ADDR)
                         || (u_cpu.ex_dmem_wr_addr == MMIO_TIMER_HI_ADDR));
+    wire mem_instret_lo_fire = u_cpu.mem_valid
+                            && u_cpu.mem_dmem_re
+                            && (u_cpu.mem_dmem_wr_addr == MMIO_INSTRET_LO_ADDR);
+    wire mem_instret_hi_fire = u_cpu.mem_valid
+                            && u_cpu.mem_dmem_re
+                            && (u_cpu.mem_dmem_wr_addr == MMIO_INSTRET_HI_ADDR);
     wire slot1_branch_seen_fire = stat_active
                                && u_cpu.if_pre_valid
                                && (u_cpu.if_pre_instr[6:2] == 5'b11000);
@@ -1663,6 +1749,25 @@ module cpu_tb;
         dhry_capture_active = 1'b0;
         dhry_seen_digit = 1'b0;
         dhry_dps_valid = 1'b0;
+        uart_ipc_key_pos = 0;
+        uart_bench_parse_state = UART_BENCH_PARSE_WAIT_C;
+        uart_bench_c_seen_digit = 1'b0;
+        uart_bench_i_seen_digit = 1'b0;
+        uart_bench_c_accum = 64'd0;
+        uart_bench_i_accum = 64'd0;
+        uart_bench_cycle_value = 64'd0;
+        uart_bench_instret_value = 64'd0;
+        uart_bench_cycle_valid = 1'b0;
+        uart_bench_instret_valid = 1'b0;
+        tb_retire_total = 64'd0;
+        tb_wb_instret_hi_q = 1'b0;
+        tb_wb_instret_lo_q = 1'b0;
+        tb_instret_snap_state = 0;
+        tb_instret_snap_count = 0;
+        tb_instret_start_valid = 1'b0;
+        tb_instret_stop_valid = 1'b0;
+        tb_instret_start_retire = 64'd0;
+        tb_instret_stop_retire = 64'd0;
 
         instr_total = 0;
         flush_total = 0;
@@ -1870,6 +1975,25 @@ module cpu_tb;
             dhry_capture_active <= 1'b0;
             dhry_seen_digit <= 1'b0;
             dhry_dps_valid <= 1'b0;
+            uart_ipc_key_pos <= 0;
+            uart_bench_parse_state <= UART_BENCH_PARSE_WAIT_C;
+            uart_bench_c_seen_digit <= 1'b0;
+            uart_bench_i_seen_digit <= 1'b0;
+            uart_bench_c_accum <= 64'd0;
+            uart_bench_i_accum <= 64'd0;
+            uart_bench_cycle_value <= 64'd0;
+            uart_bench_instret_value <= 64'd0;
+            uart_bench_cycle_valid <= 1'b0;
+            uart_bench_instret_valid <= 1'b0;
+            tb_retire_total <= 64'd0;
+            tb_wb_instret_hi_q <= 1'b0;
+            tb_wb_instret_lo_q <= 1'b0;
+            tb_instret_snap_state <= 0;
+            tb_instret_snap_count <= 0;
+            tb_instret_start_valid <= 1'b0;
+            tb_instret_stop_valid <= 1'b0;
+            tb_instret_start_retire <= 64'd0;
+            tb_instret_stop_retire <= 64'd0;
             prev_issue_valid <= 1'b0;
             prev_issue_we    <= 1'b0;
             prev_issue_rd    <= 5'd0;
@@ -1979,6 +2103,33 @@ module cpu_tb;
         end
         end else begin
             cycle_count <= cycle_count + 1;
+            tb_wb_instret_hi_q <= mem_instret_hi_fire;
+            tb_wb_instret_lo_q <= mem_instret_lo_fire;
+
+            if (u_cpu.wb_valid) begin
+                tb_retire_total <= tb_retire_total + 64'd1;
+
+                if (tb_wb_instret_hi_q) begin
+                    if (tb_instret_snap_state == 0) begin
+                        tb_instret_snap_state <= 1;
+                    end else if (tb_instret_snap_state == 2) begin
+                        tb_instret_snap_state <= 0;
+                        tb_instret_snap_count <= tb_instret_snap_count + 1;
+                        if (!tb_instret_start_valid) begin
+                            tb_instret_start_valid <= 1'b1;
+                            tb_instret_start_retire <= tb_retire_total + 64'd1;
+                        end else if (!tb_instret_stop_valid) begin
+                            tb_instret_stop_valid <= 1'b1;
+                            tb_instret_stop_retire <= tb_retire_total + 64'd1;
+                        end
+                    end else begin
+                        tb_instret_snap_state <= 1;
+                    end
+                end else if (tb_wb_instret_lo_q) begin
+                    if (tb_instret_snap_state == 1)
+                        tb_instret_snap_state <= 2;
+                end
+            end
 
             if (timer_req_fire) begin
                 if (timer_req_count == 2)
@@ -2973,6 +3124,70 @@ module cpu_tb;
                         dhry_key_pos = 0;
                 end
             end
+
+            if (uart_bench_parse_state == UART_BENCH_PARSE_WAIT_C) begin
+                if (u_cpu.u_mmio.uart_data == ipc_key_char(uart_ipc_key_pos)) begin
+                    if (uart_ipc_key_pos == 3) begin
+                        uart_ipc_key_pos = 0;
+                        uart_bench_parse_state = UART_BENCH_PARSE_WAIT_C_EQ;
+                        uart_bench_c_seen_digit = 1'b0;
+                        uart_bench_i_seen_digit = 1'b0;
+                        uart_bench_c_accum = 64'd0;
+                        uart_bench_i_accum = 64'd0;
+                        uart_bench_cycle_valid = 1'b0;
+                        uart_bench_instret_valid = 1'b0;
+                    end else begin
+                        uart_ipc_key_pos = uart_ipc_key_pos + 1;
+                    end
+                end else if (u_cpu.u_mmio.uart_data == ipc_key_char(0)) begin
+                    uart_ipc_key_pos = 1;
+                end else begin
+                    uart_ipc_key_pos = 0;
+                end
+            end else if (uart_bench_parse_state == UART_BENCH_PARSE_WAIT_C_EQ) begin
+                if (u_cpu.u_mmio.uart_data == "C")
+                    uart_bench_parse_state = UART_BENCH_PARSE_WAIT_C_EQ;
+                else if (u_cpu.u_mmio.uart_data == "=")
+                    uart_bench_parse_state = UART_BENCH_PARSE_CAP_C;
+                else if ((u_cpu.u_mmio.uart_data == 8'h0a) || (u_cpu.u_mmio.uart_data == 8'h0d))
+                    uart_bench_parse_state = UART_BENCH_PARSE_WAIT_C;
+            end else if (uart_bench_parse_state == UART_BENCH_PARSE_CAP_C) begin
+                if ((u_cpu.u_mmio.uart_data >= "0") && (u_cpu.u_mmio.uart_data <= "9")) begin
+                    uart_bench_c_accum = uart_bench_c_accum * 10 + (u_cpu.u_mmio.uart_data - "0");
+                    uart_bench_c_seen_digit = 1'b1;
+                end else if (uart_bench_c_seen_digit) begin
+                    uart_bench_cycle_value = uart_bench_c_accum;
+                    uart_bench_cycle_valid = 1'b1;
+                    uart_bench_parse_state = UART_BENCH_PARSE_WAIT_I;
+                end else if ((u_cpu.u_mmio.uart_data == 8'h0a) || (u_cpu.u_mmio.uart_data == 8'h0d)) begin
+                    uart_bench_parse_state = UART_BENCH_PARSE_WAIT_C;
+                end
+            end else if (uart_bench_parse_state == UART_BENCH_PARSE_WAIT_I) begin
+                if (u_cpu.u_mmio.uart_data == "I")
+                    uart_bench_parse_state = UART_BENCH_PARSE_WAIT_I_EQ;
+                else if ((u_cpu.u_mmio.uart_data == 8'h0a) || (u_cpu.u_mmio.uart_data == 8'h0d))
+                    uart_bench_parse_state = UART_BENCH_PARSE_WAIT_C;
+            end else if (uart_bench_parse_state == UART_BENCH_PARSE_WAIT_I_EQ) begin
+                if (u_cpu.u_mmio.uart_data == "=")
+                    uart_bench_parse_state = UART_BENCH_PARSE_CAP_I;
+                else if ((u_cpu.u_mmio.uart_data == 8'h0a) || (u_cpu.u_mmio.uart_data == 8'h0d))
+                    uart_bench_parse_state = UART_BENCH_PARSE_WAIT_C;
+            end else if (uart_bench_parse_state == UART_BENCH_PARSE_CAP_I) begin
+                if ((u_cpu.u_mmio.uart_data >= "0") && (u_cpu.u_mmio.uart_data <= "9")) begin
+                    uart_bench_i_accum = uart_bench_i_accum * 10 + (u_cpu.u_mmio.uart_data - "0");
+                    uart_bench_i_seen_digit = 1'b1;
+                end else if (uart_bench_i_seen_digit) begin
+                    uart_bench_instret_value = uart_bench_i_accum;
+                    uart_bench_instret_valid = 1'b1;
+                    uart_bench_parse_state = UART_BENCH_PARSE_WAIT_C;
+                    uart_bench_c_seen_digit = 1'b0;
+                    uart_bench_i_seen_digit = 1'b0;
+                    uart_bench_c_accum = 64'd0;
+                    uart_bench_i_accum = 64'd0;
+                end else if ((u_cpu.u_mmio.uart_data == 8'h0a) || (u_cpu.u_mmio.uart_data == 8'h0d)) begin
+                    uart_bench_parse_state = UART_BENCH_PARSE_WAIT_C;
+                end
+            end
         end
     end
 
@@ -3043,6 +3258,7 @@ module cpu_tb;
                                            dir_correct_total, target_correct_total, mispredict_total,
                                            flush_total, load_stall_total, mul_hold_total, other_bubble_total);
             end
+            print_bench_ipc_crosscheck();
             $display("LED = %04X", u_cpu.u_mmio.led);
             //if (u_cpu.u_mmio.led == 16'h0000)
             //    $display(">>> PASSED <<<");
