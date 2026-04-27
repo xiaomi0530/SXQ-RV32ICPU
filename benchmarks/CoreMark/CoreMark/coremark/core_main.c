@@ -89,31 +89,31 @@ char *mem_name[3] = { "Static", "Heap", "Stack" };
 #define COREMARK_FIXED_SCALE 1000000ULL
 
 static ee_u64
-coremark_u64_divmod_u32(ee_u64 num, ee_u32 den, ee_u32 *rem_out)
+coremark_u64_divmod_u64(ee_u64 num, ee_u64 den, ee_u64 *rem_out)
 {
     ee_u64 q = 0;
     ee_u64 r = 0;
     int    bit;
 
-    if (den == 0U)
+    if (den == 0ULL)
     {
         if (rem_out)
-            *rem_out = 0;
-        return 0;
+            *rem_out = 0ULL;
+        return 0ULL;
     }
 
     for (bit = 63; bit >= 0; bit--)
     {
         r = (r << 1) | ((num >> bit) & 1ULL);
-        if (r >= (ee_u64)den)
+        if (r >= den)
         {
-            r -= (ee_u64)den;
+            r -= den;
             q |= (1ULL << bit);
         }
     }
 
     if (rem_out)
-        *rem_out = (ee_u32)r;
+        *rem_out = r;
     return q;
 }
 
@@ -121,21 +121,21 @@ static void
 coremark_div_to_fixed6(ee_u64 num, ee_u64 den, ee_u32 *int_part, ee_u32 *frac_part)
 {
     ee_u64 q64;
-    ee_u32 r32;
+    ee_u64 r64;
     ee_u64 frac;
-    ee_u32 frac_rem_ignored;
+    ee_u64 frac_rem_ignored;
 
-    if (den == 0)
+    if (den == 0ULL)
     {
         *int_part  = 0;
         *frac_part = 0;
         return;
     }
 
-    q64  = coremark_u64_divmod_u32(num, (ee_u32)den, &r32);
-    frac = coremark_u64_divmod_u32(
-        ((ee_u64)r32 * COREMARK_FIXED_SCALE) + (((ee_u64)den) >> 1),
-        (ee_u32)den,
+    q64  = coremark_u64_divmod_u64(num, den, &r64);
+    frac = coremark_u64_divmod_u64(
+        (r64 * COREMARK_FIXED_SCALE) + (den >> 1),
+        den,
         &frac_rem_ignored); /* rounded */
 
     if (frac >= COREMARK_FIXED_SCALE)
@@ -320,8 +320,8 @@ for (i = 0; i < MULTITHREAD; i++)
         }
         /* now we know it executes for at least 1 sec, set actual run time at
          * about 10 secs */
-        divisor = (ee_u32)coremark_u64_divmod_u32(
-            (ee_u64)ticks_passed, (ee_u32)EE_TICKS_PER_SEC, NULL);
+        divisor = (ee_u32)coremark_u64_divmod_u64(
+            (ee_u64)ticks_passed, (ee_u64)EE_TICKS_PER_SEC, NULL);
         if (divisor == 0)
             divisor = 1;
         results[0].iterations *= 1 + 10 / divisor;

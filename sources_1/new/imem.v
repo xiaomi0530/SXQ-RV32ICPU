@@ -37,69 +37,6 @@ module imem #(
     wire [IMEM_WORD_ADDR_BITS-1:0] if_pre_word_addr = preif_pc_addr_i[IMEM_ADDR_BITS-1:2] + 1'b1;
     wire [IMEM_WORD_ADDR_BITS-1:0] portb_read_addr = bus_re ? bus_word_addr : if_pre_word_addr;
 
-`ifdef SYNTHESIS
-    wire [31:0] if_instr_mem;
-    wire [31:0] portb_read_data;
-
-    xpm_memory_tdpram #(
-        .ADDR_WIDTH_A          (IMEM_WORD_ADDR_BITS      ),
-        .ADDR_WIDTH_B          (IMEM_WORD_ADDR_BITS      ),
-        .AUTO_SLEEP_TIME       (0                        ),
-        .BYTE_WRITE_WIDTH_A    (32                       ),
-        .BYTE_WRITE_WIDTH_B    (32                       ),
-        .CASCADE_HEIGHT        (0                        ),
-        .CLOCKING_MODE         ("common_clock"           ),
-        .ECC_MODE              ("no_ecc"                 ),
-        .MEMORY_INIT_FILE      ("imem.mem"               ),
-        .MEMORY_INIT_PARAM     (""                       ),
-        .MEMORY_OPTIMIZATION   ("true"                   ),
-        .MEMORY_PRIMITIVE      ("block"                  ),
-        .MEMORY_SIZE           (IMEM_DEPTH_WORDS * 32    ),
-        .MESSAGE_CONTROL       (0                        ),
-        .READ_DATA_WIDTH_A     (32                       ),
-        .READ_DATA_WIDTH_B     (32                       ),
-        .READ_LATENCY_A        (1                        ),
-        .READ_LATENCY_B        (1                        ),
-        .READ_RESET_VALUE_A    ("0"                      ),
-        .READ_RESET_VALUE_B    ("0"                      ),
-        .RST_MODE_A            ("SYNC"                   ),
-        .RST_MODE_B            ("SYNC"                   ),
-        .SIM_ASSERT_CHK        (0                        ),
-        .USE_EMBEDDED_CONSTRAINT(0                       ),
-        .USE_MEM_INIT          (1                        ),
-        .WAKEUP_TIME           ("disable_sleep"          ),
-        .WRITE_DATA_WIDTH_A    (32                       ),
-        .WRITE_DATA_WIDTH_B    (32                       ),
-        .WRITE_MODE_A          ("no_change"              ),
-        .WRITE_MODE_B          ("no_change"              )
-    ) u_imem_xpm (
-        .sleep           (1'b0               ),
-        .clka            (clk                ),
-        .rsta            (1'b0               ),
-        .ena             (!pipeline_stall    ),
-        .regcea          (1'b1               ),
-        .wea             (1'b0               ),
-        .addra           (if_word_addr       ),
-        .dina            (32'b0              ),
-        .injectsbiterra  (1'b0               ),
-        .injectdbiterra  (1'b0               ),
-        .douta           (if_instr_mem       ),
-        .sbiterra        (                    ),
-        .dbiterra        (                    ),
-        .clkb            (clk                ),
-        .rstb            (1'b0               ),
-        .enb             (bus_re || if_pre_re),
-        .regceb          (1'b1               ),
-        .web             (1'b0               ),
-        .addrb           (portb_read_addr    ),
-        .dinb            (32'b0              ),
-        .injectsbiterrb  (1'b0               ),
-        .injectdbiterrb  (1'b0               ),
-        .doutb           (portb_read_data    ),
-        .sbiterrb        (                    ),
-        .dbiterrb        (                    )
-    );
-`else
     (* ram_style = "block" *) reg [31:0] imem [0:IMEM_DEPTH_WORDS-1];
     reg  [31:0] portb_read_data;
 
@@ -110,18 +47,13 @@ module imem #(
     always @(posedge clk) begin
         portb_read_data <= imem[portb_read_addr];
     end
-`endif
 
     always @(posedge clk) begin
         if (rst_n == `RST_ENABLE) begin
             if_instr_o <= 1'b0;
             if_instr_addr_o <= 32'b0;
         end else if (!pipeline_stall) begin
-`ifdef SYNTHESIS
-            if_instr_o <= if_instr_mem;
-`else
             if_instr_o <= imem[if_word_addr];
-`endif
             if_instr_addr_o <= {{IMEM_PAD_BITS{1'b0}}, preif_pc_addr_i[IMEM_ADDR_BITS-1:0]};
         end
     end

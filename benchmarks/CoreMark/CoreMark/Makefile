@@ -13,8 +13,6 @@ PYTHON     ?= python3
 
 ARCH_FLAGS := -march=rv32im -mabi=ilp32 -mstrict-align -mno-div
 
-CM_CFLAGS_MACRO := '"-march=rv32im -mabi=ilp32 -mstrict-align -mno-div -O2"'
-
 CFLAGS := $(ARCH_FLAGS)                              \
           -O2                                         \
           -ffreestanding                              \
@@ -36,10 +34,7 @@ CFLAGS := $(ARCH_FLAGS)                              \
           -DHAS_PRINTF=0                              \
           -DHAS_MEMCPY=1                              \
           -DCORE_DEBUG=0                              \
-          -DVALIDATION_RUN=0                          \
-          -DCOMPILER_VERSION='"riscv64-unknown-elf-gcc"' \
-          -DCOMPILER_FLAGS=$(CM_CFLAGS_MACRO)         \
-          -DMEM_LOCATION='"STATIC"'
+          -DVALIDATION_RUN=0
 
 TARGET  := coremark
 
