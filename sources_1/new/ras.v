@@ -3,7 +3,8 @@
 
 module ras #(
     parameter integer DEPTH = `RAS_DEPTH,
-    parameter integer PTR_W = `RAS_PTR_W
+    parameter integer PTR_W = `RAS_PTR_W,
+    parameter integer IMEM_ADDR_BITS = `IMEM_ADDR_BITS
 )(
     input  wire        clk,
     input  wire        rst_n,
@@ -12,58 +13,60 @@ module ras #(
     input  wire        if_is_ret,
     input  wire [31:0] if_instr_addr,
     output wire        ras_valid,
-    output wire [14:0] ras_top_target_low,
+    output wire [IMEM_ADDR_BITS-1:0] ras_top_target_low,
     output wire        slot1_valid_shadow,
-    output wire [14:0] slot1_top_target_shadow_low,
+    output wire [IMEM_ADDR_BITS-1:0] slot1_top_target_shadow_low,
     input  wire        ex_jump_flag,
     input  wire        ex_call_flag,
     input  wire        ex_ret_flag,
     input  wire [31:0] ex_instr_addr
 );
 
-    reg [31:0] ras_stack [0:DEPTH-1];
+    localparam [IMEM_ADDR_BITS-1:0] ADDR_INC4 = {{(IMEM_ADDR_BITS-3){1'b0}}, 3'd4};
+
+    reg [IMEM_ADDR_BITS-1:0] ras_stack [0:DEPTH-1];
     reg [PTR_W-1:0] ras_sp;
     reg [PTR_W:0]   ras_count;
-    reg [31:0]      ras_top_target_q;
-    reg [31:0]      ras_next_target_q;
+    reg [IMEM_ADDR_BITS-1:0] ras_top_target_q;
+    reg [IMEM_ADDR_BITS-1:0] ras_next_target_q;
 
     assign ras_valid = (ras_count != 0);
-    assign ras_top_target_low = ras_top_target_q[14:0];
+    assign ras_top_target_low = ras_top_target_q;
     assign slot1_valid_shadow = slot0_jump_pred_base && if_is_ret
                               ? (ras_count > 1)
                               : (slot0_jump_pred_base && if_is_call)
                               ? 1'b1
                               : ras_valid;
     assign slot1_top_target_shadow_low = (slot0_jump_pred_base && if_is_call)
-                                       ? (if_instr_addr[14:0] + 15'd4)
+                                       ? (if_instr_addr[IMEM_ADDR_BITS-1:0] + ADDR_INC4)
                                        : ((slot0_jump_pred_base && if_is_ret)
-                                       ? ras_next_target_q[14:0]
-                                       : ras_top_target_q[14:0]);
+                                       ? ras_next_target_q
+                                       : ras_top_target_q);
 
     always @(posedge clk) begin
         if (rst_n == `RST_ENABLE) begin
             ras_sp            <= {PTR_W{1'b0}};
             ras_count         <= {(PTR_W+1){1'b0}};
-            ras_top_target_q  <= 32'b0;
-            ras_next_target_q <= 32'b0;
+            ras_top_target_q  <= {IMEM_ADDR_BITS{1'b0}};
+            ras_next_target_q <= {IMEM_ADDR_BITS{1'b0}};
         end else if (ex_jump_flag) begin
             if (ex_ret_flag) begin
                 if (ras_count != 0) begin
                     ras_sp           <= ras_sp - 1'b1;
                     ras_count        <= ras_count - 1'b1;
-                    ras_top_target_q <= (ras_count > 1) ? ras_next_target_q : 32'b0;
+                    ras_top_target_q <= (ras_count > 1) ? ras_next_target_q : {IMEM_ADDR_BITS{1'b0}};
                     if (ras_count > 2)
                         ras_next_target_q <= ras_stack[ras_sp - 3'd3];
                     else
-                        ras_next_target_q <= 32'b0;
+                        ras_next_target_q <= {IMEM_ADDR_BITS{1'b0}};
                 end
             end else if (ex_call_flag) begin
-                ras_stack[ras_sp] <= ex_instr_addr + 32'd4;
+                ras_stack[ras_sp] <= ex_instr_addr[IMEM_ADDR_BITS-1:0] + ADDR_INC4;
                 ras_sp            <= ras_sp + 1'b1;
                 if (ras_count != DEPTH)
                     ras_count <= ras_count + 1'b1;
-                ras_next_target_q <= ras_valid ? ras_top_target_q : 32'b0;
-                ras_top_target_q  <= ex_instr_addr + 32'd4;
+                ras_next_target_q <= ras_valid ? ras_top_target_q : {IMEM_ADDR_BITS{1'b0}};
+                ras_top_target_q  <= ex_instr_addr[IMEM_ADDR_BITS-1:0] + ADDR_INC4;
             end
         end
     end

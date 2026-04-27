@@ -26,6 +26,6 @@ Board: `xc7a100tcsg324-1` (Artix-7)
 ***Version 4.21*** || CoreMark = **267.7 Iterations / sec** || **100MHz** || WNS **0.024ns** WHS **0.084ns** || LUT: **3247** \
 —— 增加面向 `RV32IM` 的多拍迭代除法器，支持 `DIV / DIVU / REM / REMU`；同时将 `Bimodal Branch Predictor` 扩展到 `64` 项，并把相关配置统一收敛到 `defines.v`。
 
-***Version 4.26*** || CoreMark = **277.2 Iterations / sec** || **100MHz** || WNS **0.002ns** WHS **0.028ns** || LUT: **3601** || FF: **2727** || BRAM: **16** || DSP: **4** \
+***Version 4.26*** || CoreMark = **277.0 Iterations / sec** || **100MHz** || WNS **0.002ns** WHS **0.028ns** || LUT: **3601** || FF: **2727** || BRAM: **16** || DSP: **4** \
 —— 拆分并模块化控制路径，新增 `ctrl_late_detect` 与 `mem_ctrl_resolve`，整理前后级控制接口。 \
 —— 实现仅针对 `J/B` 的晚转发：当分支或 `JALR` 依赖前一条 `LOAD` 时，在 ID 标记 `defer`，并将比较、跳转方向判定与 `JALR` 目标计算后移到 MEM，直接复用 WB 晚到数据完成控制解析。 \

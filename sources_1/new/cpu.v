@@ -8,6 +8,9 @@ module cpu(
     output wire        uart_tx
 );
 
+    localparam integer IMEM_ADDR_BITS = `IMEM_ADDR_BITS;
+    localparam integer IMEM_PAD_BITS  = `CPU_ADDR_BITS - IMEM_ADDR_BITS;
+
     // ------------------------------------------------------------------------
     // Global control
     // ------------------------------------------------------------------------
@@ -25,14 +28,14 @@ module cpu(
     wire [31:0] preif_pc_addr;
 
     wire        preif_jtb_hit;
-    wire [31:0] preif_jtb_target;
+    wire [IMEM_ADDR_BITS-1:0] preif_jtb_target;
     wire        preif_next_jtb_hit;
-    wire [31:0] preif_next_jtb_target;
+    wire [IMEM_ADDR_BITS-1:0] preif_next_jtb_target;
 
     wire        slot0_ctrl_redirect;
     wire        slot1_pred_redirect;
     wire        frontend_redirect_flag;
-    wire [14:0] frontend_redirect_addr;
+    wire [IMEM_ADDR_BITS-1:0] frontend_redirect_addr;
 
     // ------------------------------------------------------------------------
     // IF
@@ -46,9 +49,9 @@ module cpu(
     reg         frontend_redirect_kill_q;
 
     reg         if_jtb_hit;
-    reg  [31:0] if_jtb_target;
+    reg  [IMEM_ADDR_BITS-1:0] if_jtb_target;
     reg         if_pre_jtb_hit;
-    reg  [31:0] if_pre_jtb_target;
+    reg  [IMEM_ADDR_BITS-1:0] if_pre_jtb_target;
 
     wire        if_is_b;
     wire        if_is_call;
@@ -59,7 +62,7 @@ module cpu(
     wire        if_branch_hit;
     wire        if_branch_pred_taken_eff;
     wire        if_pred_taken_eff;
-    wire [31:0] if_pred_target_eff;
+    wire [IMEM_ADDR_BITS-1:0] if_pred_target_eff;
 
     wire        if_pre_is_b;
     wire        if_pre_is_call;
@@ -68,7 +71,7 @@ module cpu(
     wire        if_pre_branch_pred_taken;
     wire        if_pre_branch_hit;
     wire        if_pre_pred_taken_eff;
-    wire [31:0] if_pre_pred_target_eff;
+    wire [IMEM_ADDR_BITS-1:0] if_pre_pred_target_eff;
     wire        id_take_live_if;
     wire        id_take_recovery_if;
 
@@ -82,13 +85,13 @@ module cpu(
     wire [31:0] id_instr_addr_reg;
     wire        id_branch_nohit_reg;
     wire        id_pred_taken_reg;
-    wire [31:0] id_pred_target_reg;
+    wire [IMEM_ADDR_BITS-1:0] id_pred_target_reg;
 
     wire [31:0] id_instr;
     wire [31:0] id_instr_addr;
     wire        id_branch_nohit;
     wire        id_pred_taken;
-    wire [31:0] id_pred_target;
+    wire [IMEM_ADDR_BITS-1:0] id_pred_target;
 
     wire        id_regs_re;
     wire        id_regs_we;
@@ -127,7 +130,7 @@ module cpu(
     wire        id_ctrl_dep_rs2;
     wire [10:1] id_b_imm_lo;
     wire [`BR_PRED_INDEX_BITS-1:0] id_branch_hash;
-    wire [31:0] id_branch_jump_addr;
+    wire [IMEM_ADDR_BITS-1:0] id_branch_jump_addr;
 
     // ------------------------------------------------------------------------
     // EX
@@ -136,7 +139,7 @@ module cpu(
     wire [`BR_PRED_INDEX_BITS-1:0] ex_branch_hash;
     wire        ex_branch_nohit;
     wire        ex_pred_taken;
-    wire [31:0] ex_pred_target;
+    wire [IMEM_ADDR_BITS-1:0] ex_pred_target;
 
     wire [31:0] ex_alu_num1;
     wire [31:0] ex_alu_num2;
@@ -160,18 +163,18 @@ module cpu(
     wire        ex_ctrl_defer;
     wire        ex_ctrl_dep_rs1;
     wire        ex_ctrl_dep_rs2;
-    wire [31:0] ex_branch_jump_addr;
-    wire [14:0] ex_ctrl_pc_low;
-    wire [14:0] ex_ctrl_pred_target_low;
-    wire [14:0] ex_ctrl_branch_target_low;
+    wire [IMEM_ADDR_BITS-1:0] ex_branch_jump_addr;
+    wire [IMEM_ADDR_BITS-1:0] ex_ctrl_pc_low;
+    wire [IMEM_ADDR_BITS-1:0] ex_ctrl_pred_target_low;
+    wire [IMEM_ADDR_BITS-1:0] ex_ctrl_branch_target_low;
     wire [31:0] ex_ctrl_other_operand;
     wire [11:0] ex_ctrl_jalr_imm12;
     wire        ex_ctrl_both_dep;
 
     wire        ex_actual_jump_flag;
-    wire [31:0] ex_actual_jump_addr;
+    wire [IMEM_ADDR_BITS-1:0] ex_actual_jump_addr;
     wire        ex_mispredict;
-    wire [14:0] ex_redirect_addr;
+    wire [IMEM_ADDR_BITS-1:0] ex_redirect_addr;
 
     // ------------------------------------------------------------------------
     // MEM
@@ -180,10 +183,10 @@ module cpu(
     wire [4:0]  mem_regs_w_addr;
     wire [31:0] mem_regs_w_data;
     wire [31:0] mem_actual_regs_w_data;
-    wire [14:0] mem_ctrl_pc_low;
+    wire [IMEM_ADDR_BITS-1:0] mem_ctrl_pc_low;
     wire        mem_pred_taken;
-    wire [14:0] mem_ctrl_pred_target_low;
-    wire [14:0] mem_ctrl_branch_target_low;
+    wire [IMEM_ADDR_BITS-1:0] mem_ctrl_pred_target_low;
+    wire [IMEM_ADDR_BITS-1:0] mem_ctrl_branch_target_low;
     wire [31:0] mem_ctrl_other_operand;
     wire [11:0] mem_ctrl_jalr_imm12;
     wire        mem_ctrl_both_dep;
@@ -195,11 +198,11 @@ module cpu(
     wire        mem_ctrl_dep_rs1;
     wire        mem_ctrl_resolve_en;
     wire        mem_ctrl_actual_jump_flag;
-    wire [14:0] mem_ctrl_actual_jump_addr_low;
+    wire [IMEM_ADDR_BITS-1:0] mem_ctrl_actual_jump_addr_low;
     wire        mem_ctrl_mispredict;
-    wire [14:0] mem_ctrl_redirect_addr;
+    wire [IMEM_ADDR_BITS-1:0] mem_ctrl_redirect_addr;
     wire        ctrl_resolve_mispredict;
-    wire [14:0] ctrl_resolve_redirect_addr;
+    wire [IMEM_ADDR_BITS-1:0] ctrl_resolve_redirect_addr;
     wire        bp_update_sel_mem;
     wire        bp_update_en;
     wire [31:0] bp_update_pc;
@@ -208,7 +211,7 @@ module cpu(
     wire        jtb_update_sel_mem;
     wire        jtb_update_en;
     wire [31:0] jtb_update_pc;
-    wire [31:0] jtb_update_target;
+    wire [IMEM_ADDR_BITS-1:0] jtb_update_target;
     wire        ras_ex_jump_flag;
     wire        ras_ex_call_flag;
     wire        ras_ex_ret_flag;
@@ -261,8 +264,8 @@ module cpu(
     // ------------------------------------------------------------------------
     wire                 ras_valid;
     wire                 ras_slot1_valid_shadow;
-    wire [14:0]          ras_top_target_low;
-    wire [14:0]          ras_slot1_top_target_shadow_low;
+    wire [IMEM_ADDR_BITS-1:0] ras_top_target_low;
+    wire [IMEM_ADDR_BITS-1:0] ras_slot1_top_target_shadow_low;
     wire                 frontend_issue_ok;
     wire                 slot0_jump_pred_base;
 
@@ -302,9 +305,9 @@ module cpu(
                                 && !pipeline_flush
                                 && !pipeline_stall
                                 && !pipeline_hold;
-    assign ex_ctrl_pc_low        = ex_instr_addr[14:0];
-    assign ex_ctrl_pred_target_low = ex_pred_target[14:0];
-    assign ex_ctrl_branch_target_low = ex_branch_jump_addr[14:0];
+    assign ex_ctrl_pc_low          = ex_instr_addr[IMEM_ADDR_BITS-1:0];
+    assign ex_ctrl_pred_target_low = ex_pred_target;
+    assign ex_ctrl_branch_target_low = ex_branch_jump_addr;
     assign ex_ctrl_other_operand = ex_ctrl_dep_rs1 ? ex_alu_num2 : ex_alu_num1;
     assign ex_ctrl_jalr_imm12    = ex_alu_num2[11:0];
     assign ex_ctrl_both_dep      = ex_ctrl_dep_rs1 && ex_ctrl_dep_rs2;
@@ -317,7 +320,7 @@ module cpu(
                                  && !mem_ctrl_mispredict
                                  && ex_branch_flag
                                  && !ex_ctrl_defer);
-    assign bp_update_pc          = bp_update_sel_mem ? {17'b0, mem_ctrl_pc_low} : ex_instr_addr;
+    assign bp_update_pc          = bp_update_sel_mem ? {{IMEM_PAD_BITS{1'b0}}, mem_ctrl_pc_low} : ex_instr_addr;
     assign bp_update_hash        = bp_update_sel_mem ? mem_branch_hash : ex_branch_hash;
     assign bp_update_taken       = bp_update_sel_mem ? mem_ctrl_actual_jump_flag
                                                      : ex_actual_jump_flag;
@@ -328,9 +331,9 @@ module cpu(
                                  && ex_jalr_flag
                                  && !ex_ret_flag
                                  && !ex_ctrl_defer);
-    assign jtb_update_pc         = jtb_update_sel_mem ? {17'b0, mem_ctrl_pc_low} : ex_instr_addr;
-    assign jtb_update_target     = jtb_update_sel_mem ? {17'b0, mem_ctrl_actual_jump_addr_low}
-                                                      : {17'b0, ex_actual_jump_addr[14:0]};
+    assign jtb_update_pc         = jtb_update_sel_mem ? {{IMEM_PAD_BITS{1'b0}}, mem_ctrl_pc_low} : ex_instr_addr;
+    assign jtb_update_target     = jtb_update_sel_mem ? mem_ctrl_actual_jump_addr_low
+                                                      : ex_actual_jump_addr;
     assign ras_ex_jump_flag      = ex_jump_flag && !ex_ctrl_defer && !mem_ctrl_mispredict;
     assign ras_ex_call_flag      = ex_call_flag && !ex_ctrl_defer && !mem_ctrl_mispredict;
     assign ras_ex_ret_flag       = ex_ret_flag && !ex_ctrl_defer && !mem_ctrl_mispredict;
@@ -483,21 +486,21 @@ module cpu(
         if (rst_n == `RST_ENABLE) begin
             if_pre_valid_q    <= 1'b0;
             if_jtb_hit        <= 1'b0;
-            if_jtb_target     <= 32'b0;
+            if_jtb_target     <= {IMEM_ADDR_BITS{1'b0}};
             if_pre_jtb_hit    <= 1'b0;
-            if_pre_jtb_target <= 32'b0;
+            if_pre_jtb_target <= {IMEM_ADDR_BITS{1'b0}};
         end else if (slot0_ctrl_redirect || slot1_pred_redirect) begin
             if_pre_valid_q     <= 1'b0;
             if_jtb_hit         <= 1'b0;
-            if_jtb_target      <= 32'b0;
+            if_jtb_target      <= {IMEM_ADDR_BITS{1'b0}};
             if_pre_jtb_hit     <= 1'b0;
-            if_pre_jtb_target  <= 32'b0;
+            if_pre_jtb_target  <= {IMEM_ADDR_BITS{1'b0}};
         end else if (pipeline_flush) begin
             if_pre_valid_q     <= 1'b0;
             if_jtb_hit         <= 1'b0;
-            if_jtb_target      <= 32'b0;
+            if_jtb_target      <= {IMEM_ADDR_BITS{1'b0}};
             if_pre_jtb_hit     <= 1'b0;
-            if_pre_jtb_target  <= 32'b0;
+            if_pre_jtb_target  <= {IMEM_ADDR_BITS{1'b0}};
         end else if (!pipeline_block) begin
             if_pre_valid_q <= slot1_capture_en;
             if_jtb_hit     <= preif_jtb_hit;

@@ -29,12 +29,14 @@ module id(
     output wire [31:0] id_dmem_w_data,
 
     output wire        id_branch_flag,
-    output wire [31:0] id_branch_jump_addr,
+    output wire [`IMEM_ADDR_BITS-1:0] id_branch_jump_addr,
     output wire        id_jump_flag,
     output wire        id_jalr_flag,
     output wire        id_call_flag,
     output wire        id_ret_flag
 );
+
+    localparam integer IMEM_ADDR_BITS = `IMEM_ADDR_BITS;
 
     wire [6:0] opcode = id_instr[6:0];
     wire [2:0] funct3 = id_instr[14:12];
@@ -93,8 +95,10 @@ module id(
     assign id_dmem_w_data = id_rs2_data;
     assign id_mem_op   = funct3;
 
+    wire [31:0] branch_target_full = b_imm + id_instr_addr;
+
     assign id_branch_flag = type_b;
-    assign id_branch_jump_addr = b_imm + id_instr_addr;
+    assign id_branch_jump_addr = branch_target_full[IMEM_ADDR_BITS-1:0];
     assign id_jump_flag   = type_j_jal | type_i_jalr;
     assign id_jalr_flag   = type_i_jalr;
     assign id_call_flag   = (type_j_jal | type_i_jalr) && ((id_rd_addr == 5'd1) || (id_rd_addr == 5'd5));

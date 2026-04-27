@@ -2,7 +2,8 @@
 `include "defines.v"
 
 module id_ex #(
-    parameter integer BR_HASH_BITS = `BR_PRED_INDEX_BITS
+    parameter integer BR_HASH_BITS = `BR_PRED_INDEX_BITS,
+    parameter integer IMEM_ADDR_BITS = `IMEM_ADDR_BITS
 )(
     input  wire        clk,
     input  wire        rst_n,
@@ -13,7 +14,7 @@ module id_ex #(
     input  wire [31:0] id_instr_addr,
     input  wire        id_branch_nohit,
     input  wire        id_pred_taken,
-    input  wire [31:0] id_pred_target,
+    input  wire [IMEM_ADDR_BITS-1:0] id_pred_target,
 
     input  wire [31:0] id_alu_num1,
     input  wire [31:0] id_alu_num2,
@@ -25,7 +26,7 @@ module id_ex #(
     input  wire        id_dmem_re,
     input  wire [31:0] id_dmem_w_data,
     input  wire        id_branch_flag,
-    input  wire [31:0] id_branch_jump_addr,
+    input  wire [IMEM_ADDR_BITS-1:0] id_branch_jump_addr,
     input  wire [BR_HASH_BITS-1:0]  id_branch_hash,
     input  wire        id_jump_flag,
     input  wire        id_jalr_flag,
@@ -38,7 +39,7 @@ module id_ex #(
     output reg   [31:0] ex_instr_addr,
     output reg          ex_branch_nohit,
     output reg          ex_pred_taken,
-    output reg   [31:0] ex_pred_target,
+    output reg   [IMEM_ADDR_BITS-1:0] ex_pred_target,
     output reg   [31:0] ex_alu_num1,
     output reg   [31:0] ex_alu_num2,
     output reg   [3:0]  ex_alu_op,
@@ -49,7 +50,7 @@ module id_ex #(
     output reg          ex_dmem_re,
     output reg   [31:0] ex_dmem_w_data,
     output reg          ex_branch_flag,
-    output reg   [31:0] ex_branch_jump_addr,
+    output reg   [IMEM_ADDR_BITS-1:0] ex_branch_jump_addr,
     output reg   [BR_HASH_BITS-1:0]  ex_branch_hash,
     output reg          ex_jump_flag,
     output reg          ex_jalr_flag,
@@ -123,25 +124,25 @@ module id_ex #(
     always @(posedge clk) begin
         if (rst_n == `RST_ENABLE) begin
             ex_instr_addr       <= 32'b0;
-            ex_pred_target      <= 32'b0;
+            ex_pred_target      <= {IMEM_ADDR_BITS{1'b0}};
             ex_alu_num1         <= 32'b0;
             ex_alu_num2         <= 32'b0;
             ex_alu_op           <= 4'b0;
             ex_regs_w_addr      <= 5'b0;
             ex_mem_op           <= 3'b0;
             ex_dmem_w_data      <= 32'b0;
-            ex_branch_jump_addr <= 32'b0;
+            ex_branch_jump_addr <= {IMEM_ADDR_BITS{1'b0}};
             ex_branch_hash      <= {BR_HASH_BITS{1'b0}};
         end else if (pipeline_flush) begin
             ex_instr_addr       <= 32'b0;
-            ex_pred_target      <= 32'b0;
+            ex_pred_target      <= {IMEM_ADDR_BITS{1'b0}};
             ex_alu_num1         <= 32'b0;
             ex_alu_num2         <= 32'b0;
             ex_alu_op           <= 4'b0;
             ex_regs_w_addr      <= 5'b0;
             ex_mem_op           <= 3'b0;
             ex_dmem_w_data      <= 32'b0;
-            ex_branch_jump_addr <= 32'b0;
+            ex_branch_jump_addr <= {IMEM_ADDR_BITS{1'b0}};
             ex_branch_hash      <= {BR_HASH_BITS{1'b0}};
         end else if (!(pipeline_stall || pipeline_hold)) begin
             ex_instr_addr       <= id_instr_addr;

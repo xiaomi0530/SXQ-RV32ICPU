@@ -2,7 +2,8 @@
 `include "defines.v"
 
 module ex_mem #(
-    parameter integer BR_HASH_BITS = `BR_PRED_INDEX_BITS
+    parameter integer BR_HASH_BITS = `BR_PRED_INDEX_BITS,
+    parameter integer IMEM_ADDR_BITS = `IMEM_ADDR_BITS
 )(
     input  wire clk,
     input  wire rst_n,
@@ -17,10 +18,10 @@ module ex_mem #(
     input  wire        ex_dmem_we,
     input  wire        ex_dmem_re,
     input  wire [2:0]  ex_mem_op,
-    input  wire [14:0] ex_ctrl_pc_low,
+    input  wire [IMEM_ADDR_BITS-1:0] ex_ctrl_pc_low,
     input  wire        ex_pred_taken,
-    input  wire [14:0] ex_ctrl_pred_target_low,
-    input  wire [14:0] ex_ctrl_branch_target_low,
+    input  wire [IMEM_ADDR_BITS-1:0] ex_ctrl_pred_target_low,
+    input  wire [IMEM_ADDR_BITS-1:0] ex_ctrl_branch_target_low,
     input  wire [31:0] ex_ctrl_other_operand,
     input  wire [11:0] ex_ctrl_jalr_imm12,
     input  wire        ex_ctrl_both_dep,
@@ -39,10 +40,10 @@ module ex_mem #(
     output reg         mem_dmem_we,
     output reg         mem_dmem_re,
     output reg  [2:0]  mem_mem_op,
-    output reg  [14:0] mem_ctrl_pc_low,
+    output reg  [IMEM_ADDR_BITS-1:0] mem_ctrl_pc_low,
     output reg         mem_pred_taken,
-    output reg  [14:0] mem_ctrl_pred_target_low,
-    output reg  [14:0] mem_ctrl_branch_target_low,
+    output reg  [IMEM_ADDR_BITS-1:0] mem_ctrl_pred_target_low,
+    output reg  [IMEM_ADDR_BITS-1:0] mem_ctrl_branch_target_low,
     output reg  [31:0] mem_ctrl_other_operand,
     output reg  [11:0] mem_ctrl_jalr_imm12,
     output reg         mem_ctrl_both_dep,

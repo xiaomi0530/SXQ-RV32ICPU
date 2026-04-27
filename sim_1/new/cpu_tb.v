@@ -20,6 +20,7 @@ module cpu_tb;
     localparam integer BHT_STAT_INDEX_BITS = `BR_PRED_INDEX_BITS;
     localparam integer BHT_STAT_PC_BITS    = `BR_PRED_PC_CANON_BITS;
     localparam integer BHT_STAT_TAG_BITS   = `BR_PRED_TAG_BITS;
+    localparam integer TB_IMEM_PAD_BITS    = `CPU_ADDR_BITS - `IMEM_ADDR_BITS;
 
     reg  clk;
     reg  rst_n;
@@ -352,6 +353,8 @@ module cpu_tb;
     reg  [4:0]  mul_dep1_rd;
     reg  [4:0]  mul_dep2_rd;
     reg  [4:0]  mul_dep3_rd;
+    reg         tb_mem_branch_nohit;
+    reg         tb_mem_call_flag;
     reg         jalr_pc_valid [0:JALR_PC_STAT_SLOTS-1];
     reg  [31:0] jalr_pc_addr  [0:JALR_PC_STAT_SLOTS-1];
     integer     jalr_pc_exec  [0:JALR_PC_STAT_SLOTS-1];
@@ -486,9 +489,11 @@ module cpu_tb;
     wire       if_branch_nohit_back_fire = if_branch_nohit_fire
                                         && u_cpu.if_b_imm[31];
     wire       if_branch_nohit_back_ok_fire = if_branch_nohit_back_fire
-                                           && u_cpu.frontend_issue_ok;
+                                           && u_cpu.frontend_issue_ok
+                                           && !u_cpu.ctrl_resolve_mispredict;
     wire       if_branch_nohit_back_redirect_fire = if_branch_nohit_back_fire
-                                                 && u_cpu.slot0_ctrl_redirect;
+                                                 && u_cpu.slot0_ctrl_redirect
+                                                 && !u_cpu.ctrl_resolve_mispredict;
     function [BHT_STAT_TAG_BITS-1:0] tb_pack_bht_tag;
         input [31:0] pc_value;
         integer bit_idx;
@@ -504,16 +509,48 @@ module cpu_tb;
     wire [BHT_STAT_TAG_BITS-1:0]   ex_bht_tag = tb_pack_bht_tag(u_cpu.ex_instr_addr);
     wire       ex_bht_hit_meta = u_cpu.u_branch_predictor.branch_valid[ex_bht_idx]
                               && (u_cpu.u_branch_predictor.branch_tag[ex_bht_idx] == ex_bht_tag);
-    wire       ex_bht_store_fire = stat_cycle_win
-                                && u_cpu.ex_branch_flag
-                                && u_cpu.ex_actual_jump_flag
-                                && !ex_bht_hit_meta;
+    wire [31:0] ex_pred_target_full = {{TB_IMEM_PAD_BITS{1'b0}}, u_cpu.ex_pred_target};
+    wire [31:0] ex_actual_jump_addr_full = {{TB_IMEM_PAD_BITS{1'b0}}, u_cpu.ex_actual_jump_addr};
     wire [31:0] ex_branch_imm_raw = u_cpu.ex_branch_jump_addr - u_cpu.ex_instr_addr;
     wire [31:0] ex_branch_imm_abs = ex_branch_imm_raw[31] ? (~ex_branch_imm_raw + 32'd1) : ex_branch_imm_raw;
+    wire       ex_ctrl_stat_fire = stat_cycle_win
+                                && !u_cpu.mem_ctrl_mispredict
+                                && !u_cpu.ex_ctrl_defer
+                                && (u_cpu.ex_branch_flag || u_cpu.ex_jump_flag);
+    wire       ex_branch_stat_fire = ex_ctrl_stat_fire && u_cpu.ex_branch_flag;
+    wire       ex_jal_stat_fire = ex_ctrl_stat_fire
+                               && u_cpu.ex_jump_flag
+                               && !u_cpu.ex_jalr_flag;
+    wire       ex_jalr_stat_fire = ex_ctrl_stat_fire
+                                && u_cpu.ex_jump_flag
+                                && u_cpu.ex_jalr_flag;
+    wire       ex_bht_store_fire = ex_branch_stat_fire
+                                && u_cpu.ex_actual_jump_flag
+                                && !ex_bht_hit_meta;
     wire       ex_bht_store_conflict = ex_bht_store_fire && bht_meta_valid[ex_bht_idx];
     wire       ex_bht_store_imm_overlap = ex_bht_store_conflict
                                        && (bht_meta_imm_abs[ex_bht_idx] == ex_branch_imm_abs);
     wire       ex_branch_is_backward = ex_branch_imm_raw[31];
+    wire [31:0] mem_ctrl_pc_full = {{TB_IMEM_PAD_BITS{1'b0}}, u_cpu.mem_ctrl_pc_low};
+    wire [31:0] mem_ctrl_pred_target_full = {{TB_IMEM_PAD_BITS{1'b0}}, u_cpu.mem_ctrl_pred_target_low};
+    wire [31:0] mem_ctrl_actual_jump_addr_full = {{TB_IMEM_PAD_BITS{1'b0}}, u_cpu.mem_ctrl_actual_jump_addr_low};
+    wire [31:0] mem_ctrl_branch_target_full = {{TB_IMEM_PAD_BITS{1'b0}}, u_cpu.mem_ctrl_branch_target_low};
+    wire       mem_ctrl_stat_fire = stat_cycle_win && u_cpu.mem_ctrl_resolve_en;
+    wire       mem_branch_stat_fire = mem_ctrl_stat_fire && u_cpu.mem_branch_flag;
+    wire       mem_jalr_stat_fire = mem_ctrl_stat_fire && u_cpu.mem_jalr_flag;
+    wire [BHT_STAT_INDEX_BITS-1:0] mem_bht_idx = mem_ctrl_pc_full[BHT_STAT_INDEX_BITS+1:2] ^ u_cpu.mem_branch_hash;
+    wire [BHT_STAT_TAG_BITS-1:0]   mem_bht_tag = tb_pack_bht_tag(mem_ctrl_pc_full);
+    wire       mem_bht_hit_meta = u_cpu.u_branch_predictor.branch_valid[mem_bht_idx]
+                               && (u_cpu.u_branch_predictor.branch_tag[mem_bht_idx] == mem_bht_tag);
+    wire [31:0] mem_branch_imm_raw = mem_ctrl_branch_target_full - mem_ctrl_pc_full;
+    wire [31:0] mem_branch_imm_abs = mem_branch_imm_raw[31] ? (~mem_branch_imm_raw + 32'd1) : mem_branch_imm_raw;
+    wire       mem_branch_is_backward = mem_branch_imm_raw[31];
+    wire       mem_bht_store_fire = mem_branch_stat_fire
+                                 && u_cpu.mem_ctrl_actual_jump_flag
+                                 && !mem_bht_hit_meta;
+    wire       mem_bht_store_conflict = mem_bht_store_fire && bht_meta_valid[mem_bht_idx];
+    wire       mem_bht_store_imm_overlap = mem_bht_store_conflict
+                                        && (bht_meta_imm_abs[mem_bht_idx] == mem_branch_imm_abs);
 
     function integer pct_x100;
         input integer numer;
@@ -559,7 +596,8 @@ module cpu_tb;
                                && (u_cpu.if_pre_instr[6:2] == 5'b11000);
     wire slot1_branch_issue_fire = slot1_branch_seen_fire
                                 && u_cpu.frontend_issue_ok
-                                && !u_cpu.slot0_ctrl_redirect;
+                                && !u_cpu.slot0_ctrl_redirect
+                                && !u_cpu.ctrl_resolve_mispredict;
     wire slot1_branch_back_fire = slot1_branch_seen_fire
                                && u_cpu.if_pre_instr[31];
     wire slot1_branch_issue_back_fire = slot1_branch_issue_fire
@@ -568,17 +606,19 @@ module cpu_tb;
                                   && u_cpu.if_pre_valid
                                   && u_cpu.frontend_issue_ok
                                   && !u_cpu.slot0_ctrl_redirect
-                                  && !u_cpu.ex_mispredict
+                                  && !u_cpu.ctrl_resolve_mispredict
                                   && ((u_cpu.if_pre_instr[6:2] == 5'b11000)
                                    || (u_cpu.if_pre_instr[6:2] == 5'b11011)
                                    || (u_cpu.if_pre_instr[6:2] == 5'b11001));
     wire slot1_pred_effective_fire = stat_active
                                    && u_cpu.slot1_pred_redirect
-                                   && !u_cpu.ex_mispredict
-                                   && !u_cpu.slot0_ctrl_redirect;
+                                   && !u_cpu.slot0_ctrl_redirect
+                                   && !u_cpu.ctrl_resolve_mispredict;
     wire slot1_pred_without_valid_fire = stat_active
                                       && u_cpu.slot1_pred_redirect
-                                      && !u_cpu.if_pre_valid;
+                                      && !u_cpu.if_pre_valid
+                                      && !u_cpu.slot0_ctrl_redirect
+                                      && !u_cpu.ctrl_resolve_mispredict;
     wire slot1_raw_invalid_fire = stat_active
                                && !u_cpu.if_pre_valid
                                && u_cpu.if_pre_pred_taken_eff;
@@ -1654,6 +1694,8 @@ module cpu_tb;
             mul_dep1_rd      <= 5'd0;
             mul_dep2_rd      <= 5'd0;
             mul_dep3_rd      <= 5'd0;
+            tb_mem_branch_nohit <= 1'b0;
+            tb_mem_call_flag    <= 1'b0;
         for (init_i = 0; init_i < JALR_PC_STAT_SLOTS; init_i = init_i + 1) begin
             jalr_pc_valid[init_i] <= 1'b0;
             jalr_pc_addr[init_i]  <= 32'b0;
@@ -1751,6 +1793,14 @@ module cpu_tb;
 
             stat_cycle_win = stat_active ? 1 : 0;
 
+            if (u_cpu.mem_ctrl_mispredict) begin
+                tb_mem_branch_nohit <= 1'b0;
+                tb_mem_call_flag    <= 1'b0;
+            end else if (!u_cpu.pipeline_hold) begin
+                tb_mem_branch_nohit <= u_cpu.ex_branch_nohit;
+                tb_mem_call_flag    <= u_cpu.ex_call_flag;
+            end
+
             instr_now          = instr_total          + ((stat_cycle_win && issue_instr_fire) ? 1 : 0);
             flush_now          = flush_total          + ((stat_cycle_win && !issue_instr_fire && u_cpu.pipeline_flush) ? 1 : 0);
             load_stall_now     = load_stall_total     + ((stat_cycle_win && !issue_instr_fire && u_cpu.pipeline_stall && !u_cpu.pipeline_flush) ? 1 : 0);
@@ -1763,15 +1813,15 @@ module cpu_tb;
             if_branch_nohit_back_now = if_branch_nohit_back_total + (if_branch_nohit_back_fire ? 1 : 0);
             if_branch_nohit_back_ok_now = if_branch_nohit_back_ok_total + (if_branch_nohit_back_ok_fire ? 1 : 0);
             if_branch_nohit_back_redirect_now = if_branch_nohit_back_redirect_total + (if_branch_nohit_back_redirect_fire ? 1 : 0);
-            slot1_redirect_now = slot1_redirect_total + ((stat_cycle_win && u_cpu.slot1_pred_redirect) ? 1 : 0);
+            slot1_redirect_now = slot1_redirect_total + (slot1_pred_effective_fire ? 1 : 0);
             slot1_branch_seen_now = slot1_branch_seen_total + (slot1_branch_seen_fire ? 1 : 0);
             slot1_branch_issue_now = slot1_branch_issue_total + (slot1_branch_issue_fire ? 1 : 0);
             slot1_branch_back_now = slot1_branch_back_total + (slot1_branch_back_fire ? 1 : 0);
             slot1_branch_issue_back_now = slot1_branch_issue_back_total + (slot1_branch_issue_back_fire ? 1 : 0);
             bht_tag_alias_now  = bht_tag_alias_total  + (if_bht_alias_hit ? 1 : 0);
-            bht_store_now      = bht_store_total      + (ex_bht_store_fire ? 1 : 0);
-            bht_store_conflict_now = bht_store_conflict_total + (ex_bht_store_conflict ? 1 : 0);
-            bht_store_imm_overlap_now = bht_store_imm_overlap_total + (ex_bht_store_imm_overlap ? 1 : 0);
+            bht_store_now      = bht_store_total      + (ex_bht_store_fire ? 1 : 0) + (mem_bht_store_fire ? 1 : 0);
+            bht_store_conflict_now = bht_store_conflict_total + (ex_bht_store_conflict ? 1 : 0) + (mem_bht_store_conflict ? 1 : 0);
+            bht_store_imm_overlap_now = bht_store_imm_overlap_total + (ex_bht_store_imm_overlap ? 1 : 0) + (mem_bht_store_imm_overlap ? 1 : 0);
 
             if (if_bht_lookup_fire) begin
                 bht_entry_if_lookup[if_bht_idx] <= bht_entry_if_lookup[if_bht_idx] + 1;
@@ -1787,14 +1837,90 @@ module cpu_tb;
             end
 
             if (slot1_pred_effective_fire)
-                slot1_pred_effective_total <= slot1_pred_effective_total + 1;
+                slot1_pred_effective_total = slot1_pred_effective_total + 1;
             if (slot1_pred_without_valid_fire)
-                slot1_pred_without_valid_total <= slot1_pred_without_valid_total + 1;
+                slot1_pred_without_valid_total = slot1_pred_without_valid_total + 1;
             if (slot1_raw_invalid_fire)
-                slot1_raw_invalid_total <= slot1_raw_invalid_total + 1;
+                slot1_raw_invalid_total = slot1_raw_invalid_total + 1;
 
             slot1_match_slot = -1;
-            if (stat_cycle_win && (u_cpu.ex_branch_flag || u_cpu.ex_jump_flag)) begin
+            if (mem_branch_stat_fire || mem_jalr_stat_fire) begin
+                for (slot1_track_i = 0; slot1_track_i < SLOT1_TRACK_SLOTS; slot1_track_i = slot1_track_i + 1) begin
+                    if (slot1_pending_valid[slot1_track_i]
+                            && (slot1_pending_pc[slot1_track_i] == mem_ctrl_pc_full)
+                            && (slot1_match_slot == -1))
+                        slot1_match_slot = slot1_track_i;
+                end
+
+                if (slot1_match_slot != -1) begin
+                    slot1_match_type = slot1_pending_type[slot1_match_slot];
+                    slot1_match_pred_taken = slot1_pending_pred_taken[slot1_match_slot];
+                    slot1_match_branch_backward = slot1_pending_instr[slot1_match_slot][31];
+                    slot1_match_correct = (slot1_match_type == SLOT1_TYPE_B)
+                                        ? ((slot1_pending_pred_taken[slot1_match_slot] == u_cpu.mem_ctrl_actual_jump_flag)
+                                           && (!slot1_pending_pred_taken[slot1_match_slot]
+                                               || (slot1_pending_pred_target[slot1_match_slot] == mem_ctrl_actual_jump_addr_full)))
+                                        : (!u_cpu.mem_ctrl_mispredict);
+
+                    slot1_ctrl_match_total = slot1_ctrl_match_total + 1;
+                    slot1_pending_valid[slot1_match_slot] = 1'b0;
+
+                    if (slot1_match_type == SLOT1_TYPE_B) begin
+                        slot1_b_exec_total = slot1_b_exec_total + 1;
+                        if (slot1_match_pred_taken)
+                            slot1_b_pred_total = slot1_b_pred_total + 1;
+                        if (slot1_match_correct)
+                            slot1_b_correct_total = slot1_b_correct_total + 1;
+                        if (u_cpu.mem_ctrl_actual_jump_flag)
+                            slot1_b_taken_total = slot1_b_taken_total + 1;
+                        else
+                            slot1_b_nt_total = slot1_b_nt_total + 1;
+
+                        if (slot1_match_branch_backward) begin
+                            slot1_b_back_total = slot1_b_back_total + 1;
+                            if (u_cpu.mem_ctrl_actual_jump_flag)
+                                slot1_b_back_taken_total = slot1_b_back_taken_total + 1;
+                            else
+                                slot1_b_back_nt_total = slot1_b_back_nt_total + 1;
+                        end else begin
+                            slot1_b_fwd_total = slot1_b_fwd_total + 1;
+                            if (u_cpu.mem_ctrl_actual_jump_flag)
+                                slot1_b_fwd_taken_total = slot1_b_fwd_taken_total + 1;
+                            else
+                                slot1_b_fwd_nt_total = slot1_b_fwd_nt_total + 1;
+                        end
+                    end else begin
+                        slot1_jalr_exec_total = slot1_jalr_exec_total + 1;
+                        if (slot1_match_pred_taken)
+                            slot1_jalr_pred_total = slot1_jalr_pred_total + 1;
+                        if (slot1_match_correct)
+                            slot1_jalr_correct_total = slot1_jalr_correct_total + 1;
+
+                        if (slot1_match_type == SLOT1_TYPE_RET) begin
+                            slot1_ret_exec_total = slot1_ret_exec_total + 1;
+                            if (slot1_match_pred_taken)
+                                slot1_ret_pred_total = slot1_ret_pred_total + 1;
+                            if (slot1_match_correct)
+                                slot1_ret_correct_total = slot1_ret_correct_total + 1;
+                        end else if (slot1_match_type == SLOT1_TYPE_CALL_JALR) begin
+                            slot1_call_jalr_exec_total = slot1_call_jalr_exec_total + 1;
+                            if (slot1_match_pred_taken)
+                                slot1_call_jalr_pred_total = slot1_call_jalr_pred_total + 1;
+                            if (slot1_match_correct)
+                                slot1_call_jalr_correct_total = slot1_call_jalr_correct_total + 1;
+                        end else begin
+                            slot1_indirect_jalr_exec_total = slot1_indirect_jalr_exec_total + 1;
+                            if (slot1_match_pred_taken)
+                                slot1_indirect_jalr_pred_total = slot1_indirect_jalr_pred_total + 1;
+                            if (slot1_match_correct)
+                                slot1_indirect_jalr_correct_total = slot1_indirect_jalr_correct_total + 1;
+                        end
+                    end
+                end
+            end
+
+            slot1_match_slot = -1;
+            if (ex_branch_stat_fire || ex_jal_stat_fire || ex_jalr_stat_fire) begin
                 for (slot1_track_i = 0; slot1_track_i < SLOT1_TRACK_SLOTS; slot1_track_i = slot1_track_i + 1) begin
                     if (slot1_pending_valid[slot1_track_i]
                             && (slot1_pending_pc[slot1_track_i] == u_cpu.ex_instr_addr)
@@ -1809,67 +1935,67 @@ module cpu_tb;
                     slot1_match_correct = (slot1_match_type == SLOT1_TYPE_B)
                                         ? ((slot1_pending_pred_taken[slot1_match_slot] == u_cpu.ex_actual_jump_flag)
                                            && (!slot1_pending_pred_taken[slot1_match_slot]
-                                               || (slot1_pending_pred_target[slot1_match_slot] == u_cpu.ex_actual_jump_addr)))
+                                               || (slot1_pending_pred_target[slot1_match_slot] == ex_actual_jump_addr_full)))
                                         : (!u_cpu.ex_mispredict);
 
-                    slot1_ctrl_match_total <= slot1_ctrl_match_total + 1;
-                    slot1_pending_valid[slot1_match_slot] <= 1'b0;
+                    slot1_ctrl_match_total = slot1_ctrl_match_total + 1;
+                    slot1_pending_valid[slot1_match_slot] = 1'b0;
 
                     if (slot1_match_type == SLOT1_TYPE_B) begin
-                        slot1_b_exec_total <= slot1_b_exec_total + 1;
+                        slot1_b_exec_total = slot1_b_exec_total + 1;
                         if (slot1_match_pred_taken)
-                            slot1_b_pred_total <= slot1_b_pred_total + 1;
+                            slot1_b_pred_total = slot1_b_pred_total + 1;
                         if (slot1_match_correct)
-                            slot1_b_correct_total <= slot1_b_correct_total + 1;
+                            slot1_b_correct_total = slot1_b_correct_total + 1;
                         if (u_cpu.ex_actual_jump_flag)
-                            slot1_b_taken_total <= slot1_b_taken_total + 1;
+                            slot1_b_taken_total = slot1_b_taken_total + 1;
                         else
-                            slot1_b_nt_total <= slot1_b_nt_total + 1;
+                            slot1_b_nt_total = slot1_b_nt_total + 1;
 
                         if (slot1_match_branch_backward) begin
-                            slot1_b_back_total <= slot1_b_back_total + 1;
+                            slot1_b_back_total = slot1_b_back_total + 1;
                             if (u_cpu.ex_actual_jump_flag)
-                                slot1_b_back_taken_total <= slot1_b_back_taken_total + 1;
+                                slot1_b_back_taken_total = slot1_b_back_taken_total + 1;
                             else
-                                slot1_b_back_nt_total <= slot1_b_back_nt_total + 1;
+                                slot1_b_back_nt_total = slot1_b_back_nt_total + 1;
                         end else begin
-                            slot1_b_fwd_total <= slot1_b_fwd_total + 1;
+                            slot1_b_fwd_total = slot1_b_fwd_total + 1;
                             if (u_cpu.ex_actual_jump_flag)
-                                slot1_b_fwd_taken_total <= slot1_b_fwd_taken_total + 1;
+                                slot1_b_fwd_taken_total = slot1_b_fwd_taken_total + 1;
                             else
-                                slot1_b_fwd_nt_total <= slot1_b_fwd_nt_total + 1;
+                                slot1_b_fwd_nt_total = slot1_b_fwd_nt_total + 1;
                         end
                     end else if (slot1_match_type == SLOT1_TYPE_JAL) begin
-                        slot1_jal_exec_total <= slot1_jal_exec_total + 1;
+                        slot1_jal_exec_total = slot1_jal_exec_total + 1;
                         if (slot1_match_pred_taken)
-                            slot1_jal_pred_total <= slot1_jal_pred_total + 1;
+                            slot1_jal_pred_total = slot1_jal_pred_total + 1;
                         if (slot1_match_correct)
-                            slot1_jal_correct_total <= slot1_jal_correct_total + 1;
+                            slot1_jal_correct_total = slot1_jal_correct_total + 1;
                     end else begin
-                        slot1_jalr_exec_total <= slot1_jalr_exec_total + 1;
+                        slot1_jalr_exec_total = slot1_jalr_exec_total + 1;
                         if (slot1_match_pred_taken)
-                            slot1_jalr_pred_total <= slot1_jalr_pred_total + 1;
+                            slot1_jalr_pred_total = slot1_jalr_pred_total + 1;
                         if (slot1_match_correct)
-                            slot1_jalr_correct_total <= slot1_jalr_correct_total + 1;
+                            slot1_jalr_correct_total = slot1_jalr_correct_total + 1;
 
                         if (slot1_match_type == SLOT1_TYPE_RET) begin
-                            slot1_ret_exec_total <= slot1_ret_exec_total + 1;
+                            slot1_ret_exec_total = slot1_ret_exec_total + 1;
                             if (slot1_match_pred_taken)
-                                slot1_ret_pred_total <= slot1_ret_pred_total + 1;
+                                slot1_ret_pred_total = slot1_ret_pred_total + 1;
                             if (slot1_match_correct)
-                                slot1_ret_correct_total <= slot1_ret_correct_total + 1;
+                                slot1_ret_correct_total = slot1_ret_correct_total + 1;
                         end else if (slot1_match_type == SLOT1_TYPE_CALL_JALR) begin
-                            slot1_call_jalr_exec_total <= slot1_call_jalr_exec_total + 1;
+                            slot1_call_jalr_exec_total = slot1_call_jalr_exec_total + 1;
                             if (slot1_match_pred_taken)
-                                slot1_call_jalr_pred_total <= slot1_call_jalr_pred_total + 1;
+                                slot1_call_jalr_pred_total = slot1_call_jalr_pred_total + 1;
                             if (slot1_match_correct)
-                                slot1_call_jalr_correct_total <= slot1_call_jalr_correct_total + 1;
+                                slot1_call_jalr_correct_total = slot1_call_jalr_correct_total + 1;
                         end else begin
-                            slot1_indirect_jalr_exec_total <= slot1_indirect_jalr_exec_total + 1;
+                            slot1_indirect_jalr_exec_total = slot1_indirect_jalr_exec_total + 1;
                             if (slot1_match_pred_taken)
-                                slot1_indirect_jalr_pred_total <= slot1_indirect_jalr_pred_total + 1;
+                                slot1_indirect_jalr_pred_total = slot1_indirect_jalr_pred_total + 1;
                             if (slot1_match_correct)
-                                slot1_indirect_jalr_correct_total <= slot1_indirect_jalr_correct_total + 1;
+                                slot1_indirect_jalr_correct_total = slot1_indirect_jalr_correct_total + 1;
                         end
                     end
                 end
@@ -1877,7 +2003,7 @@ module cpu_tb;
 
             if (u_cpu.pipeline_flush) begin
                 for (slot1_track_i = 0; slot1_track_i < SLOT1_TRACK_SLOTS; slot1_track_i = slot1_track_i + 1)
-                    slot1_pending_valid[slot1_track_i] <= 1'b0;
+                    slot1_pending_valid[slot1_track_i] = 1'b0;
             end
 
             if (slot1_ctrl_candidate_fire) begin
@@ -1888,15 +2014,15 @@ module cpu_tb;
                 end
 
                 if (slot1_free_slot != -1) begin
-                    slot1_ctrl_track_total <= slot1_ctrl_track_total + 1;
-                    slot1_pending_valid[slot1_free_slot] <= 1'b1;
-                    slot1_pending_pc[slot1_free_slot] <= u_cpu.if_pre_instr_addr;
-                    slot1_pending_instr[slot1_free_slot] <= u_cpu.if_pre_instr;
-                    slot1_pending_pred_taken[slot1_free_slot] <= u_cpu.if_pre_pred_taken_eff;
-                    slot1_pending_pred_target[slot1_free_slot] <= u_cpu.if_pre_pred_target_eff;
-                    slot1_pending_type[slot1_free_slot] <= slot1_candidate_type;
+                    slot1_ctrl_track_total = slot1_ctrl_track_total + 1;
+                    slot1_pending_valid[slot1_free_slot] = 1'b1;
+                    slot1_pending_pc[slot1_free_slot] = u_cpu.if_pre_instr_addr;
+                    slot1_pending_instr[slot1_free_slot] = u_cpu.if_pre_instr;
+                    slot1_pending_pred_taken[slot1_free_slot] = u_cpu.if_pre_pred_taken_eff;
+                    slot1_pending_pred_target[slot1_free_slot] = u_cpu.if_pre_pred_target_eff;
+                    slot1_pending_type[slot1_free_slot] = slot1_candidate_type;
                 end else begin
-                    slot1_ctrl_drop_total <= slot1_ctrl_drop_total + 1;
+                    slot1_ctrl_drop_total = slot1_ctrl_drop_total + 1;
                 end
             end
 
@@ -1941,7 +2067,7 @@ module cpu_tb;
             branch_miss_forward_now = branch_miss_forward_total;
             branch_miss_backward_now = branch_miss_backward_total;
 
-            if (stat_cycle_win && u_cpu.ex_branch_flag) begin
+            if (ex_branch_stat_fire) begin
                 branch_now = branch_now + 1;
 
                 if (u_cpu.ex_actual_jump_flag)
@@ -1972,23 +2098,27 @@ module cpu_tb;
                         branch_miss_backward_now = branch_miss_backward_now + 1;
                     else
                         branch_miss_forward_now = branch_miss_forward_now + 1;
+                end else if (ex_branch_is_backward) begin
+                    branch_hit_backward_now = branch_hit_backward_now + 1;
+                end else begin
+                    branch_hit_forward_now = branch_hit_forward_now + 1;
                 end
 
-                bht_entry_ex_exec[ex_bht_idx] <= bht_entry_ex_exec[ex_bht_idx] + 1;
+                bht_entry_ex_exec[ex_bht_idx] = bht_entry_ex_exec[ex_bht_idx] + 1;
                 if (u_cpu.ex_actual_jump_flag)
-                    bht_entry_ex_taken[ex_bht_idx] <= bht_entry_ex_taken[ex_bht_idx] + 1;
+                    bht_entry_ex_taken[ex_bht_idx] = bht_entry_ex_taken[ex_bht_idx] + 1;
                 if (u_cpu.ex_pred_taken)
-                    bht_entry_ex_pred[ex_bht_idx] <= bht_entry_ex_pred[ex_bht_idx] + 1;
+                    bht_entry_ex_pred[ex_bht_idx] = bht_entry_ex_pred[ex_bht_idx] + 1;
                 if (u_cpu.ex_pred_taken == u_cpu.ex_actual_jump_flag)
-                    bht_entry_ex_dir_ok[ex_bht_idx] <= bht_entry_ex_dir_ok[ex_bht_idx] + 1;
+                    bht_entry_ex_dir_ok[ex_bht_idx] = bht_entry_ex_dir_ok[ex_bht_idx] + 1;
                 if (u_cpu.ex_mispredict)
-                    bht_entry_ex_mis[ex_bht_idx] <= bht_entry_ex_mis[ex_bht_idx] + 1;
+                    bht_entry_ex_mis[ex_bht_idx] = bht_entry_ex_mis[ex_bht_idx] + 1;
                 if (u_cpu.ex_branch_nohit)
-                    bht_entry_ex_nohit[ex_bht_idx] <= bht_entry_ex_nohit[ex_bht_idx] + 1;
+                    bht_entry_ex_nohit[ex_bht_idx] = bht_entry_ex_nohit[ex_bht_idx] + 1;
                 if (ex_branch_is_backward)
-                    bht_entry_back[ex_bht_idx] <= bht_entry_back[ex_bht_idx] + 1;
+                    bht_entry_back[ex_bht_idx] = bht_entry_back[ex_bht_idx] + 1;
                 else
-                    bht_entry_fwd[ex_bht_idx] <= bht_entry_fwd[ex_bht_idx] + 1;
+                    bht_entry_fwd[ex_bht_idx] = bht_entry_fwd[ex_bht_idx] + 1;
 
                 branch_pc_slot = -1;
                 branch_pc_free = -1;
@@ -2004,26 +2134,116 @@ module cpu_tb;
 
                 if (branch_pc_slot != -1) begin
                     if (!branch_pc_valid[branch_pc_slot]) begin
-                        branch_pc_valid[branch_pc_slot] <= 1'b1;
-                        branch_pc_addr[branch_pc_slot]  <= u_cpu.ex_instr_addr;
-                        branch_pc_exec[branch_pc_slot]  <= 0;
-                        branch_pc_pred[branch_pc_slot]  <= 0;
-                        branch_pc_dir_ok[branch_pc_slot]<= 0;
-                        branch_pc_mis[branch_pc_slot]   <= 0;
-                        branch_pc_taken[branch_pc_slot] <= 0;
+                        branch_pc_valid[branch_pc_slot] = 1'b1;
+                        branch_pc_addr[branch_pc_slot]  = u_cpu.ex_instr_addr;
+                        branch_pc_exec[branch_pc_slot]  = 0;
+                        branch_pc_pred[branch_pc_slot]  = 0;
+                        branch_pc_dir_ok[branch_pc_slot]= 0;
+                        branch_pc_mis[branch_pc_slot]   = 0;
+                        branch_pc_taken[branch_pc_slot] = 0;
                     end
 
-                    branch_pc_exec[branch_pc_slot] <= branch_pc_exec[branch_pc_slot] + 1;
+                    branch_pc_exec[branch_pc_slot] = branch_pc_exec[branch_pc_slot] + 1;
                     if (u_cpu.ex_pred_taken)
-                        branch_pc_pred[branch_pc_slot] <= branch_pc_pred[branch_pc_slot] + 1;
+                        branch_pc_pred[branch_pc_slot] = branch_pc_pred[branch_pc_slot] + 1;
                     if (u_cpu.ex_pred_taken == u_cpu.ex_actual_jump_flag)
-                        branch_pc_dir_ok[branch_pc_slot] <= branch_pc_dir_ok[branch_pc_slot] + 1;
+                        branch_pc_dir_ok[branch_pc_slot] = branch_pc_dir_ok[branch_pc_slot] + 1;
                     if (u_cpu.ex_mispredict)
-                        branch_pc_mis[branch_pc_slot] <= branch_pc_mis[branch_pc_slot] + 1;
+                        branch_pc_mis[branch_pc_slot] = branch_pc_mis[branch_pc_slot] + 1;
                     if (u_cpu.ex_actual_jump_flag)
-                        branch_pc_taken[branch_pc_slot] <= branch_pc_taken[branch_pc_slot] + 1;
+                        branch_pc_taken[branch_pc_slot] = branch_pc_taken[branch_pc_slot] + 1;
                 end
-            end else if (stat_cycle_win && u_cpu.ex_jump_flag) begin
+            end
+
+            if (mem_branch_stat_fire) begin
+                branch_now = branch_now + 1;
+
+                if (u_cpu.mem_ctrl_actual_jump_flag)
+                    branch_taken_now = branch_taken_now + 1;
+
+                if (u_cpu.mem_pred_taken)
+                    pred_taken_now = pred_taken_now + 1;
+
+                if (u_cpu.mem_pred_taken == u_cpu.mem_ctrl_actual_jump_flag)
+                    dir_correct_now = dir_correct_now + 1;
+
+                if (u_cpu.mem_pred_taken && u_cpu.mem_ctrl_actual_jump_flag) begin
+                    branch_both_taken_now = branch_both_taken_now + 1;
+                    if (mem_ctrl_pred_target_full == mem_ctrl_actual_jump_addr_full)
+                        target_correct_now = target_correct_now + 1;
+                end
+
+                if (u_cpu.mem_ctrl_mispredict)
+                    mispredict_now = mispredict_now + 1;
+
+                if (tb_mem_branch_nohit) begin
+                    if (u_cpu.mem_ctrl_actual_jump_flag)
+                        branch_miss_taken_now = branch_miss_taken_now + 1;
+                    else
+                        branch_miss_nt_now = branch_miss_nt_now + 1;
+
+                    if (mem_branch_is_backward)
+                        branch_miss_backward_now = branch_miss_backward_now + 1;
+                    else
+                        branch_miss_forward_now = branch_miss_forward_now + 1;
+                end else if (mem_branch_is_backward) begin
+                    branch_hit_backward_now = branch_hit_backward_now + 1;
+                end else begin
+                    branch_hit_forward_now = branch_hit_forward_now + 1;
+                end
+
+                bht_entry_ex_exec[mem_bht_idx] = bht_entry_ex_exec[mem_bht_idx] + 1;
+                if (u_cpu.mem_ctrl_actual_jump_flag)
+                    bht_entry_ex_taken[mem_bht_idx] = bht_entry_ex_taken[mem_bht_idx] + 1;
+                if (u_cpu.mem_pred_taken)
+                    bht_entry_ex_pred[mem_bht_idx] = bht_entry_ex_pred[mem_bht_idx] + 1;
+                if (u_cpu.mem_pred_taken == u_cpu.mem_ctrl_actual_jump_flag)
+                    bht_entry_ex_dir_ok[mem_bht_idx] = bht_entry_ex_dir_ok[mem_bht_idx] + 1;
+                if (u_cpu.mem_ctrl_mispredict)
+                    bht_entry_ex_mis[mem_bht_idx] = bht_entry_ex_mis[mem_bht_idx] + 1;
+                if (tb_mem_branch_nohit)
+                    bht_entry_ex_nohit[mem_bht_idx] = bht_entry_ex_nohit[mem_bht_idx] + 1;
+                if (mem_branch_is_backward)
+                    bht_entry_back[mem_bht_idx] = bht_entry_back[mem_bht_idx] + 1;
+                else
+                    bht_entry_fwd[mem_bht_idx] = bht_entry_fwd[mem_bht_idx] + 1;
+
+                branch_pc_slot = -1;
+                branch_pc_free = -1;
+                for (branch_pc_i = 0; branch_pc_i < BRANCH_PC_STAT_SLOTS; branch_pc_i = branch_pc_i + 1) begin
+                    if (branch_pc_valid[branch_pc_i] && (branch_pc_addr[branch_pc_i] == mem_ctrl_pc_full))
+                        branch_pc_slot = branch_pc_i;
+                    else if (!branch_pc_valid[branch_pc_i] && (branch_pc_free == -1))
+                        branch_pc_free = branch_pc_i;
+                end
+
+                if (branch_pc_slot == -1)
+                    branch_pc_slot = branch_pc_free;
+
+                if (branch_pc_slot != -1) begin
+                    if (!branch_pc_valid[branch_pc_slot]) begin
+                        branch_pc_valid[branch_pc_slot] = 1'b1;
+                        branch_pc_addr[branch_pc_slot]  = mem_ctrl_pc_full;
+                        branch_pc_exec[branch_pc_slot]  = 0;
+                        branch_pc_pred[branch_pc_slot]  = 0;
+                        branch_pc_dir_ok[branch_pc_slot]= 0;
+                        branch_pc_mis[branch_pc_slot]   = 0;
+                        branch_pc_taken[branch_pc_slot] = 0;
+                    end
+
+                    branch_pc_exec[branch_pc_slot] = branch_pc_exec[branch_pc_slot] + 1;
+                    if (u_cpu.mem_pred_taken)
+                        branch_pc_pred[branch_pc_slot] = branch_pc_pred[branch_pc_slot] + 1;
+                    if (u_cpu.mem_pred_taken == u_cpu.mem_ctrl_actual_jump_flag)
+                        branch_pc_dir_ok[branch_pc_slot] = branch_pc_dir_ok[branch_pc_slot] + 1;
+                    if (u_cpu.mem_ctrl_mispredict)
+                        branch_pc_mis[branch_pc_slot] = branch_pc_mis[branch_pc_slot] + 1;
+                    if (u_cpu.mem_ctrl_actual_jump_flag)
+                        branch_pc_taken[branch_pc_slot] = branch_pc_taken[branch_pc_slot] + 1;
+                end
+            end
+
+            if (ex_jalr_stat_fire) begin
                 if (u_cpu.ex_jalr_flag) begin
                     jalr_now = jalr_now + 1;
                     if (u_cpu.ex_ret_flag)
@@ -2060,6 +2280,43 @@ module cpu_tb;
                 end
             end
 
+            if (mem_jalr_stat_fire) begin
+                jalr_now = jalr_now + 1;
+                if (u_cpu.mem_ret_flag)
+                    ret_now = ret_now + 1;
+                else if (tb_mem_call_flag)
+                    call_jalr_now = call_jalr_now + 1;
+                else
+                    indirect_jalr_now = indirect_jalr_now + 1;
+
+                if (u_cpu.mem_pred_taken) begin
+                    jalr_pred_now = jalr_pred_now + 1;
+                    if (u_cpu.mem_ret_flag)
+                        ret_pred_now = ret_pred_now + 1;
+                    else if (tb_mem_call_flag)
+                        call_jalr_pred_now = call_jalr_pred_now + 1;
+                    else
+                        indirect_jalr_pred_now = indirect_jalr_pred_now + 1;
+                end
+                if (!u_cpu.mem_ctrl_mispredict) begin
+                    jalr_correct_now = jalr_correct_now + 1;
+                    if (u_cpu.mem_ret_flag)
+                        ret_correct_now = ret_correct_now + 1;
+                    else if (tb_mem_call_flag)
+                        call_jalr_correct_now = call_jalr_correct_now + 1;
+                    else
+                        indirect_jalr_correct_now = indirect_jalr_correct_now + 1;
+                end
+            end
+
+            if (ex_jal_stat_fire) begin
+                jal_now = jal_now + 1;
+                if (u_cpu.ex_pred_taken)
+                    jal_pred_now = jal_pred_now + 1;
+                if (!u_cpu.ex_mispredict)
+                    jal_correct_now = jal_correct_now + 1;
+            end
+
             if (jalr_prev_wr_rs1_fire) begin
                 jalr_prev_wr_rs1_now = jalr_prev_wr_rs1_now + 1;
                 if (u_cpu.id_ret_flag)
@@ -2090,7 +2347,7 @@ module cpu_tb;
                     auipc_indirect_jalr_now = auipc_indirect_jalr_now + 1;
             end
 
-            if (stat_cycle_win && u_cpu.ex_jump_flag && u_cpu.ex_jalr_flag) begin
+            if (ex_jalr_stat_fire) begin
                 jalr_pc_slot = -1;
                 jalr_pc_free = -1;
                 for (jalr_pc_i = 0; jalr_pc_i < JALR_PC_STAT_SLOTS; jalr_pc_i = jalr_pc_i + 1) begin
@@ -2105,27 +2362,66 @@ module cpu_tb;
 
                 if (jalr_pc_slot != -1) begin
                     if (!jalr_pc_valid[jalr_pc_slot]) begin
-                        jalr_pc_valid[jalr_pc_slot] <= 1'b1;
-                        jalr_pc_addr[jalr_pc_slot]  <= u_cpu.ex_instr_addr;
-                        jalr_pc_exec[jalr_pc_slot]  <= 0;
-                        jalr_pc_pred[jalr_pc_slot]  <= 0;
-                        jalr_pc_ok[jalr_pc_slot]    <= 0;
-                        jalr_pc_ret[jalr_pc_slot]   <= 0;
-                        jalr_pc_call[jalr_pc_slot]  <= 0;
-                        jalr_pc_other[jalr_pc_slot] <= 0;
+                        jalr_pc_valid[jalr_pc_slot] = 1'b1;
+                        jalr_pc_addr[jalr_pc_slot]  = u_cpu.ex_instr_addr;
+                        jalr_pc_exec[jalr_pc_slot]  = 0;
+                        jalr_pc_pred[jalr_pc_slot]  = 0;
+                        jalr_pc_ok[jalr_pc_slot]    = 0;
+                        jalr_pc_ret[jalr_pc_slot]   = 0;
+                        jalr_pc_call[jalr_pc_slot]  = 0;
+                        jalr_pc_other[jalr_pc_slot] = 0;
                     end
 
-                    jalr_pc_exec[jalr_pc_slot] <= jalr_pc_exec[jalr_pc_slot] + 1;
+                    jalr_pc_exec[jalr_pc_slot] = jalr_pc_exec[jalr_pc_slot] + 1;
                     if (u_cpu.ex_pred_taken)
-                        jalr_pc_pred[jalr_pc_slot] <= jalr_pc_pred[jalr_pc_slot] + 1;
+                        jalr_pc_pred[jalr_pc_slot] = jalr_pc_pred[jalr_pc_slot] + 1;
                     if (!u_cpu.ex_mispredict)
-                        jalr_pc_ok[jalr_pc_slot] <= jalr_pc_ok[jalr_pc_slot] + 1;
+                        jalr_pc_ok[jalr_pc_slot] = jalr_pc_ok[jalr_pc_slot] + 1;
                     if (u_cpu.ex_ret_flag)
-                        jalr_pc_ret[jalr_pc_slot] <= jalr_pc_ret[jalr_pc_slot] + 1;
+                        jalr_pc_ret[jalr_pc_slot] = jalr_pc_ret[jalr_pc_slot] + 1;
                     else if (u_cpu.ex_call_flag)
-                        jalr_pc_call[jalr_pc_slot] <= jalr_pc_call[jalr_pc_slot] + 1;
+                        jalr_pc_call[jalr_pc_slot] = jalr_pc_call[jalr_pc_slot] + 1;
                     else
-                        jalr_pc_other[jalr_pc_slot] <= jalr_pc_other[jalr_pc_slot] + 1;
+                        jalr_pc_other[jalr_pc_slot] = jalr_pc_other[jalr_pc_slot] + 1;
+                end
+            end
+
+            if (mem_jalr_stat_fire) begin
+                jalr_pc_slot = -1;
+                jalr_pc_free = -1;
+                for (jalr_pc_i = 0; jalr_pc_i < JALR_PC_STAT_SLOTS; jalr_pc_i = jalr_pc_i + 1) begin
+                    if (jalr_pc_valid[jalr_pc_i] && (jalr_pc_addr[jalr_pc_i] == mem_ctrl_pc_full))
+                        jalr_pc_slot = jalr_pc_i;
+                    else if (!jalr_pc_valid[jalr_pc_i] && (jalr_pc_free == -1))
+                        jalr_pc_free = jalr_pc_i;
+                end
+
+                if (jalr_pc_slot == -1)
+                    jalr_pc_slot = jalr_pc_free;
+
+                if (jalr_pc_slot != -1) begin
+                    if (!jalr_pc_valid[jalr_pc_slot]) begin
+                        jalr_pc_valid[jalr_pc_slot] = 1'b1;
+                        jalr_pc_addr[jalr_pc_slot]  = mem_ctrl_pc_full;
+                        jalr_pc_exec[jalr_pc_slot]  = 0;
+                        jalr_pc_pred[jalr_pc_slot]  = 0;
+                        jalr_pc_ok[jalr_pc_slot]    = 0;
+                        jalr_pc_ret[jalr_pc_slot]   = 0;
+                        jalr_pc_call[jalr_pc_slot]  = 0;
+                        jalr_pc_other[jalr_pc_slot] = 0;
+                    end
+
+                    jalr_pc_exec[jalr_pc_slot] = jalr_pc_exec[jalr_pc_slot] + 1;
+                    if (u_cpu.mem_pred_taken)
+                        jalr_pc_pred[jalr_pc_slot] = jalr_pc_pred[jalr_pc_slot] + 1;
+                    if (!u_cpu.mem_ctrl_mispredict)
+                        jalr_pc_ok[jalr_pc_slot] = jalr_pc_ok[jalr_pc_slot] + 1;
+                    if (u_cpu.mem_ret_flag)
+                        jalr_pc_ret[jalr_pc_slot] = jalr_pc_ret[jalr_pc_slot] + 1;
+                    else if (tb_mem_call_flag)
+                        jalr_pc_call[jalr_pc_slot] = jalr_pc_call[jalr_pc_slot] + 1;
+                    else
+                        jalr_pc_other[jalr_pc_slot] = jalr_pc_other[jalr_pc_slot] + 1;
                 end
             end
 
@@ -2193,14 +2489,25 @@ module cpu_tb;
             branch_miss_backward_total <= branch_miss_backward_now;
 
             if (ex_bht_store_fire) begin
-                bht_meta_valid[ex_bht_idx]   <= 1'b1;
-                bht_meta_pc[ex_bht_idx]      <= u_cpu.ex_instr_addr;
-                bht_meta_imm_abs[ex_bht_idx] <= ex_branch_imm_abs;
-                bht_entry_store[ex_bht_idx]  <= bht_entry_store[ex_bht_idx] + 1;
+                bht_meta_valid[ex_bht_idx]   = 1'b1;
+                bht_meta_pc[ex_bht_idx]      = u_cpu.ex_instr_addr;
+                bht_meta_imm_abs[ex_bht_idx] = ex_branch_imm_abs;
+                bht_entry_store[ex_bht_idx]  = bht_entry_store[ex_bht_idx] + 1;
                 if (ex_bht_store_conflict)
-                    bht_entry_conflict[ex_bht_idx] <= bht_entry_conflict[ex_bht_idx] + 1;
+                    bht_entry_conflict[ex_bht_idx] = bht_entry_conflict[ex_bht_idx] + 1;
                 if (ex_bht_store_imm_overlap)
-                    bht_entry_imm_ovlp[ex_bht_idx] <= bht_entry_imm_ovlp[ex_bht_idx] + 1;
+                    bht_entry_imm_ovlp[ex_bht_idx] = bht_entry_imm_ovlp[ex_bht_idx] + 1;
+            end
+
+            if (mem_bht_store_fire) begin
+                bht_meta_valid[mem_bht_idx]   = 1'b1;
+                bht_meta_pc[mem_bht_idx]      = mem_ctrl_pc_full;
+                bht_meta_imm_abs[mem_bht_idx] = mem_branch_imm_abs;
+                bht_entry_store[mem_bht_idx]  = bht_entry_store[mem_bht_idx] + 1;
+                if (mem_bht_store_conflict)
+                    bht_entry_conflict[mem_bht_idx] = bht_entry_conflict[mem_bht_idx] + 1;
+                if (mem_bht_store_imm_overlap)
+                    bht_entry_imm_ovlp[mem_bht_idx] = bht_entry_imm_ovlp[mem_bht_idx] + 1;
             end
 
             if (issue_instr_fire) begin

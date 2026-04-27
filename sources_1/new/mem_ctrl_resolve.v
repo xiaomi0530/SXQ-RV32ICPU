@@ -1,32 +1,38 @@
 `timescale 1ns / 1ps
 
-module mem_ctrl_resolve(
+`include "defines.v"
+
+module mem_ctrl_resolve #(
+    parameter integer IMEM_ADDR_BITS = `IMEM_ADDR_BITS
+)(
     input  wire        mem_ctrl_defer,
     input  wire        mem_ctrl_dep_rs1,
     input  wire        mem_ctrl_both_dep,
     input  wire        mem_branch_flag,
     input  wire        mem_jalr_flag,
     input  wire [2:0]  mem_mem_op,
-    input  wire [14:0] mem_ctrl_pc_low,
+    input  wire [IMEM_ADDR_BITS-1:0] mem_ctrl_pc_low,
     input  wire        mem_pred_taken,
-    input  wire [14:0] mem_ctrl_pred_target_low,
-    input  wire [14:0] mem_ctrl_branch_target_low,
+    input  wire [IMEM_ADDR_BITS-1:0] mem_ctrl_pred_target_low,
+    input  wire [IMEM_ADDR_BITS-1:0] mem_ctrl_branch_target_low,
     input  wire [31:0] mem_ctrl_other_operand,
     input  wire [11:0] mem_ctrl_jalr_imm12,
     input  wire [31:0] wb_late_data,
     output wire        mem_ctrl_resolve_en,
     output reg         mem_ctrl_actual_jump_flag,
-    output wire [14:0] mem_ctrl_actual_jump_addr_low,
+    output wire [IMEM_ADDR_BITS-1:0] mem_ctrl_actual_jump_addr_low,
     output wire        mem_ctrl_mispredict,
-    output wire [14:0] mem_ctrl_redirect_addr
+    output wire [IMEM_ADDR_BITS-1:0] mem_ctrl_redirect_addr
 );
 
     wire [31:0] jalr_imm = {{20{mem_ctrl_jalr_imm12[11]}}, mem_ctrl_jalr_imm12};
     wire [31:0] ctrl_num1 = mem_ctrl_dep_rs1 ? wb_late_data : mem_ctrl_other_operand;
     wire [31:0] ctrl_num2 = mem_ctrl_dep_rs1 ? mem_ctrl_other_operand : wb_late_data;
+    localparam [IMEM_ADDR_BITS-1:0] ADDR_INC4 = {{(IMEM_ADDR_BITS-3){1'b0}}, 3'd4};
+
     wire [31:0] sub_res = ctrl_num1 - ctrl_num2;
-    wire [14:0] jalr_target_low = wb_late_data[14:0] + jalr_imm[14:0];
-    wire [14:0] mem_instr_addr_plus4_low = mem_ctrl_pc_low + 15'd4;
+    wire [IMEM_ADDR_BITS-1:0] jalr_target_low = wb_late_data[IMEM_ADDR_BITS-1:0] + jalr_imm[IMEM_ADDR_BITS-1:0];
+    wire [IMEM_ADDR_BITS-1:0] mem_instr_addr_plus4_low = mem_ctrl_pc_low + ADDR_INC4;
     wire        is_equal = mem_ctrl_both_dep ? 1'b1 : (sub_res == 32'b0);
     wire        is_less_signed = mem_ctrl_both_dep ? 1'b0
                               : ((ctrl_num1[31] != ctrl_num2[31]) ? ctrl_num1[31] : sub_res[31]);

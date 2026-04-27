@@ -6,6 +6,45 @@
 `endif
 
 // ---------------------------------------------------------------------------
+// Address / memory layout
+// ---------------------------------------------------------------------------
+`ifndef CPU_ADDR_BITS
+`define CPU_ADDR_BITS 32
+`endif
+
+`ifndef IMEM_BASE_ADDR
+`define IMEM_BASE_ADDR 32'h0000_0000
+`endif
+
+`ifndef IMEM_WORD_ADDR_BITS
+`define IMEM_WORD_ADDR_BITS 13
+`endif
+
+`ifndef IMEM_DEPTH_WORDS
+`define IMEM_DEPTH_WORDS (1 << `IMEM_WORD_ADDR_BITS)
+`endif
+
+`ifndef IMEM_ADDR_BITS
+`define IMEM_ADDR_BITS (`IMEM_WORD_ADDR_BITS + 2)
+`endif
+
+`ifndef DMEM_BASE_ADDR
+`define DMEM_BASE_ADDR 32'h0001_0000
+`endif
+
+`ifndef DMEM_WORD_ADDR_BITS
+`define DMEM_WORD_ADDR_BITS 13
+`endif
+
+`ifndef DMEM_DEPTH_WORDS
+`define DMEM_DEPTH_WORDS (1 << `DMEM_WORD_ADDR_BITS)
+`endif
+
+`ifndef DMEM_ADDR_BITS
+`define DMEM_ADDR_BITS (`DMEM_WORD_ADDR_BITS + 2)
+`endif
+
+// ---------------------------------------------------------------------------
 // Frontend predictor
 // ---------------------------------------------------------------------------
 `ifndef BR_PRED_PC_CANON_BITS

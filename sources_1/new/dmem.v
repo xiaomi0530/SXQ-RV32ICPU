@@ -1,6 +1,11 @@
 `timescale 1ns / 1ps
+`include "defines.v"
 
-module dmem(
+module dmem #(
+    parameter integer DMEM_WORD_ADDR_BITS = `DMEM_WORD_ADDR_BITS,
+    parameter integer DMEM_ADDR_BITS = `DMEM_ADDR_BITS,
+    parameter integer DMEM_DEPTH_WORDS = `DMEM_DEPTH_WORDS
+)(
     input  wire        clk,
     input  wire        rst_n,
     input  wire        bus_stb,
@@ -12,14 +17,14 @@ module dmem(
     output reg   [31:0] r_data
 );
 
-    (* ram_style = "block" *) reg [7:0] dmem0 [0:8191];
-    (* ram_style = "block" *) reg [7:0] dmem1 [0:8191];
-    (* ram_style = "block" *) reg [7:0] dmem2 [0:8191];
-    (* ram_style = "block" *) reg [7:0] dmem3 [0:8191];
+    (* ram_style = "block" *) reg [7:0] dmem0 [0:DMEM_DEPTH_WORDS-1];
+    (* ram_style = "block" *) reg [7:0] dmem1 [0:DMEM_DEPTH_WORDS-1];
+    (* ram_style = "block" *) reg [7:0] dmem2 [0:DMEM_DEPTH_WORDS-1];
+    (* ram_style = "block" *) reg [7:0] dmem3 [0:DMEM_DEPTH_WORDS-1];
 
     integer i;
     initial begin
-        for (i = 0; i < 8192; i = i + 1) begin
+        for (i = 0; i < DMEM_DEPTH_WORDS; i = i + 1) begin
             dmem0[i] = 8'h0;
             dmem1[i] = 8'h0;
             dmem2[i] = 8'h0;
@@ -27,7 +32,7 @@ module dmem(
         end
     end
 
-    wire [12:0] word_addr = wr_addr[14:2];
+    wire [DMEM_WORD_ADDR_BITS-1:0] word_addr = wr_addr[DMEM_ADDR_BITS-1:2];
     wire we = bus_stb && bus_we;
     wire re = bus_stb && !bus_we;
 

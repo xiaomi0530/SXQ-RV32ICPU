@@ -1,6 +1,11 @@
 `timescale 1ns / 1ps
+`include "defines.v"
 
-module imem(
+module imem #(
+    parameter integer IMEM_WORD_ADDR_BITS = `IMEM_WORD_ADDR_BITS,
+    parameter integer IMEM_ADDR_BITS = `IMEM_ADDR_BITS,
+    parameter integer IMEM_DEPTH_WORDS = `IMEM_DEPTH_WORDS
+)(
     input  wire        clk,
     input  wire        rst_n,
     input  wire        pipeline_stall,
@@ -21,22 +26,24 @@ module imem(
     output reg   [31:0] r_data
 );
 
-    (* ram_style = "block" *) reg [31:0] imem [0:8191];
+    localparam integer IMEM_PAD_BITS = `CPU_ADDR_BITS - IMEM_ADDR_BITS;
+
+    (* ram_style = "block" *) reg [31:0] imem [0:IMEM_DEPTH_WORDS-1];
 
     wire bus_re = bus_stb && !bus_we;
     wire [31:0] if_pre_instr_addr = {preif_pc_addr_i[31:2] + 30'd1, 2'b00};
     wire if_pre_re = preif_valid_i && !pipeline_stall && !bus_re;
 
-    wire [12:0] bus_word_addr = r_addr[14:2];
-    wire [12:0] if_pre_word_addr = preif_pc_addr_i[14:2] + 13'd1;
+    wire [IMEM_WORD_ADDR_BITS-1:0] bus_word_addr = r_addr[IMEM_ADDR_BITS-1:2];
+    wire [IMEM_WORD_ADDR_BITS-1:0] if_pre_word_addr = preif_pc_addr_i[IMEM_ADDR_BITS-1:2] + 1'b1;
 
     always @(posedge clk) begin
         if (rst_n == `RST_ENABLE) begin
             if_instr_o <= 1'b0;
             if_instr_addr_o <= 32'b0;
         end else if (!pipeline_stall) begin
-            if_instr_o <= imem[preif_pc_addr_i[14:2]];
-            if_instr_addr_o <= {17'b0, preif_pc_addr_i[14:0]};
+            if_instr_o <= imem[preif_pc_addr_i[IMEM_ADDR_BITS-1:2]];
+            if_instr_addr_o <= {{IMEM_PAD_BITS{1'b0}}, preif_pc_addr_i[IMEM_ADDR_BITS-1:0]};
         end
     end
 
@@ -70,14 +77,14 @@ module imem(
                     bus_ack <= 1'b1;
                 end else if (!pipeline_flush) begin
                     if_pre_re_r <= 1'b1;
-                    if_pre_instr_addr_o <= {17'b0, if_pre_instr_addr[14:0]};
+                    if_pre_instr_addr_o <= {{IMEM_PAD_BITS{1'b0}}, if_pre_instr_addr[IMEM_ADDR_BITS-1:0]};
                 end
             end
         end
     end
 
     reg  [31:0] portb_read_data;
-    wire [12:0] portb_read_addr = bus_re? bus_word_addr : if_pre_word_addr;
+    wire [IMEM_WORD_ADDR_BITS-1:0] portb_read_addr = bus_re ? bus_word_addr : if_pre_word_addr;
     always @(posedge clk) begin
         portb_read_data <= imem[portb_read_addr];
     end

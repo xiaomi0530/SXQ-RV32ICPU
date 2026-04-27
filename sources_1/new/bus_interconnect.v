@@ -34,6 +34,11 @@ module bus_interconnect(
     output wire [31:0] bus_s2_dat_o
     );
 
+    localparam integer IMEM_ADDR_BITS = `IMEM_ADDR_BITS;
+    localparam integer DMEM_ADDR_BITS = `DMEM_ADDR_BITS;
+    localparam [31:0] IMEM_BASE_ADDR = `IMEM_BASE_ADDR;
+    localparam [31:0] DMEM_BASE_ADDR = `DMEM_BASE_ADDR;
+
     wire m_sel_s0;
     wire m_sel_s1;
     wire m_sel_s2;
@@ -42,9 +47,9 @@ module bus_interconnect(
     reg m_sel_s1_r;
     reg m_sel_s2_r;
 
-    assign m_sel_s0 = (bus_m_addr[31:15] == 17'b0);                //0x00000000 - 0x00007FFF IMEM window
-    assign m_sel_s1 = (bus_m_addr[31:17] == 15'b0) && bus_m_addr[16]; //0x00010000 - 0x0001FFFF DMEM window
-    assign m_sel_s2 = (bus_m_addr[31:28] == `MMIO_REGION_NIBBLE);  //0xF0000000                   MMIO
+    assign m_sel_s0 = (bus_m_addr[31:IMEM_ADDR_BITS] == IMEM_BASE_ADDR[31:IMEM_ADDR_BITS]);
+    assign m_sel_s1 = (bus_m_addr[31:DMEM_ADDR_BITS] == DMEM_BASE_ADDR[31:DMEM_ADDR_BITS]);
+    assign m_sel_s2 = (bus_m_addr[31:28] == `MMIO_REGION_NIBBLE);
 
     assign bus_s0_stb = bus_m_stb && m_sel_s0;
     assign bus_s1_stb = bus_m_stb && m_sel_s1;
