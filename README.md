@@ -34,12 +34,15 @@ Board: `xc7a100tcsg324-1` (Artix-7)
 ```mermaid
 ---
 config:
+  theme: base
   xyChart:
     width: 960
     height: 420
     showDataLabel: true
     showDataLabelOutsideBar: true
   themeVariables:
+    background: "#ffffff"
+    textColor: "#111827"
     xyChart:
       plotColorPalette: "transparent, #1d4ed8"
       dataLabelColor: "#0f172a"
