@@ -132,6 +132,7 @@ module dsp_mul_17x17(
     output wire signed [33:0] p
 );
 
+`ifdef SYNTHESIS
     wire        dsp_rst = ~rst_n;
     wire [29:0] dsp_a   = {{13{a[16]}}, a};
     wire [17:0] dsp_b   = {{1{b[16]}}, b};
@@ -209,5 +210,17 @@ module dsp_mul_17x17(
     );
 
     assign p = dsp_p[33:0];
+`else
+    reg signed [33:0] p_q;
+
+    always @(posedge clk) begin
+        if (!rst_n)
+            p_q <= 34'sd0;
+        else if (ce)
+            p_q <= a * b;
+    end
+
+    assign p = p_q;
+`endif
 
 endmodule

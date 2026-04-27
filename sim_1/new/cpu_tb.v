@@ -21,10 +21,20 @@ module cpu_tb;
     localparam integer BHT_STAT_PC_BITS    = `BR_PRED_PC_CANON_BITS;
     localparam integer BHT_STAT_TAG_BITS   = `BR_PRED_TAG_BITS;
     localparam integer TB_IMEM_PAD_BITS    = `CPU_ADDR_BITS - `IMEM_ADDR_BITS;
+    localparam integer TB_CPU_FREQ_HZ      = `CPU_CLK_FREQ_HZ;
+    localparam integer TB_CPU_FREQ_MHZ     = `CPU_CLK_FREQ_HZ / 1000000;
+    localparam integer TB_DHRY_RUNS        = 1800;
 
     reg  clk;
     reg  rst_n;
     wire [15:0] led;
+
+    integer dhry_key_pos;
+    integer dhry_dps_accum;
+    integer dhry_dps_value;
+    reg     dhry_capture_active;
+    reg     dhry_seen_digit;
+    reg     dhry_dps_valid;
 
     integer cycle_count;
     integer stat_cycle_total;
@@ -555,13 +565,188 @@ module cpu_tb;
     function integer pct_x100;
         input integer numer;
         input integer denom;
+        reg [63:0] scaled_value;
+        reg [63:0] rounded_value;
         begin
-            if (denom != 0)
-                pct_x100 = (numer * 10000 + (denom / 2)) / denom;
-            else
+            if (denom != 0) begin
+                scaled_value = numer;
+                rounded_value = scaled_value * 64'd10000 + (denom / 2);
+                pct_x100 = rounded_value / denom;
+            end else
                 pct_x100 = 0;
         end
     endfunction
+
+    function integer ratio_x1000;
+        input integer numer;
+        input integer denom;
+        reg [63:0] scaled_value;
+        reg [63:0] rounded_value;
+        begin
+            if (denom != 0) begin
+                scaled_value = numer;
+                rounded_value = scaled_value * 64'd1000 + (denom / 2);
+                ratio_x1000 = rounded_value / denom;
+            end else
+                ratio_x1000 = 0;
+        end
+    endfunction
+
+    function [7:0] dhry_key_char;
+        input integer idx;
+        begin
+            case (idx)
+                0:  dhry_key_char = "D";
+                1:  dhry_key_char = "h";
+                2:  dhry_key_char = "r";
+                3:  dhry_key_char = "y";
+                4:  dhry_key_char = "s";
+                5:  dhry_key_char = "t";
+                6:  dhry_key_char = "o";
+                7:  dhry_key_char = "n";
+                8:  dhry_key_char = "e";
+                9:  dhry_key_char = "s";
+                10: dhry_key_char = " ";
+                11: dhry_key_char = "p";
+                12: dhry_key_char = "e";
+                13: dhry_key_char = "r";
+                14: dhry_key_char = " ";
+                15: dhry_key_char = "S";
+                16: dhry_key_char = "e";
+                17: dhry_key_char = "c";
+                18: dhry_key_char = "o";
+                19: dhry_key_char = "n";
+                20: dhry_key_char = "d";
+                21: dhry_key_char = ":";
+                default: dhry_key_char = 8'd0;
+            endcase
+        end
+    endfunction
+
+    task print_compact_report_stats;
+        input integer show_cycle;
+        input integer total_instr;
+        input integer total_branch;
+        input integer total_branch_both_taken;
+        input integer total_jal;
+        input integer total_jal_pred;
+        input integer total_jal_correct;
+        input integer total_jalr;
+        input integer total_jalr_pred;
+        input integer total_jalr_correct;
+        input integer total_dir_correct;
+        input integer total_target_correct;
+        input integer total_mispredict;
+        input integer total_flush;
+        input integer total_load_stall;
+        input integer total_mul_hold;
+        input integer total_other_bubble;
+        integer ipc_x1000;
+        integer cpi_x1000;
+        integer jal_acc_x100;
+        integer jal_tgt_acc_x100;
+        integer jalr_acc_x100;
+        integer jalr_tgt_acc_x100;
+        integer b_dir_acc_x100;
+        integer b_tgt_acc_x100;
+        integer b_acc_x100;
+        integer overall_ctrl_total;
+        integer overall_ctrl_correct;
+        integer overall_acc_x100;
+        integer overall_miss_x100;
+        integer total_loss;
+        integer total_loss_pct_x100;
+        integer total_flush_share_x100;
+        integer total_load_stall_share_x100;
+        integer total_mul_hold_share_x100;
+        integer total_other_bubble_share_x100;
+        integer dmips_x1000;
+        integer dmips_per_mhz_x1000;
+        integer dps_display_value;
+        reg [63:0] dps_scaled_num;
+        reg [63:0] dmips_scaled_num;
+        reg [63:0] dmips_scaled_den;
+        begin
+            ipc_x1000 = ratio_x1000(total_instr, show_cycle);
+            cpi_x1000 = ratio_x1000(show_cycle, total_instr);
+
+            jal_acc_x100      = pct_x100(total_jal_correct, total_jal);
+            jal_tgt_acc_x100  = pct_x100(total_jal_correct, total_jal_pred);
+            jalr_acc_x100     = pct_x100(total_jalr_correct, total_jalr);
+            jalr_tgt_acc_x100 = pct_x100(total_jalr_correct, total_jalr_pred);
+            b_dir_acc_x100    = pct_x100(total_dir_correct, total_branch);
+            b_tgt_acc_x100    = pct_x100(total_target_correct, total_branch_both_taken);
+            b_acc_x100        = pct_x100(total_branch - total_mispredict, total_branch);
+
+            overall_ctrl_total   = total_branch + total_jal + total_jalr;
+            overall_ctrl_correct = (total_branch - total_mispredict) + total_jal_correct + total_jalr_correct;
+            overall_acc_x100     = pct_x100(overall_ctrl_correct, overall_ctrl_total);
+            overall_miss_x100    = pct_x100(overall_ctrl_total - overall_ctrl_correct, overall_ctrl_total);
+
+            total_loss                   = show_cycle - total_instr;
+            total_loss_pct_x100          = pct_x100(total_loss, show_cycle);
+            total_flush_share_x100       = pct_x100(total_flush, total_loss);
+            total_load_stall_share_x100  = pct_x100(total_load_stall, total_loss);
+            total_mul_hold_share_x100    = pct_x100(total_mul_hold, total_loss);
+            total_other_bubble_share_x100 = pct_x100(total_other_bubble, total_loss);
+
+            $display("");
+            $display("[STAT][%0d cyc] PERF : IPC=%0d.%03d  CPI=%0d.%03d",
+                     show_cycle,
+                     ipc_x1000 / 1000, ipc_x1000 % 1000,
+                     cpi_x1000 / 1000, cpi_x1000 % 1000);
+            $display("[STAT][%0d cyc] JAL  : acc=%0d.%02d%%  tgt_acc=%0d.%02d%%",
+                     show_cycle,
+                     jal_acc_x100 / 100, jal_acc_x100 % 100,
+                     jal_tgt_acc_x100 / 100, jal_tgt_acc_x100 % 100);
+            $display("[STAT][%0d cyc] JALR : acc=%0d.%02d%%  tgt_acc=%0d.%02d%%",
+                     show_cycle,
+                     jalr_acc_x100 / 100, jalr_acc_x100 % 100,
+                     jalr_tgt_acc_x100 / 100, jalr_tgt_acc_x100 % 100);
+            $display("[STAT][%0d cyc] B    : dir_acc=%0d.%02d%%  tgt_acc=%0d.%02d%%  total_acc=%0d.%02d%%",
+                     show_cycle,
+                     b_dir_acc_x100 / 100, b_dir_acc_x100 % 100,
+                     b_tgt_acc_x100 / 100, b_tgt_acc_x100 % 100,
+                     b_acc_x100 / 100, b_acc_x100 % 100);
+            $display("[STAT][%0d cyc] ALL  : total_acc=%0d.%02d%%  miss=%0d.%02d%%",
+                     show_cycle,
+                     overall_acc_x100 / 100, overall_acc_x100 % 100,
+                     overall_miss_x100 / 100, overall_miss_x100 % 100);
+            if (dhry_dps_valid && (dhry_dps_value != 0)) begin
+                dps_display_value = dhry_dps_value;
+                dmips_x1000 = ratio_x1000(dhry_dps_value, 1757);
+                dmips_per_mhz_x1000 = (TB_CPU_FREQ_MHZ != 0)
+                                    ? ((dmips_x1000 + (TB_CPU_FREQ_MHZ / 2)) / TB_CPU_FREQ_MHZ)
+                                    : 0;
+                $display("[STAT][%0d cyc] DHRY : dps=%0d  DMIPS/MHz=%0d.%03d",
+                         show_cycle,
+                         dps_display_value,
+                         dmips_per_mhz_x1000 / 1000, dmips_per_mhz_x1000 % 1000);
+            end else if (show_cycle != 0) begin
+                dps_scaled_num    = 64'd1 * TB_CPU_FREQ_HZ * TB_DHRY_RUNS + (show_cycle / 2);
+                dps_display_value = dps_scaled_num / show_cycle;
+                dmips_scaled_num  = 64'd1000000000 * TB_DHRY_RUNS;
+                dmips_scaled_den  = (64'd1757 * show_cycle);
+                dmips_per_mhz_x1000 = (dmips_scaled_den != 0)
+                                    ? ((dmips_scaled_num + (dmips_scaled_den / 2)) / dmips_scaled_den)
+                                    : 0;
+                $display("[STAT][%0d cyc] DHRY : dps=%0d  DMIPS/MHz=%0d.%03d (derived)",
+                         show_cycle,
+                         dps_display_value,
+                         dmips_per_mhz_x1000 / 1000, dmips_per_mhz_x1000 % 1000);
+            end else begin
+                $display("[STAT][%0d cyc] DHRY : DMIPS/MHz=N/A",
+                         show_cycle);
+            end
+            $display("[STAT][%0d cyc] LOSS : total=%0d(%0d.%02d%% cyc)  flush=%0d(%0d.%02d%%)  ld=%0d(%0d.%02d%%)  mul=%0d(%0d.%02d%%)  bub=%0d(%0d.%02d%%)",
+                     show_cycle,
+                     total_loss, total_loss_pct_x100 / 100, total_loss_pct_x100 % 100,
+                     total_flush, total_flush_share_x100 / 100, total_flush_share_x100 % 100,
+                     total_load_stall, total_load_stall_share_x100 / 100, total_load_stall_share_x100 % 100,
+                     total_mul_hold, total_mul_hold_share_x100 / 100, total_mul_hold_share_x100 % 100,
+                     total_other_bubble, total_other_bubble_share_x100 / 100, total_other_bubble_share_x100 % 100);
+        end
+    endtask
 
     task write_heat_bar;
         input integer file_desc;
@@ -1472,6 +1657,12 @@ module cpu_tb;
         stat_cycle_total = 0;
         timer_req_count = 0;
         stat_active = 1'b0;
+        dhry_key_pos = 0;
+        dhry_dps_accum = 0;
+        dhry_dps_value = 0;
+        dhry_capture_active = 1'b0;
+        dhry_seen_digit = 1'b0;
+        dhry_dps_valid = 1'b0;
 
         instr_total = 0;
         flush_total = 0;
@@ -1673,6 +1864,12 @@ module cpu_tb;
     always @(posedge clk) begin
         if (!rst_n) begin
             cycle_count <= 0;
+            dhry_key_pos <= 0;
+            dhry_dps_accum <= 0;
+            dhry_dps_value <= 0;
+            dhry_capture_active <= 1'b0;
+            dhry_seen_digit <= 1'b0;
+            dhry_dps_valid <= 1'b0;
             prev_issue_valid <= 1'b0;
             prev_issue_we    <= 1'b0;
             prev_issue_rd    <= 5'd0;
@@ -2626,31 +2823,14 @@ module cpu_tb;
                 bht_store_conflict_win = bht_store_conflict_now - bht_store_conflict_snap;
                 bht_store_imm_overlap_win = bht_store_imm_overlap_now - bht_store_imm_overlap_snap;
 
-                print_bp_stats(stat_cycle_total,
-                               instr_now,
-                               flush_now, load_stall_now, false_load_stall_now, mul_hold_now, other_bubble_now,
-                               branch_now, branch_taken_now, branch_both_taken_now,
-                               jal_now, jal_pred_now, jal_correct_now,
-                               jalr_now, jalr_pred_now, jalr_correct_now,
-                               ret_now, ret_pred_now, ret_correct_now,
-                               call_jalr_now, call_jalr_pred_now, call_jalr_correct_now,
-                               indirect_jalr_now, indirect_jalr_pred_now, indirect_jalr_correct_now,
-                               pred_taken_now,
-                               dir_correct_now, target_correct_now, mispredict_now,
-                               branch_miss_taken_now, branch_miss_nt_now,
-                               branch_hit_forward_now, branch_hit_backward_now,
-                               branch_miss_forward_now, branch_miss_backward_now,
-                               if_branch_hit_now, if_branch_nohit_now, if_branch_nohit_back_now,
-                               if_branch_nohit_back_ok_now, if_branch_nohit_back_redirect_now,
-                               slot1_redirect_now, wb_commit_now,
-                               bht_tag_alias_now, bht_store_now, bht_store_conflict_now, bht_store_imm_overlap_now,
-                               mul_exec_total, mul_follow_slot_total, mul_dep_slot_total,
-                               mul_dep_d1_total, mul_dep_d2_total, mul_dep_d3_total);
-                print_lduse3_stats(stat_cycle_total,
-                                   lduse3_base_now,
-                                   lduse3_i2_dep_i0_now,
-                                   lduse3_i2_dep_i1_now,
-                                   lduse3_i2_dep_both_now);
+                print_compact_report_stats(stat_cycle_total,
+                                           instr_now,
+                                           branch_now,
+                                           branch_both_taken_now,
+                                           jal_now, jal_pred_now, jal_correct_now,
+                                           jalr_now, jalr_pred_now, jalr_correct_now,
+                                           dir_correct_now, target_correct_now, mispredict_now,
+                                           flush_now, load_stall_now, mul_hold_now, other_bubble_now);
 
                 cycle_snap          <= stat_cycle_total;
                 instr_snap          <= instr_now;
@@ -2746,8 +2926,54 @@ module cpu_tb;
     end
 
     always @(posedge clk) begin
-        if (u_cpu.u_mmio.uart_valid)
+        if (u_cpu.u_mmio.uart_valid) begin
             $write("%c", u_cpu.u_mmio.uart_data);
+
+            if (!dhry_capture_active) begin
+                if (u_cpu.u_mmio.uart_data == dhry_key_char(dhry_key_pos)) begin
+                    if (dhry_key_pos == 21) begin
+                        dhry_capture_active = 1'b1;
+                        dhry_seen_digit = 1'b0;
+                        dhry_dps_accum = 0;
+                        dhry_key_pos = 0;
+                    end else begin
+                        dhry_key_pos = dhry_key_pos + 1;
+                    end
+                end else if (u_cpu.u_mmio.uart_data == dhry_key_char(0))
+                    dhry_key_pos = 1;
+                else
+                    dhry_key_pos = 0;
+            end else begin
+                if ((u_cpu.u_mmio.uart_data >= "0") && (u_cpu.u_mmio.uart_data <= "9")) begin
+                    dhry_dps_accum = dhry_dps_accum * 10 + (u_cpu.u_mmio.uart_data - "0");
+                    dhry_seen_digit = 1'b1;
+                end else if ((u_cpu.u_mmio.uart_data == " ") || (u_cpu.u_mmio.uart_data == 8'h09)) begin
+                    if (dhry_seen_digit) begin
+                        dhry_dps_value = dhry_dps_accum;
+                        dhry_dps_valid = 1'b1;
+                        dhry_capture_active = 1'b0;
+                        dhry_seen_digit = 1'b0;
+                        dhry_dps_accum = 0;
+                    end
+                end else if ((u_cpu.u_mmio.uart_data == 8'h0a) || (u_cpu.u_mmio.uart_data == 8'h0d)) begin
+                    if (dhry_seen_digit) begin
+                        dhry_dps_value = dhry_dps_accum;
+                        dhry_dps_valid = 1'b1;
+                    end
+                    dhry_capture_active = 1'b0;
+                    dhry_seen_digit = 1'b0;
+                    dhry_dps_accum = 0;
+                end else begin
+                    dhry_capture_active = 1'b0;
+                    dhry_seen_digit = 1'b0;
+                    dhry_dps_accum = 0;
+                    if (u_cpu.u_mmio.uart_data == dhry_key_char(0))
+                        dhry_key_pos = 1;
+                    else
+                        dhry_key_pos = 0;
+                end
+            end
+        end
     end
 
     always @(posedge clk) begin
@@ -2808,40 +3034,14 @@ module cpu_tb;
             bht_store_imm_overlap_win = bht_store_imm_overlap_total - bht_store_imm_overlap_snap;
 
             if (BP_STATS_ENABLE) begin
-                $display("");
-                print_bp_stats(stat_cycle_total,
-                               instr_total,
-                               flush_total, load_stall_total, false_load_stall_total, mul_hold_total, other_bubble_total,
-                               branch_total, branch_taken_total, branch_both_taken_total,
-                               jal_total, jal_pred_total, jal_correct_total,
-                               jalr_total, jalr_pred_total, jalr_correct_total,
-                               ret_total, ret_pred_total, ret_correct_total,
-                               call_jalr_total, call_jalr_pred_total, call_jalr_correct_total,
-                               indirect_jalr_total, indirect_jalr_pred_total, indirect_jalr_correct_total,
-                               pred_taken_total,
-                               dir_correct_total, target_correct_total, mispredict_total,
-                               branch_miss_taken_total, branch_miss_nt_total,
-                               branch_hit_forward_total, branch_hit_backward_total,
-                               branch_miss_forward_total, branch_miss_backward_total,
-                               if_branch_hit_total, if_branch_nohit_total, if_branch_nohit_back_total,
-                               if_branch_nohit_back_ok_total, if_branch_nohit_back_redirect_total,
-                               slot1_redirect_total, wb_commit_total,
-                               bht_tag_alias_total, bht_store_total, bht_store_conflict_total, bht_store_imm_overlap_total,
-                               mul_exec_total, mul_follow_slot_total, mul_dep_slot_total,
-                               mul_dep_d1_total, mul_dep_d2_total, mul_dep_d3_total);
-                print_lduse3_stats(stat_cycle_total,
-                                   lduse3_base_total,
-                                   lduse3_i2_dep_i0_total,
-                                   lduse3_i2_dep_i1_total,
-                                   lduse3_i2_dep_both_total);
-                print_slot1_branch_stats(stat_cycle_total,
-                                         branch_total,
-                                         slot1_branch_seen_total,
-                                         slot1_branch_issue_total,
-                                         slot1_branch_back_total,
-                                         slot1_branch_issue_back_total);
-                print_slot1_ctrl_stats(stat_cycle_total);
-                print_bht_entry_stats;
+                print_compact_report_stats(stat_cycle_total,
+                                           instr_total,
+                                           branch_total,
+                                           branch_both_taken_total,
+                                           jal_total, jal_pred_total, jal_correct_total,
+                                           jalr_total, jalr_pred_total, jalr_correct_total,
+                                           dir_correct_total, target_correct_total, mispredict_total,
+                                           flush_total, load_stall_total, mul_hold_total, other_bubble_total);
             end
             $display("LED = %04X", u_cpu.u_mmio.led);
             //if (u_cpu.u_mmio.led == 16'h0000)

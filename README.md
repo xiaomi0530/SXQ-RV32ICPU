@@ -29,6 +29,7 @@ Board: `xc7a100tcsg324-1` (Artix-7)
 ***Version 4.26*** || CoreMark = **277.0 Iterations / sec** || **100MHz** || WNS **0.002ns** WHS **0.028ns** || LUT: **3601** || FF: **2727** || BRAM: **16** || DSP: **4** \
 - 拆分并模块化控制路径，新增 ctrl_late_detect 与 mem_ctrl_resolve，整理前后级控制接口。
 - 加入只针对 J/B 控制指令的晚转发：当分支或 JALR 依赖前一条 LOAD 结果时，在 ID 标记 defer，并将比较、方向判定与 JALR 目标计算后移到 MEM 完成。
+- 跑通并验证 `Dhrystone Benchmark Version C, Version 2.2`，当前成绩为 **166000 Dhrystones / sec**，折算 **0.945 DMIPS/MHz**。
 
 ## CoreMark Trend
 ```mermaid
@@ -65,6 +66,8 @@ xychart-beta
 | FPGA Device | xc7a100tcsg324-1 |
 | Clock | 100MHz |
 | CoreMark | 277.0 Iterations / sec |
+| Dhrystone | 166000 Dhrystones / sec |
+| DMIPS/MHz | 0.945 |
 | Total Cycles | 360,767 |
 | IPC | 0.869 |
 | Control Instruction Ratio | 20.67% |

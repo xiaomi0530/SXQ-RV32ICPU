@@ -5,6 +5,9 @@
 !/docs/
 !/docs/**
 
+!/benchmarks/
+!/benchmarks/**
+
 !/sources_1/
 !/sources_1/**
 
