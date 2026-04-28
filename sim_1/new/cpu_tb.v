@@ -998,6 +998,16 @@ module cpu_tb;
         integer total_mul_dep_d1_pct_x100;
         integer total_mul_dep_d2_pct_x100;
         integer total_mul_dep_d3_pct_x100;
+        integer total_lookup;
+        integer total_hit_rate_x100;
+        integer total_nohit_rate_x100;
+        integer total_jal_tgt_acc_x100;
+        integer total_jalr_tgt_acc_x100;
+        integer total_nonret_jalr;
+        integer total_nonret_jalr_pred;
+        integer total_nonret_jalr_correct;
+        integer total_nonret_jalr_pred_rate_x100;
+        integer total_nonret_jalr_acc_x100;
         begin
             total_dir_acc_x100      = pct_x100(total_dir_correct, total_branch);
             total_taken_prec_x100   = pct_x100(total_target_correct, total_pred_taken);
@@ -1045,6 +1055,16 @@ module cpu_tb;
             total_mul_dep_d1_pct_x100 = pct_x100(total_mul_dep_d1, total_mul_exec);
             total_mul_dep_d2_pct_x100 = pct_x100(total_mul_dep_d2, total_mul_exec);
             total_mul_dep_d3_pct_x100 = pct_x100(total_mul_dep_d3, total_mul_exec);
+            total_lookup             = total_if_branch_hit + total_if_branch_nohit;
+            total_hit_rate_x100      = pct_x100(total_if_branch_hit, total_lookup);
+            total_nohit_rate_x100    = pct_x100(total_if_branch_nohit, total_lookup);
+            total_jal_tgt_acc_x100   = pct_x100(total_jal_correct, total_jal_pred);
+            total_jalr_tgt_acc_x100  = pct_x100(total_jalr_correct, total_jalr_pred);
+            total_nonret_jalr        = total_call_jalr + total_indirect_jalr;
+            total_nonret_jalr_pred   = total_call_jalr_pred + total_indirect_jalr_pred;
+            total_nonret_jalr_correct = total_call_jalr_correct + total_indirect_jalr_correct;
+            total_nonret_jalr_pred_rate_x100 = pct_x100(total_nonret_jalr_pred, total_nonret_jalr);
+            total_nonret_jalr_acc_x100       = pct_x100(total_nonret_jalr_correct, total_nonret_jalr);
 
             $display("");
             $display("[STAT][%0d cyc] KEY total: IPC=%0d.%03d  CTRL=%0d.%02d%%  |  BR dir_acc=%0d.%02d%%  taken_ok_prec=%0d.%02d%%  taken_ok_rec=%0d.%02d%%  miss=%0d.%02d%%",
@@ -1063,6 +1083,36 @@ module cpu_tb;
                      total_target_correct, total_target_wrong,
                      total_target_acc_x100 / 100, total_target_acc_x100 % 100,
                      total_mispredict);
+            $display("[STAT][%0d cyc] JAL total: exec=%0d pred=%0d(%0d.%02d%%) ok=%0d(%0d.%02d%%) tgt_ok=%0d.%02d%%",
+                     show_cycle,
+                     total_jal,
+                     total_jal_pred, total_jal_pred_rate_x100 / 100, total_jal_pred_rate_x100 % 100,
+                     total_jal_correct, total_jal_acc_x100 / 100, total_jal_acc_x100 % 100,
+                     total_jal_tgt_acc_x100 / 100, total_jal_tgt_acc_x100 % 100);
+            $display("[STAT][%0d cyc] JALR total: exec=%0d pred=%0d(%0d.%02d%%) ok=%0d(%0d.%02d%%) tgt_ok=%0d.%02d%%",
+                     show_cycle,
+                     total_jalr,
+                     total_jalr_pred, total_jalr_pred_rate_x100 / 100, total_jalr_pred_rate_x100 % 100,
+                     total_jalr_correct, total_jalr_acc_x100 / 100, total_jalr_acc_x100 % 100,
+                     total_jalr_tgt_acc_x100 / 100, total_jalr_tgt_acc_x100 % 100);
+            $display("[STAT][%0d cyc] JTB/RAS  : JTB(non-ret JALR) pred=%0d/%0d(%0d.%02d%%) ok=%0d/%0d(%0d.%02d%%)  |  RAS(RET) pred=%0d/%0d(%0d.%02d%%) ok=%0d/%0d(%0d.%02d%%)",
+                     show_cycle,
+                     total_nonret_jalr_pred, total_nonret_jalr,
+                     total_nonret_jalr_pred_rate_x100 / 100, total_nonret_jalr_pred_rate_x100 % 100,
+                     total_nonret_jalr_correct, total_nonret_jalr,
+                     total_nonret_jalr_acc_x100 / 100, total_nonret_jalr_acc_x100 % 100,
+                     total_ret_pred, total_ret,
+                     total_ret_pred_rate_x100 / 100, total_ret_pred_rate_x100 % 100,
+                     total_ret_correct, total_ret,
+                     total_ret_acc_x100 / 100, total_ret_acc_x100 % 100);
+            $display("[STAT][%0d cyc] JALR cls : ret=%0d/%0d/%0d(%0d.%02d%%)  call=%0d/%0d/%0d(%0d.%02d%%)  ind=%0d/%0d/%0d(%0d.%02d%%)",
+                     show_cycle,
+                     total_ret, total_ret_pred, total_ret_correct,
+                     total_ret_acc_x100 / 100, total_ret_acc_x100 % 100,
+                     total_call_jalr, total_call_jalr_pred, total_call_jalr_correct,
+                     total_call_jalr_acc_x100 / 100, total_call_jalr_acc_x100 % 100,
+                     total_indirect_jalr, total_indirect_jalr_pred, total_indirect_jalr_correct,
+                     total_indirect_jalr_acc_x100 / 100, total_indirect_jalr_acc_x100 % 100);
             $display("[STAT][%0d cyc] BNOH total: exec=%0d  taken=%0d(%0d.%02d%%)  nt=%0d(%0d.%02d%%)",
                      show_cycle,
                      total_nohit_exec,
@@ -1076,6 +1126,28 @@ module cpu_tb;
                      total_nohit_forward_pct_x100 / 100, total_nohit_forward_pct_x100 % 100,
                      total_branch_miss_backward,
                      total_nohit_backward_pct_x100 / 100, total_nohit_backward_pct_x100 % 100);
+            $display("[STAT][%0d cyc] BHT total: lookup=%0d hit=%0d(%0d.%02d%%) nohit=%0d(%0d.%02d%%) alias=%0d(%0d.%02d%% hit,%0d.%02d%% look)  store=%0d conflict=%0d(%0d.%02d%%) ovlp=%0d(%0d.%02d%% cf)",
+                     show_cycle,
+                     total_lookup,
+                     total_if_branch_hit, total_hit_rate_x100 / 100, total_hit_rate_x100 % 100,
+                     total_if_branch_nohit, total_nohit_rate_x100 / 100, total_nohit_rate_x100 % 100,
+                     total_bht_tag_alias,
+                     total_bht_alias_hit_pct_x100 / 100, total_bht_alias_hit_pct_x100 % 100,
+                     total_bht_alias_lookup_pct_x100 / 100, total_bht_alias_lookup_pct_x100 % 100,
+                     total_bht_store,
+                     total_bht_store_conflict,
+                     total_bht_store_conflict_pct_x100 / 100, total_bht_store_conflict_pct_x100 % 100,
+                     total_bht_store_imm_overlap,
+                     total_bht_store_imm_overlap_pct_x100 / 100, total_bht_store_imm_overlap_pct_x100 % 100);
+            $display("[STAT][%0d cyc] FEND/BNOH: back_nohit=%0d(%0d.%02d%% of nohit)  back_ok=%0d(%0d.%02d%%)  back_redirect=%0d(%0d.%02d%%)  slot1_redirect=%0d",
+                     show_cycle,
+                     total_if_branch_nohit_back,
+                     total_if_branch_nohit_back_pct_x100 / 100, total_if_branch_nohit_back_pct_x100 % 100,
+                     total_if_branch_nohit_back_ok,
+                     total_if_branch_nohit_back_ok_pct_x100 / 100, total_if_branch_nohit_back_ok_pct_x100 % 100,
+                     total_if_branch_nohit_back_redirect,
+                     total_if_branch_nohit_back_redirect_pct_x100 / 100, total_if_branch_nohit_back_redirect_pct_x100 % 100,
+                     total_slot1_redirect);
             $display("[STAT][%0d cyc] LOSS total=%0d (%0d.%02d%% cyc): flush=%0d(%0d.%02d%%) ld=%0d(%0d.%02d%%) mul=%0d(%0d.%02d%%) bub=%0d(%0d.%02d%%)",
                      show_cycle,
                      total_loss, total_loss_pct_x100 / 100, total_loss_pct_x100 % 100,
@@ -3249,14 +3321,65 @@ module cpu_tb;
             bht_store_imm_overlap_win = bht_store_imm_overlap_total - bht_store_imm_overlap_snap;
 
             if (BP_STATS_ENABLE) begin
-                print_compact_report_stats(stat_cycle_total,
-                                           instr_total,
-                                           branch_total,
-                                           branch_both_taken_total,
-                                           jal_total, jal_pred_total, jal_correct_total,
-                                           jalr_total, jalr_pred_total, jalr_correct_total,
-                                           dir_correct_total, target_correct_total, mispredict_total,
-                                           flush_total, load_stall_total, mul_hold_total, other_bubble_total);
+                print_bp_stats(stat_cycle_total,
+                               instr_total,
+                               flush_total,
+                               load_stall_total,
+                               false_load_stall_total,
+                               mul_hold_total,
+                               other_bubble_total,
+                               branch_total,
+                               branch_taken_total,
+                               branch_both_taken_total,
+                               jal_total,
+                               jal_pred_total,
+                               jal_correct_total,
+                               jalr_total,
+                               jalr_pred_total,
+                               jalr_correct_total,
+                               ret_total,
+                               ret_pred_total,
+                               ret_correct_total,
+                               call_jalr_total,
+                               call_jalr_pred_total,
+                               call_jalr_correct_total,
+                               indirect_jalr_total,
+                               indirect_jalr_pred_total,
+                               indirect_jalr_correct_total,
+                               pred_taken_total,
+                               dir_correct_total,
+                               target_correct_total,
+                               mispredict_total,
+                               branch_miss_taken_total,
+                               branch_miss_nt_total,
+                               branch_hit_forward_total,
+                               branch_hit_backward_total,
+                               branch_miss_forward_total,
+                               branch_miss_backward_total,
+                               if_branch_hit_total,
+                               if_branch_nohit_total,
+                               if_branch_nohit_back_total,
+                               if_branch_nohit_back_ok_total,
+                               if_branch_nohit_back_redirect_total,
+                               slot1_redirect_total,
+                               wb_commit_total,
+                               bht_tag_alias_total,
+                               bht_store_total,
+                               bht_store_conflict_total,
+                               bht_store_imm_overlap_total,
+                               mul_exec_total,
+                               mul_follow_slot_total,
+                               mul_dep_slot_total,
+                               mul_dep_d1_total,
+                               mul_dep_d2_total,
+                               mul_dep_d3_total);
+                print_slot1_branch_stats(stat_cycle_total,
+                                         branch_total,
+                                         slot1_branch_seen_total,
+                                         slot1_branch_issue_total,
+                                         slot1_branch_back_total,
+                                         slot1_branch_issue_back_total);
+                print_slot1_ctrl_stats(stat_cycle_total);
             end
             print_bench_ipc_crosscheck();
             $display("LED = %04X", u_cpu.u_mmio.led);
