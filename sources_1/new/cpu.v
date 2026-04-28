@@ -280,7 +280,6 @@ module cpu(
     wire        wb_valid;
     wire        id_valid;
     wire        ex_valid;
-    wire        instr_retire;
 
     // ------------------------------------------------------------------------
     // Frontend control
@@ -549,7 +548,6 @@ module cpu(
     assign id_pred_taken  = id_take_live_if ? if_pred_taken_eff : id_pred_taken_reg;
     assign id_pred_target = id_take_live_if ? if_pred_target_eff: id_pred_target_reg;
     assign id_valid       = (id_instr != 32'b0);
-    assign instr_retire   = wb_valid;
 
     id u_id(
         .clk                (clk                ),
@@ -824,7 +822,6 @@ module cpu(
     mmio u_mmio(
         .clk        (clk            ),
         .rst_n      (rst_n          ),
-        .instr_retire(instr_retire  ),
         .bus_stb    (bus_s2_stb     ),
         .bus_ack    (bus_s2_ack     ),
         .bus_we     (bus_s2_we      ),

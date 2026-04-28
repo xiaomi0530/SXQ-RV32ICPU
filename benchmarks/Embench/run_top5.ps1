@@ -64,22 +64,18 @@ function Parse-BenchmarkLog {
 
     $text = Get-Content $LogPath -Raw
 
-    $cyclesMatch = [regex]::Match($text, 'Embench cycles\s*:\s*(\d+)')
-    if (-not $cyclesMatch.Success) {
-        throw "Missing Embench cycles in $Bench log"
-    }
-    $cycles = [double]$cyclesMatch.Groups[1].Value
-
-    $ipcMatch = [regex]::Match($text, '\[STAT\]\[(\d+) cyc\] PERF : IPC=([0-9]+\.[0-9]+)\s+CPI=([0-9]+\.[0-9]+)')
+    $ipcMatch = [regex]::Match($text, '\[TBIPC\]\s+C=(\d+)\s+I=(\d+)\s+IPC=([0-9]+\.[0-9]+)')
     if (-not $ipcMatch.Success) {
         throw "Missing IPC in $Bench log"
     }
 
-    $statCycles = [double]$ipcMatch.Groups[1].Value
-    $ipc = [double]$ipcMatch.Groups[2].Value
-    $cpi = [double]$ipcMatch.Groups[3].Value
+    $cycles = [double]$ipcMatch.Groups[1].Value
+    $instret = [double]$ipcMatch.Groups[2].Value
+    $statCycles = $cycles
+    $ipc = [double]$ipcMatch.Groups[3].Value
+    $cpi = if ($instret -ne 0.0) { [double]($cycles / $instret) } else { 0.0 }
 
-    $verifyMatch = [regex]::Match($text, 'Embench verify\s*:\s*(\d+)')
+    $verifyMatch = [regex]::Match($text, 'WS\s+V=(\d+)')
     $verify = if ($verifyMatch.Success) { [int]$verifyMatch.Groups[1].Value } else { -1 }
 
     $rawMs = $cycles * 1000.0 / $cpuFreqHz

@@ -9,8 +9,6 @@
 #define MMIO_LED       (*(volatile unsigned long *)(MMIO_BASE + 0x0CUL))
 #define MMIO_UART_TX   (*(volatile unsigned long *)(MMIO_BASE + 0x10UL))
 #define MMIO_UART_STAT (*(volatile unsigned long *)(MMIO_BASE + 0x14UL))
-#define MMIO_INSTRET_LO (*(volatile unsigned long *)(MMIO_BASE + 0x18UL))
-#define MMIO_INSTRET_HI (*(volatile unsigned long *)(MMIO_BASE + 0x1CUL))
 
 #define UART_STATUS_TX_READY  (1UL << 0)
 #define UART_STATUS_TX_BUSY   (1UL << 1)
@@ -40,12 +38,6 @@ unsigned long long dhrystone_get_cycles64(void)
 {
     return mmio_read_counter64((volatile unsigned long *)&MMIO_CYCLE_LO,
                                (volatile unsigned long *)&MMIO_CYCLE_HI);
-}
-
-unsigned long long dhrystone_get_instret64(void)
-{
-    return mmio_read_counter64((volatile unsigned long *)&MMIO_INSTRET_LO,
-                               (volatile unsigned long *)&MMIO_INSTRET_HI);
 }
 
 void setStats(int enable)
@@ -270,36 +262,6 @@ void debug_printf(const char *fmt, ...)
 int putchar(int ch)
 {
     return uart_putc_blocking((char)ch);
-}
-
-void dhrystone_print_ipc(unsigned long long cycles, unsigned long long instret)
-{
-    unsigned long long ipc_x1000 = 0ULL;
-    unsigned long long rem = 0ULL;
-    unsigned long long numer = 0ULL;
-    unsigned long frac;
-
-    if (cycles != 0ULL) {
-        numer = instret * 1000ULL;
-        ipc_x1000 = numer / cycles;
-        rem = numer % cycles;
-        if (rem >= (cycles - rem)) {
-            ipc_x1000++;
-        }
-    }
-
-    uart_puts_blocking("IPC=");
-    uart_put_u64(ipc_x1000 / 1000ULL);
-    uart_putc_blocking('.');
-    frac = (unsigned long)(ipc_x1000 % 1000ULL);
-    uart_putc_blocking((char)('0' + ((frac / 100UL) % 10UL)));
-    uart_putc_blocking((char)('0' + ((frac / 10UL) % 10UL)));
-    uart_putc_blocking((char)('0' + (frac % 10UL)));
-    uart_puts_blocking("  C=");
-    uart_put_u64(cycles);
-    uart_puts_blocking("  I=");
-    uart_put_u64(instret);
-    uart_putc_blocking('\n');
 }
 
 void *memcpy(void *dst, const void *src, size_t n)

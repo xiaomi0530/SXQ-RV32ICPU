@@ -10,8 +10,6 @@
 #define MMIO_LED       (*(volatile unsigned long *)(MMIO_BASE + 0x0CUL))
 #define MMIO_UART_TX   (*(volatile unsigned long *)(MMIO_BASE + 0x10UL))
 #define MMIO_UART_STAT (*(volatile unsigned long *)(MMIO_BASE + 0x14UL))
-#define MMIO_INSTRET_LO (*(volatile unsigned long *)(MMIO_BASE + 0x18UL))
-#define MMIO_INSTRET_HI (*(volatile unsigned long *)(MMIO_BASE + 0x1CUL))
 
 #define UART_STATUS_TX_READY  (1UL << 0)
 #define UART_STATUS_TX_BUSY   (1UL << 1)
@@ -41,12 +39,6 @@ unsigned long long board_cycle_count(void)
 {
     return mmio_read_counter64((volatile unsigned long *)&MMIO_CYCLE_LO,
                                (volatile unsigned long *)&MMIO_CYCLE_HI);
-}
-
-unsigned long long board_instret_count(void)
-{
-    return mmio_read_counter64((volatile unsigned long *)&MMIO_INSTRET_LO,
-                               (volatile unsigned long *)&MMIO_INSTRET_HI);
 }
 
 void initialise_board(void)
@@ -437,6 +429,7 @@ void abort(void)
 {
     board_uart_drain();
     MMIO_LED = 0xE0FFUL;
+    MMIO_TOHOST = 1UL;
     for (;;) {
     }
 }
@@ -445,6 +438,7 @@ void exit(int code)
 {
     board_uart_drain();
     MMIO_LED = (code == 0) ? 0xE000UL : (0xE100UL | (unsigned long)(code & 0xFF));
+    MMIO_TOHOST = 1UL;
     for (;;) {
     }
 }
@@ -453,6 +447,7 @@ void board_finish(unsigned int led_value)
 {
     board_uart_drain();
     MMIO_LED = (unsigned long)led_value;
+    MMIO_TOHOST = 1UL;
     for (;;) {
     }
 }

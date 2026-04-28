@@ -1,5 +1,5 @@
 /*===========================================================================
- * core_portme.c — CoreMark 1.0 平台移植实现 (v5)
+ * core_portme.c �?CoreMark 1.0 平台移植实现 (v5)
  *===========================================================================*/
 
 #include "coremark.h"
@@ -11,7 +11,7 @@
  * ========================================================================= */
 ee_u32 default_num_contexts = 1;
 
-/* EEMBC 标准种子，seed1~seed5 全部提供（core_util.c 的 get_seed_32 引用所有） */
+/* EEMBC 标准种子，seed1~seed5 全部提供（core_util.c �?get_seed_32 引用所有） */
 volatile ee_s32 seed1_volatile    = 0;
 volatile ee_s32 seed2_volatile    = 0;
 volatile ee_s32 seed3_volatile    = 0x66;
@@ -20,16 +20,11 @@ volatile ee_s32 seed5_volatile    = 0;
 volatile ee_s32 memblock_volatile = 0;
 
 /* ===========================================================================
- * 硬件计时器
- * ========================================================================= */
+ * 硬件计时�? * ========================================================================= */
 static CORE_TICKS g_start_ticks = 0;
 static ee_u32     g_start_hi    = 0;
 static CORE_TICKS g_stop_ticks  = 0;
 static ee_u32     g_stop_hi     = 0;
-static CORE_TICKS g_start_instret_lo = 0;
-static ee_u32     g_start_instret_hi = 0;
-static CORE_TICKS g_stop_instret_lo  = 0;
-static ee_u32     g_stop_instret_hi  = 0;
 
 static void snapshot_cycle(CORE_TICKS *lo, ee_u32 *hi)
 {
@@ -46,31 +41,14 @@ static void snapshot_cycle(CORE_TICKS *lo, ee_u32 *hi)
     *hi = hi_after;
 }
 
-static void snapshot_instret(CORE_TICKS *lo, ee_u32 *hi)
-{
-    ee_u32     hi_before, hi_after;
-    CORE_TICKS lo_val;
-
-    do {
-        hi_before = MMIO_INSTRET_HI;
-        lo_val    = MMIO_INSTRET_LO;
-        hi_after  = MMIO_INSTRET_HI;
-    } while (hi_before != hi_after);
-
-    *lo = lo_val;
-    *hi = hi_after;
-}
-
 void start_time(void)
 {
     snapshot_cycle(&g_start_ticks, &g_start_hi);
-    snapshot_instret(&g_start_instret_lo, &g_start_instret_hi);
 }
 
 void stop_time(void)
 {
     snapshot_cycle(&g_stop_ticks, &g_stop_hi);
-    snapshot_instret(&g_stop_instret_lo, &g_stop_instret_hi);
 }
 
 CORE_TICKS get_time(void)
@@ -254,9 +232,7 @@ static int uart_put_double(double value, int precision)
 }
 
 /* ===========================================================================
- * align_mem — 对齐到 8 字节边界（core_matrix.c 调用）
- * ee_ptr_int 在 RV32I 下是 ee_u32（32-bit），与指针等宽，安全转换。
- * ========================================================================= */
+ * align_mem �?对齐�?8 字节边界（core_matrix.c 调用�? * ee_ptr_int �?RV32I 下是 ee_u32�?2-bit），与指针等宽，安全转换�? * ========================================================================= */
 void *align_mem(void *ptr)
 {
     ee_ptr_int p    = (ee_ptr_int)ptr;
@@ -271,7 +247,7 @@ void *portable_malloc(ee_size_t size) { (void)size; return NULL; }
 void  portable_free(void *p)          { (void)p; }
 
 /* ===========================================================================
- * portable_init — 基准开始前回调
+ * portable_init �?基准开始前回调
  * 签名: void portable_init(core_portable *p, int *argc, char *argv[])
  * ========================================================================= */
 void portable_init(core_portable *p, int *argc, char *argv[])
@@ -326,12 +302,6 @@ void portable_fini(core_portable *p)
     ee_u64 stop64  = ((ee_u64)g_stop_hi  << 32) | (ee_u64)g_stop_ticks;
     ee_u64 start64 = ((ee_u64)g_start_hi << 32) | (ee_u64)g_start_ticks;
     ee_u64 elapsed = stop64 - start64;
-    ee_u64 stop_instret64  = ((ee_u64)g_stop_instret_hi  << 32) | (ee_u64)g_stop_instret_lo;
-    ee_u64 start_instret64 = ((ee_u64)g_start_instret_hi << 32) | (ee_u64)g_start_instret_lo;
-    ee_u64 elapsed_instret = stop_instret64 - start_instret64;
-    ee_u64 ipc_x1000 = 0ULL;
-    ee_u64 ipc_frac;
-
     if (elapsed == 0ULL) {
         MMIO_LED = 0x8000u;
         MMIO_TOHOST = 1u;
@@ -347,26 +317,6 @@ void portable_fini(core_portable *p)
         score_x10++;
     }
 
-    rem = (elapsed_instret * 1000ULL) % elapsed;
-    ipc_x1000 = (elapsed_instret * 1000ULL) / elapsed;
-    if (rem >= (elapsed - rem)) {
-        ipc_x1000++;
-    }
-    ipc_frac = ipc_x1000 % 1000ULL;
-
-    uart_puts_blocking("IPC=");
-    uart_put_u64(ipc_x1000 / 1000ULL);
-    uart_putc_blocking('.');
-    uart_putc_blocking((char)('0' + (int)((ipc_frac / 100ULL) % 10ULL)));
-    uart_putc_blocking((char)('0' + (int)((ipc_frac / 10ULL) % 10ULL)));
-    uart_putc_blocking((char)('0' + (int)(ipc_frac % 10ULL)));
-    uart_puts_blocking("  C=");
-    uart_put_u64(elapsed);
-    uart_puts_blocking("  I=");
-    uart_put_u64(elapsed_instret);
-    uart_putc_blocking('\n');
-    uart_drain();
-
     /* Clamp to 16-bit LED max (65535 -> 6553.5 CoreMark) */
     if (score_x10 > 65535ULL) score_x10 = 0ULL;
 
@@ -377,7 +327,7 @@ void portable_fini(core_portable *p)
 }
 
 /* ===========================================================================
- * ee_printf — 通过 UART 打印，支持 %d/%u/%x/%s/%c/%%（满足 CoreMark 输出需求）
+ * ee_printf �?通过 UART 打印，支�?%d/%u/%x/%s/%c/%%（满�?CoreMark 输出需求）
  * ========================================================================= */
 int ee_printf(const char *fmt, ...)
 {
@@ -470,8 +420,7 @@ int ee_printf(const char *fmt, ...)
 }
 
 /* ===========================================================================
- * C 运行时（替代 libc）
- * ========================================================================= */
+ * C 运行时（替代 libc�? * ========================================================================= */
 void *memcpy(void *dst, const void *src, size_t n)
 {
     unsigned char *d = (unsigned char *)dst;
@@ -508,7 +457,6 @@ size_t strlen(const char *str)
 }
 
 /* ===========================================================================
- * 异常桩
- * ========================================================================= */
+ * 异常�? * ========================================================================= */
 void abort(void) { uart_drain(); MMIO_LED=0x8000u; MMIO_TOHOST=1u; for(;;){} }
 void exit(int c) { (void)c; uart_drain(); MMIO_LED=0x8000u; MMIO_TOHOST=1u; for(;;){} }

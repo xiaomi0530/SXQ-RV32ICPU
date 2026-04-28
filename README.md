@@ -66,9 +66,9 @@ Raw logs: `docs/benchmark_raw_results.md`
 
 | Benchmark | Build Flags / Config | Score | IPC | Cycles (`C`) | Instret (`I`) | Extra |
 | --- | --- | --- | --- | ---: | ---: | --- |
-| CoreMark | `-march=rv32im -mabi=ilp32 -mstrict-align -O2` ; `ITERATIONS=5000` | `275.921923 Iter/s` | `0.929` | `1812106824` | `1682667132` | `18.121068 s` |
-| Dhrystone | `-march=rv32im -mabi=ilp32 -mstrict-align -O2 -std=gnu89` ; `1800 runs` | `166000 Dhrystones/s` | `0.975` | `1081859` | `1054835` | `6 us/run`, `0.945 DMIPS/MHz` |
-| Embench-WikiSort | `-march=rv32im -mabi=ilp32 -mstrict-align -O2 -std=gnu11` ; `GLOBAL_SCALE_FACTOR=1` ; `WARMUP_HEAT=1` | `121.97` | `0.967` | `2969545` | `2873255` | `WS V=1` |
+| CoreMark | `-march=rv32im -mabi=ilp32 -mstrict-align -O2` ; `ITERATIONS=5000` | `275.921923 Iter/s` | `0.851` | `1812106824` | `1682667132` | `18.121068 s` |
+| Dhrystone | `-march=rv32im -mabi=ilp32 -mstrict-align -O2 -std=gnu89` ; `1800 runs` | `166000 Dhrystones/s` | `0.975` | `1081859` | `1054835` | `6 us/run`, `0.907 DMIPS/MHz` |
+| Embench-WikiSort | `-march=rv32im -mabi=ilp32 -mstrict-align -O2 -std=gnu11` ; `GLOBAL_SCALE_FACTOR=1` ; `WARMUP_HEAT=1` | `122.58` | `0.967` | `2969545` | `2873255` | `WS V=1` |
 
 | Item | Value |
 | --- | --- |

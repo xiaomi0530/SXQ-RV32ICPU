@@ -11,22 +11,14 @@ Toolchain: `riscv64-unknown-elf-gcc`
 | Dhrystone | `-march=rv32im -mabi=ilp32 -mstrict-align -O2 -std=gnu89` ; `DHRY_HZ=100000000` ; `1800 runs` |
 | Embench-WikiSort | `-march=rv32im -mabi=ilp32 -mstrict-align -O2 -std=gnu11` ; `BENCH=wikisort` ; `GLOBAL_SCALE_FACTOR=1` ; `WARMUP_HEAT=1` |
 
-## Key Statistics
-
-| Benchmark | Score | IPC | Cycles (`C`) | Instret (`I`) | Extra |
-| --- | --- | --- | ---: | ---: | --- |
-| CoreMark | `275.921923 Iter/s` | `0.929` | `1812106824` | `1682667132` | `5000 iterations`, `18.121068 s` |
-| Dhrystone | `166000 Dhrystones/s` | `0.975` | `1081859` | `1054835` | `6 us/run`, `0.945 DMIPS/MHz` |
-| Embench-WikiSort | `121.97` | `0.967` | `2969545` | `2873255` | `WS V=1` |
-
----
-***CoreMark***
+**CoreMark**
 2K performance run parameters for coremark.
 CoreMark Size    : 666
-Total ticks      : 1812106824
-Total time (secs): 18.121068
-Iterations/Sec   : 275.921923
-Iterations       : 5000
+Total ticks      : 362477
+Total time (secs): 0.003625
+Iterations/Sec   : 275.879573
+ERROR! Must execute for at least 10 secs for a valid result!
+Iterations       : 1
 Compiler version : riscv64-unknown-elf-gcc
 Compiler flags   : -march=rv32im -mabi=ilp32 -mstrict-align -O2
 Memory location  : STATIC
@@ -34,13 +26,11 @@ seedcrc          : 0xe9f5
 [0]crclist       : 0xe714
 [0]crcmatrix     : 0x1fd7
 [0]crcstate      : 0x8e3a
-[0]crcfinal      : 0xbd59
-Correct operation validated. See README.md for run and reporting rules.
-CoreMark 1.0 : 275.921923 / riscv64-unknown-elf-gcc -march=rv32im -mabi=ilp32 -mstrict-align -O2 / STATIC
-IPC=0.929  C=1812106824  I=1682667132
+[0]crcfinal      : 0xe714
+Errors detected
+[TBIPC] BENCH C=362458  I=308288  IPC=0.851  done=1
 
-
-***Dhrystone***
+**Dhrystone**
 Dhrystone Benchmark, Version C, Version 2.2
 Program compiled without 'register' attribute
 Using mmio_cycle, HZ=100000000
@@ -97,10 +87,7 @@ Str_2_Loc:           DHRYSTONE PROGRAM, 2'ND STRING
 
 Microseconds for one run through Dhrystone: 6
 Dhrystones per Second:                      166000
-IPC=0.975  C=1081859  I=1054835
+[TBIPC] BENCH C=1081810  I=980993  IPC=0.907  done=1
 
-
-***Embench-WikiSort***
-WS V=1 S=121.97
-IPC=0.967  C=2969545  I=2873255
-
+**Embench-wikisort**
+WS V=1 S=122.58

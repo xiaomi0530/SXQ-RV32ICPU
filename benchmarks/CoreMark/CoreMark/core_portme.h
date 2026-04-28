@@ -55,8 +55,6 @@ typedef ee_u32 secs_ret;
 #define MMIO_LED       (*(volatile ee_u32 *)(MMIO_BASE + 0x0CU))
 #define MMIO_UART_TX   (*(volatile ee_u32 *)(MMIO_BASE + 0x10U))
 #define MMIO_UART_STAT (*(volatile ee_u32 *)(MMIO_BASE + 0x14U))
-#define MMIO_INSTRET_LO (*(volatile ee_u32 *)(MMIO_BASE + 0x18U))
-#define MMIO_INSTRET_HI (*(volatile ee_u32 *)(MMIO_BASE + 0x1CU))
 
 #define UART_STATUS_TX_READY    (1u << 0)
 #define UART_STATUS_TX_BUSY     (1u << 1)
