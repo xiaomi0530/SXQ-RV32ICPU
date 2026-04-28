@@ -449,6 +449,7 @@ module cpu(
         .clk            (clk                  ),
         .rst_n          (rst_n                ),
         .redirect_flag  (frontend_redirect_flag),
+        .redirect_force (ctrl_resolve_mispredict),
         .redirect_addr  (frontend_redirect_addr),
         .preif_ready    (!imem_bus_re         ),
         .pipeline_stall (pipeline_block       ),
@@ -493,24 +494,21 @@ module cpu(
             if_jtb_target     <= {IMEM_ADDR_BITS{1'b0}};
             if_pre_jtb_hit    <= 1'b0;
             if_pre_jtb_target <= {IMEM_ADDR_BITS{1'b0}};
-        end else if (slot0_ctrl_redirect || slot1_pred_redirect) begin
-            if_pre_valid_q     <= 1'b0;
-            if_jtb_hit         <= 1'b0;
-            if_jtb_target      <= {IMEM_ADDR_BITS{1'b0}};
-            if_pre_jtb_hit     <= 1'b0;
-            if_pre_jtb_target  <= {IMEM_ADDR_BITS{1'b0}};
-        end else if (pipeline_flush) begin
-            if_pre_valid_q     <= 1'b0;
-            if_jtb_hit         <= 1'b0;
-            if_jtb_target      <= {IMEM_ADDR_BITS{1'b0}};
-            if_pre_jtb_hit     <= 1'b0;
-            if_pre_jtb_target  <= {IMEM_ADDR_BITS{1'b0}};
-        end else if (!pipeline_block) begin
-            if_pre_valid_q <= slot1_capture_en;
-            if_jtb_hit     <= preif_jtb_hit;
-            if_jtb_target  <= preif_jtb_target;
-            if_pre_jtb_hit <= preif_next_jtb_hit;
-            if_pre_jtb_target <= preif_next_jtb_target;
+        end else begin
+            if (slot0_ctrl_redirect || slot1_pred_redirect || pipeline_flush) begin
+                if_pre_valid_q <= 1'b0;
+                if_jtb_hit     <= 1'b0;
+                if_pre_jtb_hit <= 1'b0;
+            end else if (!pipeline_block) begin
+                if_pre_valid_q <= slot1_capture_en;
+                if_jtb_hit     <= preif_jtb_hit;
+                if_pre_jtb_hit <= preif_next_jtb_hit;
+            end
+
+            if (!pipeline_block) begin
+                if_jtb_target     <= preif_jtb_target;
+                if_pre_jtb_target <= preif_next_jtb_target;
+            end
         end
     end
 
@@ -583,11 +581,14 @@ module cpu(
         .id_jalr_flag   (id_jalr_flag   ),
         .id_rs1_addr    (id_rs1_addr    ),
         .id_rs2_addr    (id_rs2_addr    ),
+        .id_rs1_used    (id_rs1_used    ),
+        .id_rs2_used    (id_rs2_used    ),
         .ex_dmem_re     (ex_dmem_re     ),
         .ex_regs_w_addr (ex_regs_w_addr ),
         .id_ctrl_defer  (id_ctrl_defer  ),
         .id_ctrl_dep_rs1(id_ctrl_dep_rs1),
-        .id_ctrl_dep_rs2(id_ctrl_dep_rs2)
+        .id_ctrl_dep_rs2(id_ctrl_dep_rs2),
+        .pipeline_stall (pipeline_stall )
     );
 
     // ------------------------------------------------------------------------
@@ -905,22 +906,6 @@ module cpu(
 
         .id_rs1_data_fwd       (id_rs1_data_fwd       ),
         .id_rs2_data_fwd       (id_rs2_data_fwd       )
-    );
-
-    // ------------------------------------------------------------------------
-    // Pipeline stall
-    // ------------------------------------------------------------------------
-    pipeline_stall u_pipeline_stall(
-        .id_rs1_addr     (id_rs1_addr     ),
-        .id_rs2_addr     (id_rs2_addr     ),
-        .id_rs1_used     (id_rs1_used     ),
-        .id_rs2_used     (id_rs2_used     ),
-        .id_ctrl_defer   (id_ctrl_defer   ),
-        .ex_dmem_re      (ex_dmem_re      ),
-        .ex_regs_w_addr  (ex_regs_w_addr  ),
-        .mem_dmem_re     (mem_dmem_re     ),
-        .mem_regs_w_addr (mem_regs_w_addr ),
-        .pipeline_stall  (pipeline_stall  )
     );
 
 endmodule

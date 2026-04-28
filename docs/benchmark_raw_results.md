@@ -12,13 +12,13 @@ Toolchain: `riscv64-unknown-elf-gcc`
 | Embench-WikiSort | `-march=rv32im -mabi=ilp32 -mstrict-align -O2 -std=gnu11` ; `BENCH=wikisort` ; `GLOBAL_SCALE_FACTOR=1` ; `WARMUP_HEAT=1` |
 
 **CoreMark**
+
 2K performance run parameters for coremark.
 CoreMark Size    : 666
-Total ticks      : 362477
-Total time (secs): 0.003625
-Iterations/Sec   : 275.879573
-ERROR! Must execute for at least 10 secs for a valid result!
-Iterations       : 1
+Total ticks      : 1812106815
+Total time (secs): 18.121068
+Iterations/Sec   : 275.921925
+Iterations       : 5000
 Compiler version : riscv64-unknown-elf-gcc
 Compiler flags   : -march=rv32im -mabi=ilp32 -mstrict-align -O2
 Memory location  : STATIC
@@ -26,8 +26,9 @@ seedcrc          : 0xe9f5
 [0]crclist       : 0xe714
 [0]crcmatrix     : 0x1fd7
 [0]crcstate      : 0x8e3a
-[0]crcfinal      : 0xe714
-Errors detected
+[0]crcfinal      : 0xbd59
+Correct operation validated. See README.md for run and reporting rules.
+CoreMark 1.0 : 275.921925 / riscv64-unknown-elf-gcc -march=rv32im -mabi=ilp32 -mstrict-align -O2 / STATIC
 [TBIPC] BENCH C=362458  I=308288  IPC=0.851  done=1
 
 **Dhrystone**
@@ -91,3 +92,4 @@ Dhrystones per Second:                      166000
 
 **Embench-wikisort**
 WS V=1 S=122.58
+[TBIPC] BENCH C=2965138  I=2330989  IPC=0.786  done=1

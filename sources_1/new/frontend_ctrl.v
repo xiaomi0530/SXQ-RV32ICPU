@@ -58,14 +58,18 @@ module frontend_ctrl #(
     wire        if_is_jal;
     wire        if_is_jalr;
     wire [10:1] if_b_imm_lo;
-    wire [IMEM_ADDR_BITS-1:0] if_b_target_low;
     wire [31:0] if_jal_imm;
+    wire [IMEM_ADDR_BITS-1:0] if_b_target_low;
     wire [IMEM_ADDR_BITS-1:0] if_jal_target_low;
+    wire        if_branch_pred_taken_raw;
     wire        if_jalr_pred_hit;
     wire [IMEM_ADDR_BITS-1:0] if_jalr_pred_target_low;
     wire [IMEM_ADDR_BITS-1:0] if_pred_target_low;
     wire        slot0_ctrl_pred_base;
     wire        slot1_pred_base;
+    wire        frontend_predict_ok;
+    wire        slot0_ctrl_redirect_raw;
+    wire        slot1_pred_redirect_raw;
 
     wire        if_pre_is_jal;
     wire        if_pre_is_jalr;
@@ -91,9 +95,10 @@ module frontend_ctrl #(
     assign if_b_imm_lo           = {if_instr[7], if_instr[30:25], if_instr[11:8]};
     assign if_b_imm              = {{20{if_instr[31]}}, if_b_imm_lo, 1'b0};
     assign if_b_target_low       = if_instr_addr[IMEM_ADDR_BITS-1:0] + if_b_imm[IMEM_ADDR_BITS-1:0];
-    assign if_branch_pred_taken_eff = if_branch_hit ? if_branch_pred_taken : if_b_imm[31];
     assign if_jal_imm            = {{12{if_instr[31]}}, if_instr[19:12], if_instr[20], if_instr[30:21], 1'b0};
     assign if_jal_target_low     = if_instr_addr[IMEM_ADDR_BITS-1:0] + if_jal_imm[IMEM_ADDR_BITS-1:0];
+    assign if_branch_pred_taken_raw = if_branch_hit ? if_branch_pred_taken : if_b_imm[31];
+    assign if_branch_pred_taken_eff = if_is_b && if_branch_pred_taken_raw;
     assign if_jalr_pred_hit      = if_is_ret ? ras_valid : if_jtb_hit;
     assign if_jalr_pred_target_low = if_is_ret ? ras_top_target_low : if_jtb_target;
     assign if_pred_target_low    = if_is_jal ? if_jal_target_low
@@ -129,15 +134,18 @@ module frontend_ctrl #(
     assign if_pre_pred_target_eff= if_pre_pred_target_low;
 
     assign frontend_issue_ok      = !pipeline_block_if && !frontend_redirect_kill_q;
+    assign frontend_predict_ok    = !frontend_redirect_kill_q;
     assign slot0_jump_pred_base   = if_is_jal || (if_is_jalr && if_jalr_pred_hit);
     assign slot0_ctrl_pred_base   = slot0_jump_pred_base || if_branch_pred_taken_eff;
     assign slot1_pred_base        = if_pre_valid && if_pre_pred_taken_eff;
     assign slot0_ctrl_redirect    = frontend_issue_ok && slot0_ctrl_pred_base;
     assign slot1_pred_redirect    = frontend_issue_ok && slot1_pred_base;
+    assign slot0_ctrl_redirect_raw = frontend_predict_ok && slot0_ctrl_pred_base;
+    assign slot1_pred_redirect_raw = frontend_predict_ok && slot1_pred_base;
     assign if_pred_taken_eff      = slot0_ctrl_redirect;
-    assign frontend_redirect_flag = ex_mispredict | slot0_ctrl_redirect | slot1_pred_redirect;
+    assign frontend_redirect_flag = ex_mispredict | slot0_ctrl_redirect_raw | slot1_pred_redirect_raw;
     assign frontend_redirect_addr = ex_mispredict        ? ex_redirect_addr
-                                  : slot0_ctrl_redirect ? if_pred_target_low
+                                  : slot0_ctrl_redirect_raw ? if_pred_target_low
                                   :                       if_pre_pred_target_low;
 
     branch_hash_mix #(
