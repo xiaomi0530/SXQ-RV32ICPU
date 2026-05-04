@@ -30,6 +30,10 @@ seedcrc          : 0xe9f5
 Correct operation validated. See README.md for run and reporting rules.
 CoreMark 1.0 : 275.921925 / riscv64-unknown-elf-gcc -march=rv32im -mabi=ilp32 -mstrict-align -O2 / STATIC
 [TBIPC] BENCH C=362458  I=308288  IPC=0.851  done=1
+[TBPRED] B    N=62294  dir=87.06%  tgt=100.00%  total=87.06%
+[TBPRED] JAL  N=5230  dir=100.00%  tgt=100.00%  total=100.00%
+[TBPRED] JALR N=2136  dir=100.00%  tgt=99.91%  total=99.91%
+[TBPRED] ALL  N=69660  dir=88.43%  tgt=99.99%  total=88.43%  miss=11.57%
 
 **Dhrystone**
 Dhrystone Benchmark, Version C, Version 2.2
