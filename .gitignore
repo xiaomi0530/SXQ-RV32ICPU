@@ -4,6 +4,13 @@
 !/README.md
 !/docs/
 !/docs/**
+/docs/*.aux
+/docs/*.toc
+/docs/*.out
+/docs/*.log
+/docs/*.fls
+/docs/*.fdb_latexmk
+/docs/*.synctex.gz
 
 !/benchmarks/
 !/benchmarks/**

@@ -16,27 +16,50 @@
 \setlength{\parindent}{2em}
 \setlength{\parskip}{0.35em}
 \renewcommand{\arraystretch}{1.18}
-
-\title{SXQ-RV32IM CPU 验证报告}
-\author{ }
-\date{2026年4月28日}
+\setlength{\tabcolsep}{5pt}
+\raggedbottom
+\newcolumntype{Y}{>{\centering\arraybackslash}X}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
 
 \begin{document}
-\maketitle
+
+\begin{titlepage}
+    \thispagestyle{empty}
+    \centering
+
+    \vspace*{1.0cm}
+    \includegraphics[width=0.42\textwidth]{figures/logo.png}
+
+    \vspace{1.6cm}
+    {\zihao{2}\heiti 第十届\par}
+    \vspace{0.5cm}
+    {\zihao{2}\heiti 全国大学生集成电路创新创业大赛\par}
+
+    \vspace{2.2cm}
+    \begin{tabular}{p{3.6cm}p{9.2cm}}
+        \zihao{4}\heiti 报告类型： & \zihao{4}\heiti 验证报告 \\[0.55cm]
+        \zihao{4}\heiti 参赛杯赛： & \zihao{4}\heiti 七星微杯 \\[0.55cm]
+        \zihao{4}\heiti 作品名称： & \zihao{4}\heiti RV32IM 低面积低功耗高性能中央处理器设计与 FPGA 实现 \\[0.55cm]
+        \zihao{4}\heiti 队伍编号： & \zihao{4}\heiti CICC1003857 \\[0.55cm]
+        \zihao{4}\heiti 团队名称： & \zihao{4}\heiti 时序泉队 \\
+    \end{tabular}
+
+    \vfill
+\end{titlepage}
 
 \section{验证目标与数据来源}
 
 本报告用于汇总当前版本 \texttt{SXQ-RV32IM CPU} 的功能验证、benchmark 性能、分支/跳转预测统计、FPGA 实现资源、时序与功耗结果。报告数据直接来自当前工程中保存的 benchmark 原始结果与 Vivado 实现报告，主要数据源如下：
 
-\begin{table}[H]
+\begin{table}[htbp]
     \centering
     \caption{报告数据来源}
-    \begin{tabularx}{\textwidth}{lX}
+    \begin{tabularx}{\textwidth}{C{4.0cm}Y}
         \toprule
         数据类别 & 来源文件或报告 \\
         \midrule
-        Benchmark 原始输出 & \texttt{docs/benchmark\_raw\_results.md} \\
-        版本演进与阶段指标 & \texttt{README.md} \\
+        Benchmark 原始输出 & \texttt{ITERATIONS=5000} 上板 UART 输出 \\
+        IPC 与预测统计 & \texttt{ITERATIONS=1} Vivado 仿真输出 \\
         FPGA 资源占用 & \texttt{top\_utilization\_placed.rpt} \\
         FPGA 时序结果 & \texttt{top\_timing\_summary\_postroute\_physopted.rpt} \\
         FPGA 功耗结果 & \texttt{top\_power\_routed.rpt} \\
@@ -49,19 +72,19 @@
 
 \section{测试环境}
 
-\begin{table}[H]
+\begin{table}[htbp]
     \centering
     \caption{测试环境与构建配置}
-    \begin{tabularx}{\textwidth}{lX}
+    \begin{tabularx}{\textwidth}{C{3.0cm}Y}
         \toprule
         项目 & 配置 \\
         \midrule
         FPGA 器件 & \texttt{xc7a100tcsg324-1} \\
         目标频率 & \texttt{100 MHz} \\
         工具链 & \texttt{riscv64-unknown-elf-gcc} \\
-        CoreMark & \texttt{-march=rv32im -mabi=ilp32 -mstrict-align -O2}，\texttt{ITERATIONS=5000} \\
-        Dhrystone & \texttt{-march=rv32im -mabi=ilp32 -mstrict-align -O2 -std=gnu89}，\texttt{1800 runs}，\texttt{DHRY\_HZ=100000000} \\
-        Embench-WikiSort & \texttt{-march=rv32im -mabi=ilp32 -mstrict-align -O2 -std=gnu11}，\texttt{GLOBAL\_SCALE\_FACTOR=1}，\texttt{WARMUP\_HEAT=1} \\
+        CoreMark & \texttt{-march=rv32im -mabi=ilp32 -mstrict-align -O2}；Score 使用 \texttt{ITERATIONS=5000}，微架构统计使用 \texttt{ITERATIONS=1} \\
+        Dhrystone & \texttt{-march=rv32im -mabi=ilp32 -mstrict-align -O2 -std=gnu89}；\texttt{1800 runs} \\
+        Embench-WikiSort & \texttt{-march=rv32im -mabi=ilp32 -mstrict-align -O2 -std=gnu11}；\texttt{GLOBAL\_SCALE\_FACTOR=1} \\
         \bottomrule
     \end{tabularx}
 \end{table}
@@ -70,11 +93,11 @@
 
 当前设计目标为裸机 \texttt{RV32IM} 计算子集，覆盖基础整数计算、访存、控制转移和 M 扩展乘除法指令。系统级机制如特权级、CSR、异常/中断、虚拟内存、\texttt{FENCE/FENCE.I} 等不作为当前有效功能路径。基于当前目标 ISA，指令类别覆盖情况如表~\ref{tab:isa_coverage} 所示。
 
-\begin{table}[H]
+\begin{table}[htbp]
     \centering
     \caption{目标 \texttt{RV32IM} 指令覆盖率}
     \label{tab:isa_coverage}
-    \begin{tabularx}{\textwidth}{lcccX}
+    \begin{tabularx}{\textwidth}{C{2.4cm}cccY}
         \toprule
         指令类别 & 目标指令数 & 已覆盖指令数 & 覆盖率 & 覆盖内容 \\
         \midrule
@@ -95,52 +118,56 @@
 
 \subsection{总体结果}
 
-Benchmark 汇总结果如表~\ref{tab:benchmark_summary} 所示。IPC 统计口径采用 testbench 中 benchmark 运行窗口内的后端退役统计，即统计 benchmark 有效运行区间内的周期数 \texttt{C} 与退役指令数 \texttt{I}，并计算
+Benchmark 汇总结果如表~\ref{tab:benchmark_summary} 所示。需要特别说明的是，CoreMark 的 Score 与微架构统计指标采用不同采集口径：\texttt{275.921925 Iter/s} 来自 \texttt{ITERATIONS=5000} 的实际上板运行 UART 输出；CoreMark 的周期数 \texttt{C}、退役指令数 \texttt{I}、IPC 以及后文跳转分支预测准确率，则来自 \texttt{ITERATIONS=1} 的 Vivado 仿真统计。这样处理的原因是，CoreMark 官方性能成绩需要足够长的上板运行时间保证有效性，而周期级退役统计和预测器事件统计在仿真中运行 \texttt{5000} 次迭代会显著增加验证时间；单次迭代仿真仍覆盖 CoreMark 的主要程序路径，可用于表征当前微架构的周期、退役与控制流行为。IPC 统计采用 testbench 中有效运行窗口内的后端退役口径，即统计周期数 \texttt{C} 与退役指令数 \texttt{I}，并计算
 \[
     \mathrm{IPC}=\frac{I}{C}.
 \]
 
-\begin{table}[H]
+\begin{table}[htbp]
     \centering
     \caption{Benchmark 汇总结果}
     \label{tab:benchmark_summary}
-    \begin{tabularx}{\textwidth}{lccccX}
+    \begin{tabular}{ccccc}
         \toprule
-        Benchmark & Score & IPC & 周期数 C & 退役指令数 I & 有效性说明 \\
+        Benchmark & Score & IPC & 周期数 C & 退役指令数 I \\
         \midrule
-        CoreMark & \texttt{275.921925 Iter/s} & \texttt{0.851} & \texttt{362458} & \texttt{308288} & \texttt{5000} 次迭代，官方校验通过 \\
-        Dhrystone & \texttt{166000 Dhrystones/s} & \texttt{0.907} & \texttt{1081810} & \texttt{980993} & 输出变量与参考值一致 \\
-        Embench-WikiSort & \texttt{122.58} & \texttt{0.786} & \texttt{2965138} & \texttt{2330989} & \texttt{WS V=1}，校验通过 \\
+        CoreMark & \texttt{275.921925 Iter/s} & \texttt{0.851} & \texttt{362458} & \texttt{308288} \\
+        Dhrystone & \texttt{166000 Dhrystones/s} & \texttt{0.907} & \texttt{1081810} & \texttt{980993} \\
+        Embench-WikiSort & \texttt{122.58} & \texttt{0.786} & \texttt{2965138} & \texttt{2330989} \\
         \bottomrule
-    \end{tabularx}
+    \end{tabular}
 \end{table}
 
 \subsection{CoreMark}
 
-CoreMark 使用 \texttt{5000} 次迭代，运行时间为 \texttt{18.121068 s}，满足 CoreMark 有效运行时间要求。原始输出中 \texttt{seedcrc}、\texttt{crclist}、\texttt{crcmatrix}、\texttt{crcstate} 与 \texttt{crcfinal} 均给出，且输出 \texttt{Correct operation validated}，说明结果有效。
+CoreMark 性能分数采用上板运行口径：程序以 \texttt{ITERATIONS=5000} 编译并在 FPGA 上实际运行，通过 UART 输出运行结果，运行时间为 \texttt{18.121068 s}，满足 CoreMark 有效运行时间要求。原始输出中 \texttt{seedcrc}、\texttt{crclist}、\texttt{crcmatrix}、\texttt{crcstate} 与 \texttt{crcfinal} 均给出，且输出 \texttt{Correct operation validated}，说明 Score 结果有效。表~\ref{tab:coremark_result} 中的 Total ticks、Total time、Iterations/Sec 与 CoreMark/MHz 均来自该上板 \texttt{5000} 次迭代输出；IPC、周期数与退役指令数来自 \texttt{ITERATIONS=1} 的 Vivado 仿真统计，不与 \texttt{5000} 次上板运行时间混合计算。
 
-\begin{table}[H]
+\begin{table}[htbp]
     \centering
     \caption{CoreMark 结果}
-    \begin{tabularx}{\textwidth}{lX}
+    \label{tab:coremark_result}
+    \begin{tabularx}{0.72\textwidth}{YY}
         \toprule
         指标 & 结果 \\
         \midrule
-        Iterations & \texttt{5000} \\
+        Score 采集方式 & FPGA 上板运行 UART 输出 \\
+        Score 迭代次数 & \texttt{5000} \\
         Total ticks & \texttt{1812106815} \\
         Total time & \texttt{18.121068 s} \\
         Iterations/Sec & \texttt{275.921925} \\
         CoreMark/MHz & \texttt{2.759219} \\
+        微架构统计方式 & Vivado testbench 仿真统计 \\
+        微架构统计迭代次数 & \texttt{1} \\
         IPC & \texttt{0.851} \\
-        Benchmark 窗口周期数 & \texttt{362458} \\
-        Benchmark 窗口退役指令数 & \texttt{308288} \\
+        仿真统计窗口周期数 & \texttt{362458} \\
+        仿真统计窗口退役指令数 & \texttt{308288} \\
         \bottomrule
     \end{tabularx}
 \end{table}
 
 \subsection{Dhrystone 与 DMIPS/MHz}
 
-Dhrystone 输出显示所有关键变量均与参考值一致，因此该次运行结果有效。DMIPS/MHz 按经典 Dhrystone 换算公式计算：
+Dhrystone 输出显示所有关键变量均与参考值一致，运行结果有效。单位频率性能按经典 Dhrystone 换算公式计算：
 \[
     \mathrm{DMIPS/MHz}=\frac{\mathrm{Dhrystones/s}}{1757\times f_{\mathrm{MHz}}}.
 \]
@@ -149,10 +176,10 @@ Dhrystone 输出显示所有关键变量均与参考值一致，因此该次运�
     \mathrm{DMIPS/MHz}=\frac{166000}{1757\times100}=0.9448\approx0.945.
 \]
 
-\begin{table}[H]
+\begin{table}[htbp]
     \centering
     \caption{Dhrystone 结果}
-    \begin{tabularx}{\textwidth}{lX}
+    \begin{tabularx}{0.62\textwidth}{YY}
         \toprule
         指标 & 结果 \\
         \midrule
@@ -171,10 +198,10 @@ Dhrystone 输出显示所有关键变量均与参考值一致，因此该次运�
 
 Embench-WikiSort 输出 \texttt{WS V=1 S=122.58}，其中 \texttt{V=1} 表示结果校验通过，\texttt{S=122.58} 为当前保存的 WikiSort score。该 benchmark 包含排序、比较、数据搬移和较复杂控制流，对分支预测、访存路径和数据相关处理压力较高，因此其 IPC 低于 CoreMark 与 Dhrystone。
 
-\begin{table}[H]
+\begin{table}[htbp]
     \centering
     \caption{Embench-WikiSort 结果}
-    \begin{tabularx}{\textwidth}{lX}
+    \begin{tabularx}{0.62\textwidth}{YY}
         \toprule
         指标 & 结果 \\
         \midrule
@@ -189,12 +216,12 @@ Embench-WikiSort 输出 \texttt{WS V=1 S=122.58}，其中 \texttt{V=1} 表示结
 
 \section{分支与跳转预测准确率}
 
-分支/跳转预测统计来自 CoreMark benchmark 窗口内的 testbench 统计。方向准确率表示控制流方向预测正确比例；目标准确率表示预测 taken 或跳转目标时目标地址正确比例；总体准确率为综合方向与目标后的控制流预测正确比例。
+分支/跳转预测统计采用 CoreMark 单次迭代 Vivado 仿真数据，区别于上板 5000 次迭代的 UART 性能输出。采用该口径是为了在合理仿真时间内获得周期级控制流事件统计。方向准确率表示控制流方向预测正确比例；目标准确率表示预测 taken 或跳转目标时目标地址正确比例；总体准确率为综合方向与目标后的控制流预测正确比例。
 
-\begin{table}[H]
+\begin{table}[htbp]
     \centering
-    \caption{CoreMark 分支与跳转预测统计}
-    \begin{tabularx}{\textwidth}{lcccc}
+    \caption{CoreMark 单次迭代仿真分支与跳转预测统计}
+    \begin{tabular}{ccccc}
         \toprule
         类型 & 执行次数 & 方向准确率 & 目标准确率 & 总体准确率 \\
         \midrule
@@ -204,7 +231,7 @@ Embench-WikiSort 输出 \texttt{WS V=1 S=122.58}，其中 \texttt{V=1} 表示结
         \midrule
         全部控制流指令 & \texttt{69660} & \texttt{88.43\%} & \texttt{99.99\%} & \texttt{88.43\%} \\
         \bottomrule
-    \end{tabularx}
+    \end{tabular}
 \end{table}
 
 总体 miss rate 为 \texttt{11.57\%}。由于 JAL 和 JALR 在当前程序中预测准确率很高，主要预测损失来自 B 型条件分支方向预测错误。
@@ -215,11 +242,11 @@ Embench-WikiSort 输出 \texttt{WS V=1 S=122.58}，其中 \texttt{V=1} 表示结
 
 当前版本在 \texttt{xc7a100tcsg324-1} 上完成 placed/post-route 实现，资源占用如表~\ref{tab:resource_usage} 所示。
 
-\begin{table}[H]
+\begin{table}[htbp]
     \centering
     \caption{FPGA 资源占用率}
     \label{tab:resource_usage}
-    \begin{tabularx}{\textwidth}{lccc}
+    \begin{tabular}{cccc}
         \toprule
         资源 & 使用量 & 器件总量 & 占用率 \\
         \midrule
@@ -229,7 +256,7 @@ Embench-WikiSort 输出 \texttt{WS V=1 S=122.58}，其中 \texttt{V=1} 表示结
         DSP & \texttt{4} & \texttt{240} & \texttt{1.67\%} \\
         Slice & \texttt{1261} & \texttt{15850} & \texttt{7.96\%} \\
         \bottomrule
-    \end{tabularx}
+    \end{tabular}
 \end{table}
 
 其中 LUT 主要用于流水线控制、译码、旁路、分支预测和总线/MMIO 控制；BRAM 用于 IMEM、DMEM 及相关存储结构；DSP 用于乘法相关数据路径。
@@ -238,11 +265,11 @@ Embench-WikiSort 输出 \texttt{WS V=1 S=122.58}，其中 \texttt{V=1} 表示结
 
 Post-route physical optimization 后的时序报告显示所有用户指定时序约束均满足。目标时钟为 \texttt{100 MHz}，周期 \texttt{10 ns}。关键时序结果如表~\ref{tab:timing_summary} 所示。
 
-\begin{table}[H]
+\begin{table}[htbp]
     \centering
     \caption{Post-route 时序结果}
     \label{tab:timing_summary}
-    \begin{tabularx}{\textwidth}{lX}
+    \begin{tabularx}{0.72\textwidth}{YY}
         \toprule
         指标 & 结果 \\
         \midrule
@@ -265,11 +292,11 @@ Post-route physical optimization 后的时序报告显示所有用户指定时�
 
 Vivado post-route 功耗报告给出的片上功耗与温度结果如表~\ref{tab:power_summary} 所示。功耗报告置信度为 \texttt{Medium}。
 
-\begin{table}[H]
+\begin{table}[htbp]
     \centering
     \caption{功耗与热结果}
     \label{tab:power_summary}
-    \begin{tabularx}{\textwidth}{lX}
+    \begin{tabularx}{0.62\textwidth}{YY}
         \toprule
         指标 & 结果 \\
         \midrule
@@ -284,10 +311,10 @@ Vivado post-route 功耗报告给出的片上功耗与温度结果如表~\ref{ta
     \end{tabularx}
 \end{table}
 
-\begin{table}[H]
+\begin{table}[htbp]
     \centering
     \caption{动态功耗组成}
-    \begin{tabularx}{\textwidth}{lcc}
+    \begin{tabular}{ccc}
         \toprule
         组成 & 功耗 & 资源/数量 \\
         \midrule
@@ -299,28 +326,28 @@ Vivado post-route 功耗报告给出的片上功耗与温度结果如表~\ref{ta
         DSPs & \texttt{0.001 W} & \texttt{4} \\
         I/O & \texttt{0.008 W} & \texttt{34} \\
         \bottomrule
-    \end{tabularx}
+    \end{tabular}
 \end{table}
 
 从资源和功耗分布看，当前设计在 \texttt{100 MHz} 下 LUT、FF 和 DSP 占用率较低，总片上功耗为 \texttt{0.329 W}，结温为 \texttt{26.5}$\,^{\circ}\mathrm{C}$，具有较大的热裕量。
 
 \section{优化前后性能差异}
 
-README 中记录了多个版本的 CoreMark、时序与 LUT 演进结果。表~\ref{tab:version_trend} 汇总了主要版本节点。早期 \texttt{3.22} 版本首次获得非零 CoreMark 结果，\texttt{3.23} 版本首次稳定跑通 CoreMark，后续通过前端压缩、访存路径优化、分支预测、跳转预测、M 扩展除法器、晚转发和控制路径模块化等优化逐步提升性能。
+README 中记录了多个版本的 CoreMark、时序与 LUT 演进结果。项目演进时采用git进行版本管理与版本关键指标记录。表~\ref{tab:version_trend} 汇总了主要版本节点。早期 \texttt{3.22} 版本首次获得非零 CoreMark 结果，\texttt{3.23} 版本首次稳定跑通 CoreMark，后续通过前端压缩、访存路径优化、分支预测、跳转预测、M 扩展除法器、晚转发和控制路径模块化等优化逐步提升性能。
 
-\begin{table}[H]
+\begin{table}[htbp]
     \centering
     \caption{版本演进对比}
     \label{tab:version_trend}
-    \begin{tabularx}{\textwidth}{lccccX}
+    \begin{tabularx}{\textwidth}{cccccY}
         \toprule
         版本 & CoreMark & 频率 & WNS & LUT & 主要变化 \\
         \midrule
-        3.22 & \texttt{91.1} & \texttt{100 MHz} & \texttt{1.015 ns} & \texttt{1775} & 早期可运行版本 \\
-        3.23 & \texttt{209.6} & \texttt{100 MHz} & \texttt{0.789 ns} & \texttt{2404} & CoreMark 首次稳定跑通，加入 DSP 乘法与 UART \\
-        3.29 & \texttt{209.6} & \texttt{100 MHz} & \texttt{0.930 ns} & \texttt{2078} & 增加 preif 与压缩前端机制 \\
+        3.22 & \texttt{91.1} & \texttt{100 MHz} & \texttt{1.015 ns} & \texttt{1775} & 早期可运行版本，标准五级流水线架构 \\
+        3.23 & \texttt{209.6} & \texttt{100 MHz} & \texttt{0.789 ns} & \texttt{2404} & CoreMark 首次稳定跑通，加入基于DSP使用的M扩展中乘法指令部分与 UART 输出\\
+        3.29 & \texttt{209.6} & \texttt{100 MHz} & \texttt{0.930 ns} & \texttt{2078} & 增加 PreIF 与压缩前端机制 \\
         4.03 & \texttt{222.6} & \texttt{100 MHz} & \texttt{0.637 ns} & \texttt{2017} & 调整访存路径与 stall 机制 \\
-        4.08 & \texttt{249.4} & \texttt{100 MHz} & \texttt{0.712 ns} & \texttt{2785} & 新增 16 项 Bimodal Branch Predictor \\
+        4.08 & \texttt{249.4} & \texttt{100 MHz} & \texttt{0.712 ns} & \texttt{2785} & 新增 16 项 Bimodal Branch Predictor 的简单分支预测功能\\
         4.10 & \texttt{259.2} & \texttt{100 MHz} & \texttt{0.119 ns} & \texttt{3257} & 优化分支预测并加入跳转预测 \\
         4.16 & \texttt{265.6} & \texttt{100 MHz} & \texttt{0.025 ns} & \texttt{2632} & 修正分支预测/预取，前移 MUL 操作数准备 \\
         4.21 & \texttt{267.7} & \texttt{100 MHz} & \texttt{0.024 ns} & \texttt{3247} & 支持 \texttt{RV32IM} 迭代除法器，BHT 扩展到 64 项 \\
@@ -338,10 +365,10 @@ README 中记录了多个版本的 CoreMark、时序与 LUT 演进结果。表~\
     \frac{275.9-91.1}{91.1}\times100\% \approx 202.9\%.
 \]
 
-\begin{table}[H]
+\begin{table}[htbp]
     \centering
     \caption{优化前后关键指标对比}
-    \begin{tabularx}{\textwidth}{lccc}
+    \begin{tabular}{cccc}
         \toprule
         指标 & 优化前版本 3.23 & 当前版本 4.26 & 变化 \\
         \midrule
@@ -350,21 +377,21 @@ README 中记录了多个版本的 CoreMark、时序与 LUT 演进结果。表~\
         WNS & \texttt{0.789 ns} & \texttt{0.050 ns} & 时序仍满足约束 \\
         LUT & \texttt{2404} & \texttt{3581} & \texttt{+49.0\%} \\
         \bottomrule
-    \end{tabularx}
+    \end{tabular}
 \end{table}
 
 该结果说明当前版本以一定 LUT 增量换取了明显的 CoreMark 性能提升，并在 \texttt{100 MHz} 下保持 post-route 时序收敛。
 
 \section{结论}
 
-当前版本 \texttt{SXQ-RV32IM CPU} 已在 \texttt{xc7a100tcsg324-1} FPGA 上完成实现，post-route 时序满足 \texttt{100 MHz} 约束。Benchmark 方面，CoreMark 达到 \texttt{275.921925 Iter/s}，Dhrystone 达到 \texttt{166000 Dhrystones/s}、即 \texttt{0.945 DMIPS/MHz}，Embench-WikiSort 得分为 \texttt{122.58}。CoreMark 窗口内总体控制流预测准确率为 \texttt{88.43\%}，JAL/JALR 预测准确率接近完全正确，主要预测损失来自 B 型条件分支方向预测。
+当前版本 \texttt{SXQ-RV32IM CPU} 已在 \texttt{xc7a100tcsg324-1} FPGA 上完成实现，post-route 时序满足 \texttt{100 MHz} 约束。Benchmark 方面，CoreMark 上板 \texttt{5000} 次迭代运行达到 \texttt{275.921925 Iter/s}，Dhrystone 达到 \texttt{166000 Dhrystones/s}、即 \texttt{0.945 DMIPS/MHz}，Embench-WikiSort 得分为 \texttt{122.58}。CoreMark 单次迭代仿真窗口内 IPC 为 \texttt{0.851}，总体控制流预测准确率为 \texttt{88.43\%}；JAL/JALR 预测准确率接近完全正确，主要预测损失来自 B 型条件分支方向预测。
 
 FPGA 资源方面，当前设计占用 \texttt{3581} 个 LUT、\texttt{2741} 个 FF、\texttt{16} 个 BRAM Tile 和 \texttt{4} 个 DSP，LUT 占用率仅 \texttt{5.65\%}。功耗方面，总片上功耗为 \texttt{0.329 W}，动态功耗为 \texttt{0.231 W}，结温为 \texttt{26.5}$\,^{\circ}\mathrm{C}$。综合来看，当前版本在较低资源与功耗开销下实现了较高的单发射流水线性能，并通过 benchmark 与 FPGA 实现报告形成了较完整的验证闭环。
 
 \appendix
 \section{Benchmark 原始输出}
 
-以下内容直接摘录自当前工程中的 \texttt{docs/benchmark\_raw\_results.md}。
+以下内容直接摘录自当前工程中的 \texttt{docs/benchmark\_raw\_results.md}。其中 CoreMark 官方 Score 输出来自 \texttt{ITERATIONS=5000} 的 FPGA 上板 UART 运行结果；紧随其后的 \texttt{TBIPC} 与 \texttt{TBPRED} 行来自单独的 \texttt{ITERATIONS=1} Vivado 仿真，用于记录周期数、退役指令数、IPC 与跳转分支预测准确率。二者服务于不同验证目的，报告中不将单次迭代仿真周期数用于反推 \texttt{5000} 次上板 Score。
 
 \begin{Verbatim}[fontsize=\small,breaklines=true]
 # Benchmark Summary
@@ -469,5 +496,3 @@ WS V=1 S=122.58
 \end{Verbatim}
 
 \end{document}
-
-
