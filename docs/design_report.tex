@@ -576,7 +576,6 @@
     \texttt{mem\_ctrl\_resolve.v} & MEM 级控制流晚解析，利用 load 返回数据重新计算 Branch 方向或 \texttt{JALR} 目标，并产生必要重定向 \\
     \texttt{forwarding.v} & ID 阶段源操作数前递选择，按 EX、MEM、WB 优先级解决普通 RAW 相关 \\
     \texttt{regs.v} & 32 个通用寄存器实现，支持双读单写，并保持 \texttt{x0} 恒为 0 \\
-    \texttt{pipeline\_stall.v} & 通用 load-use 阻塞检测模块，当前顶层主要由 \texttt{ctrl\_late\_detect.v} 集成等价阻塞逻辑 \\
     \texttt{mul\_unit.v / div\_unit.v} & RV32M 乘除法单元，分别实现 DSP 分块乘法与迭代式除法/取余 \\
     \texttt{bus\_interconnect.v} & 数据访问总线互连，根据地址选择 IMEM、DMEM 或 MMIO 从设备，并返回对应读数据与应答 \\
     \texttt{imem.v / dmem.v} & 指令存储器与数据存储器，均基于片上 BRAM 实现，分别承担程序加载、取指、数据读写与字节/半字扩展 \\
@@ -742,19 +741,19 @@ Benchmark 汇总结果如表~\ref{tab:validation_benchmark_summary} 所示。需
     \mathrm{IPC}=\frac{I}{C}.
 \]
 
-\begin{table}[H]
+\begin{table}[htbp]
     \centering
     \caption{Benchmark 汇总结果}
-    \label{tab:validation_benchmark_summary}
-    \begin{tabularx}{\textwidth}{lccccX}
+    \label{tab:benchmark_summary}
+    \begin{tabular}{ccccc}
         \toprule
-        Benchmark & Score & IPC & 周期数 C & 退役指令数 I & 有效性说明 \\
+        Benchmark & Score & IPC & 周期数 C & 退役指令数 I \\
         \midrule
-        CoreMark & \texttt{275.921925 Iter/s} & \texttt{0.851} & \texttt{362458} & \texttt{308288} & Score 为上板 \texttt{5000} 次迭代结果；C/I/IPC 为 \texttt{1} 次迭代仿真统计 \\
-        Dhrystone & \texttt{166000 Dhrystones/s} & \texttt{0.907} & \texttt{1081810} & \texttt{980993} & 输出变量与参考值一致 \\
-        Embench-WikiSort & \texttt{122.58} & \texttt{0.786} & \texttt{2965138} & \texttt{2330989} & \texttt{WS V=1}，校验通过 \\
+        CoreMark & \texttt{275.921925 Iter/s} & \texttt{0.851} & \texttt{362458} & \texttt{308288} \\
+        Dhrystone & \texttt{166000 Dhrystones/s} & \texttt{0.907} & \texttt{1081810} & \texttt{980993} \\
+        Embench-WikiSort & \texttt{122.58} & \texttt{0.786} & \texttt{2965138} & \texttt{2330989} \\
         \bottomrule
-    \end{tabularx}
+    \end{tabular}
 \end{table}
 
 其中，CoreMark Score 使用 \texttt{5000} 次上板迭代，运行时间为 \texttt{18.121068 s}，达到 \texttt{275.921925 Iter/s}，折合 \texttt{2.759219 CoreMark/MHz}；表中的 CoreMark IPC、周期数和退役指令数则来自 \texttt{1} 次迭代仿真，不用于反推 \texttt{5000} 次上板运行时间。Dhrystone 达到 \texttt{166000 Dhrystones/s}，按 \(\mathrm{DMIPS/MHz}=\mathrm{Dhrystones/s}/(1757\times f_{\mathrm{MHz}})\) 计算为 \texttt{0.945 DMIPS/MHz}；Embench-WikiSort 输出 \texttt{WS V=1 S=122.58}，说明排序 benchmark 结果校验通过。
