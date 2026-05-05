@@ -10,6 +10,7 @@
 \usepackage{multirow}
 \usepackage{caption}
 \usepackage{subcaption}
+\usepackage{xurl}
 \usepackage{hyperref}
 \usepackage{xcolor}
 \usepackage{enumitem}
@@ -31,6 +32,7 @@
 \fancyhead[R]{\thepage}
 \renewcommand{\headrulewidth}{0.4pt}
 \setlength{\headheight}{15pt}
+\setlength{\emergencystretch}{3em}
 
 \titleformat{\section}{\Large\bfseries}{\thesection}{0.8em}{}
 \titleformat{\subsection}{\large\bfseries}{\thesubsection}{0.8em}{}
@@ -56,7 +58,7 @@
     \vspace{2.2cm}
     \begin{tabular}{p{3.6cm}p{9.2cm}}
         \zihao{4}\heiti 报告类型： & \zihao{4}\heiti 设计报告 \\[0.55cm]
-        \zihao{4}\heiti 参赛杯赛： & \zihao{4}\heiti 七星微杯 \\[0.55cm]
+        \zihao{4}\heiti 参赛杯赛： & \zihao{4}\heiti “七星微”企业命题 \\[0.55cm]
         \zihao{4}\heiti 作品名称： & \zihao{4}\heiti RV32IM 低面积低功耗高性能中央处理器设计与 FPGA 实现 \\[0.55cm]
         \zihao{4}\heiti 队伍编号： & \zihao{4}\heiti CICC1003857 \\[0.55cm]
         \zihao{4}\heiti 团队名称： & \zihao{4}\heiti 时序泉队 \\
@@ -82,9 +84,9 @@
     \centering
     \begin{tabular}{|c|c|c|}\hline
  跳转分支指令类型& 跳转分支是否执行判断方式&跳转分支目标地址判断方式\\\hline\hline
-         Jump Type(Jal)&  全部Taken& 直算(PC + IMM)\\\hline
-         Jump Type(Jalr)&  全部Taken& JTB / RAS\\\hline
-         Branch Type&  BHT(2BC) / BTFNT& 直算(PC + IMM)\\ \hline
+         Jump Type(\texttt{JAL})&  全部 Taken& 直算(PC + IMM)\\\hline
+         Jump Type(\texttt{JALR})&  全部 Taken& JTB / RAS\\\hline
+         Branch Type&  BHT (2BC) / BTFNT& 直算(PC + IMM)\\ \hline
     \end{tabular}
     \caption{跳转分支预测模式表}
 \end{table}
@@ -118,8 +120,8 @@
           \midrule
           BenchMark评分 & CoreMark & \texttt{275.9 Iterations / sec} \\
            &  & \texttt{2.759 Iterations / MHz} \\
-           & Dhrystone & \texttt{166000 Dhrystone/Sec}\\
- & &\texttt{0.945 DMIPS/MHz}\\
+           & Dhrystone & \texttt{166000 Dhrystone / sec}\\
+ & &\texttt{0.945 DMIPS / MHz}\\
            & Embench-wikisort & \texttt{122.58} \\
           \midrule
           预测统计(CoreMark) & JAL 方向预测准确率 & \texttt{100.00\%} \\
@@ -182,7 +184,7 @@
   \end{table}
 
 \paragraph{存储访问与 MMIO 范围}
-    本设计采用独立的指令存储器、数据存储器与 MMIO 外设地址空间。IMEM 与 DMEM 均使用片上 BRAM 实现，当前容量均为 \texttt{32KiB}。地址划分如表~\ref{tab:mem_map} 所示，MMIO 寄存器映射如表~\ref{tab:mmio_map} 所示。具备一条基于Wishbone协议的总线，用于连接各类设备。
+    本工程采用独立的指令存储器、数据存储器与 MMIO 外设地址空间。IMEM 与 DMEM 均使用片上 BRAM 实现，当前容量均为 \texttt{32KiB}。地址划分如表~\ref{tab:mem_map} 所示，MMIO 寄存器映射如表~\ref{tab:mmio_map} 所示。同时，工程具备一条基于 Wishbone 协议的总线，用于连接各类设备。
 
     \begin{table}[H]
         \centering
@@ -195,12 +197,12 @@
             IMEM
             & \texttt{0x00000000}
             & \texttt{0x00000000--0x00007FFF}
-            & 指令存储器，\texttt{8192} 个 32 位字（32KB），由 \texttt{imem.mem} 初始化 \\
+            & 指令存储器，\texttt{8192} 个 32 位字（32KiB），由 \texttt{imem.mem} 初始化 \\
 
             DMEM
             & \texttt{0x00010000}
             & \texttt{0x00010000--0x00017FFF}
-            & 数据存储器，\texttt{8192} 个 32 位字（32KB），支持字节、半字、字访问 \\
+            & 数据存储器，\texttt{8192} 个 32 位字（32KiB），支持字节、半字、字访问 \\
 
             MMIO
             & \texttt{0xF0000000}
@@ -253,23 +255,24 @@
 \subsection{前端架构与前端架构创新机制}
 \subsubsection{动态压缩前端机制}
 \paragraph{动态压缩前端机制的引入背景}
-    对于标准五级流水线架构，当指令运行出现控制冲突时，往往用冲刷流水线（Pipeline Flush）的方式来解决冲突。然而，每次Flush都必然将2条跳转分支指令的后续指令无效化，须于两个周期之后方有指令重新进入EX阶段，最终会致使两个周期的浪费。\\
-    因而，较为高性能的处理器一般都会引入跳转分支预测机制，通过此机制，当指令进入IF阶段时便开始判断是否要发生跳转/要跳转到哪个地址，从而使跳转分支指令与目标指令“无缝衔接”，节省下来Flush的2个周期。（图~\ref{fig:5stagepipelineflushandbp}）
+    对于标准五级流水线架构，当指令运行出现控制冲突时，往往用冲刷流水线（Pipeline Flush）的方式来解决冲突。然而，每次Flush都必然将2条跳转分支指令的后续指令无效化，须于两个周期之后方有指令重新进入EX阶段，最终会致使两个周期的浪费。\par\indent
+    因而，较为高性能的处理器一般都会引入跳转分支预测机制，通过此机制，当指令进入IF阶段时便开始判断是否要发生跳转 / 要跳转到哪个地址，从而使跳转分支指令与目标指令“无缝衔接”，节省下来Flush的2个周期。（图~\ref{fig:5stagepipelineflushandbp}）
     \begin{figure}[H]
         \centering
         \includegraphics[width=0.9\linewidth]{figures/pipeline_flush_branch_prediction.png}
         \caption{标准五级流水线的跳转分支Flush机制与跳转分支预测机制流水线示意图}
         \label{fig:5stagepipelineflushandbp}
     \end{figure}
-    常用跳转分支预测有静态预测All Taken、BTFNT，动态预测Bimodal BP、PAp、PAg、GAp、GAg、GSELECT、GSHARE、TAGE等多种实现方法，然而，其绝大部分高性能实现均需要构建维护较大数据表，如BTB、BHT、PHT、GHT等，使得资源消耗与功率消耗翻倍。而之所以其涉及资源较多，又往往是因为需要记录完整跳转地址，或是为缓解仅用PC或PC与历史模式哈希得到索引导致的别名问题。因而，若可以用低资源消耗的其他方式轻易得知跳转分支目标地址，并且引入更多信息加入索引哈希，便可以在低资源消耗的情况下，获得更好的跳转分支预测准确率。\\
-    最好的方法其实便是在跳转分支预测的周期（即指令的IF阶段）就取得指令本身，并将指令本身加入预测，因为指令本身便隐含了指令类型、跳转分支偏置、比较寄存器等多种信息。但是，由于该设计使用Dual Port BRAM实现IMEM，故读IMEM至少会有1拍的固定延迟。对于本设计最开始的五级流水线版本设计来说，只能在IF的当拍将访问地址输入IMEM，并在下一拍拿到指令（为省下周期，本设计IMEM访问时不停止流水线，直接将这一拍当成等同于IF/ID寄存器的一拍来使用，将第IF+1周期得到的指令直传ID），从而错过IF阶段的跳转分支预测。（图~\ref{fig:5stagepipelineinstructionfetch}）
+    常用跳转分支预测有静态预测All Taken、BTFNT，动态预测Bimodal BP、PAp、PAg、GAp、GAg、GSELECT、GSHARE、TAGE等多种实现方法，然而，其绝大部分高性能实现均需要构建维护较大数据表，如BTB、BHT、PHT、GHT等，使得资源消耗与功率消耗翻倍。而之所以其涉及资源较多，又往往是因为需要记录完整跳转地址，或是为缓解仅用PC或PC与历史模式哈希得到索引导致的别名问题。因而，若可以用低资源消耗的其他方式轻易得知跳转分支目标地址，并且引入更多信息加入索引哈希，便可以在低资源消耗的情况下，获得更好的跳转分支预测准确率。\par\indent
+    最好的方法其实便是在跳转分支预测的周期（即指令的IF阶段）就取得指令本身，并将指令本身加入预测，因为指令本身便隐含了指令类型、跳转分支偏置、比较寄存器等多种信息。但是，由于本工程使用Dual Port BRAM实现IMEM，故读IMEM至少会有1拍的固定延迟。对于本项目早期五级流水线版本来说，只能在IF的当拍将访问地址输入IMEM，并在下一拍拿到指令（为省下周期，本工程IMEM访问时不停止流水线，直接将这一拍当成等同于IF/ID寄存器的一拍来使用，将第IF+1周期得到的指令直传ID），从而错过IF阶段的跳转分支预测。（图~\ref{fig:5stagepipelineinstructionfetch}）
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.6\linewidth]{figures/five_stage_instruction_fetch.png}
     \caption{五级流水线下的取指过程示意图}
     \label{fig:5stagepipelineinstructionfetch}
 \end{figure}
-为解决此问题，一个方案是让取指过程可以在1个周期内完成，典型实现便是使用LUTRAM构建一个ICache，即指令缓存。然而，ICache逻辑复杂，且需要将指令总线支持位宽扩充，将会引入更多资源消耗。并且LUTRAM读取也具有较长的时序路径，极有可能在100MHz下导致时序违例。\\另一个方案则是加深一级流水线，在IF级之前加入一级PreIF（Pre-Instruction-Fetch），将访问IMEM移至PreIF阶段，IF则负责接收IMEM吐出的指令。采取这种方法可以基本保持资源使用不变，并大大缩短所需时序路径。但加深流水，必然意味着跳转分支预测的代价变大了，将会从原先五级流水线的Flush 2拍变成Flush 3拍（图~\ref{fig:6stagepipelineandflush}），在减少周期损失上不一定合算。因此，本设计创新设计并使用了\textbf{\textit{动态前端压缩机制}}，使得在确保跳转分支预测可以具备指令本身的信息的同时，保持资源消耗基本不变，并使Flush代价与标准五级流水线无异。
+为解决此问题，一个方案是让取指过程可以在1个周期内完成，典型实现便是使用LUTRAM构建一个ICache，即指令缓存。然而，ICache逻辑复杂，且需要将指令总线支持位宽扩充，将会引入更多资源消耗。并且LUTRAM读取也具有较长的时序路径，极有可能在100MHz下导致时序违例。\par\indent
+另一个方案则是加深一级流水线，在IF级之前加入一级PreIF，将访问IMEM移至PreIF阶段，IF则负责接收IMEM吐出的指令。采取这种方法可以基本保持资源使用不变，并大大缩短所需时序路径。但加深流水，必然意味着跳转分支预测的代价变大了，将会从原先五级流水线的Flush 2拍变成Flush 3拍（图~\ref{fig:6stagepipelineandflush}），在减少周期损失上不一定合算。因此，本项目提出并采用了\textbf{\textit{动态前端压缩机制}}，使得在确保跳转分支预测可以具备指令本身的信息的同时，保持资源消耗基本不变，并使Flush代价与标准五级流水线无异。
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.97\linewidth]{figures/six_stage_instruction_fetch_flush.png}
@@ -277,7 +280,8 @@
     \label{fig:6stagepipelineandflush}
 \end{figure}
 \paragraph{动态压缩前端机制}
-为解决上述问题，本设计创新设计并使用动态前端压缩机制，使流水线深度可以在五、六级间视条件动态调节。一般情形时，流水线为六级流水线，完成PreIF - IF - ID - EX - MEM - WB，其中IF阶段进行跳转分支预测。而当程序从头开始运行，或发生跳转（包含标准情形EX阶段引发的跳转、跳转分支预测提前引发的跳转、预测错误导致EX阶段发生的重定向跳转）时，调节相关控制信号，使得流水线前端由PreIF - IF - ID压缩为PreIF - ID，退变为五级流水线，即PreIF访问IMEM的下一拍，IMEM吐出的指令直接跳过IF转发给ID阶段。\\同时，为了减少因为缺少IF阶段而不能结合指令本身进行分支预测的指令数，当发生前端压缩的时候，需要利用BRAM的双口特性，同时使用IMEM的32位宽取指端口和32位宽读数据端口，一次性读出两条指令，即本条触发前端压缩的指令以及本条指令的下一条正常非压缩指令。（图~\ref{fig:dynamicstagesnumberpipeline}）
+为解决上述问题，本项目提出并采用动态前端压缩机制，使流水线深度可以在五、六级间视条件动态调节。一般情形时，流水线为六级流水线，完成PreIF - IF - ID - EX - MEM - WB，其中IF阶段进行跳转分支预测。而当程序从头开始运行，或发生跳转（包含标准情形EX阶段引发的跳转、跳转分支预测提前引发的跳转、预测错误导致EX阶段发生的重定向跳转）时，调节相关控制信号，使得流水线前端由PreIF - IF - ID压缩为PreIF - ID，退变为五级流水线，即PreIF访问IMEM的下一拍，IMEM吐出的指令直接跳过IF转发给ID阶段。\par\indent
+同时，为了减少因为缺少IF阶段而不能结合指令本身进行分支预测的指令数，当发生前端压缩的时候，需要利用BRAM的双口特性，同时使用IMEM的32位宽取指端口和32位宽读数据端口，一次性读出两条指令，即本条触发前端压缩的指令以及本条指令的下一条正常非压缩指令。（图~\ref{fig:dynamicstagesnumberpipeline}）
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.97\linewidth]{figures/dynamic_frontend_compression.png}
@@ -288,7 +292,7 @@
 
 \subsubsection{特殊设计的低资源跳转分支预测机制}
 \paragraph{低资源跳转分支预测机制的引入背景}
-    在前文所述的动态压缩前端机制基础上，本设计能够在 IF 阶段取得指令本身，并在预测发生前获得指令类型、立即数字段与寄存器编号等信息。因此，跳转分支预测不必仅依赖 PC 或历史状态表，也可以利用指令编码中携带的结构化信息进行分类处理。\\
+    在前文所述的动态压缩前端机制基础上，本设计能够在 IF 阶段取得指令本身，并在预测发生前获得指令类型、立即数字段与寄存器编号等信息。因此，跳转分支预测不必仅依赖 PC 或历史状态表，也可以利用指令编码中携带的结构化信息进行分类处理。\par\indent
     对于 RISC-V 控制流指令，不同指令的方向确定性与目标地址来源并不相同。\texttt{JAL} 指令语义上恒为 Taken，目标地址由 PC 与 J 型立即数相加得到；B 型条件分支的目标地址同样由 PC 与 B 型立即数相加得到，但方向需要预测；\texttt{JALR} 的目标地址依赖寄存器值，前端无法仅凭指令字段直接得到真实目标。若使用统一的大容量 BTB 覆盖全部控制流指令，会对可直接计算目标地址的指令重复保存目标地址，并引入额外的查表、比较和目标选择路径。基于此，本设计按控制流指令的语义特征拆分预测路径：\texttt{JAL} 直接计算目标地址，B 型分支使用 Tagged BHT 预测方向，返回类 \texttt{JALR} 使用 RAS 预测目标，非返回类 \texttt{JALR} 使用小容量 JTB 缓存目标地址。\\
     \begin{table}[H]
         \centering
@@ -296,14 +300,15 @@
             跳转分支指令类型 & 跳转分支是否执行判断方式 & 跳转分支目标地址判断方式 \\\hline\hline
             Jump Type(\texttt{JAL}) & 全部 Taken & 直算(PC + IMM) \\\hline
             Jump Type(\texttt{JALR}) & 全部 Taken & JTB / RAS \\\hline
-            Branch Type & BHT(2BC) / BTFNT & 直算(PC + IMM) \\\hline
+            Branch Type & BHT (2BC) / BTFNT & 直算(PC + IMM) \\\hline
         \end{tabular}
         \caption{跳转分支预测模式表}
     \end{table}
     这种分类预测方式将可直接确定的信息保留在组合逻辑中处理，将前端无法直接获得的信息交由小容量预测结构维护，从而在较低资源消耗和较短查找路径下获得较好的控制流预测效果。
 
-\paragraph{低资源跳转分支预测机制概述}
-    本设计的预测机制由指令分类单元、目标地址计算单元、Branch Predictor、Jump Predictor 以及 Return Address Stack 共同构成。PreIF 阶段发起对 IMEM 的访问，下一拍 IF 阶段取回对应指令；随后，前端进行轻量级预解码，首先基于 \texttt{instr[6:2]} 判断指令是否属于 Branch、\texttt{JAL} 或 \texttt{JALR}，再根据 \texttt{rd} 与 \texttt{rs1} 编号识别 Call 与 Ret。Call 由跳转指令写回寄存器是否为 \texttt{x1} 或 \texttt{x5} 判断；Ret 的判定条件为 \texttt{JALR}、\texttt{rd=x0}、\texttt{rs1=x1/x5} 且立即数为 0。\\
+\paragraph{低资源跳转分支预测机制}
+    本设计的预测机制由指令分类单元、目标地址计算单元、Branch Predictor、Jump Predictor 以及 Return Address Stack 共同构成。PreIF 阶段发起对 IMEM 的访问，下一拍 IF 阶段取回对应指令；随后，前端进行轻量级预解码，首先基于 \texttt{instr[6:2]} 判断指令是否属于 Branch、\texttt{JAL} 或 \texttt{JALR}，再根据 \texttt{rd} 与 \texttt{rs1} 编号识别 Call 与 Ret。\par\indent
+    Call 由跳转指令写回寄存器是否为 \texttt{x1} 或 \texttt{x5} 判断；Ret 的判定条件为 \texttt{JALR}、\texttt{rd=x0}、\texttt{rs1=x1 / x5} 且立即数为 0。\par\indent
     分类结果作为后续预测结构的门控信号与目标地址仲裁信号：Branch 控制 BHT 查找是否有效；\texttt{JAL} 触发直接目标地址计算；Ret 选择 RAS 作为 \texttt{JALR} 目标来源；非 Ret 的 \texttt{JALR} 进入 JTB 预测路径。各模块在前端控制逻辑仲裁下决定下一拍取指地址，并在后端真实执行结果返回后完成状态更新，整体分类关系与分类单元结构分别见（图~\ref{fig:JBInstructionClassification}）（图~\ref{fig:JBInstructionClassificationUnit}）。
     \begin{figure}[H]
         \centering
@@ -330,7 +335,7 @@
     \[
         target_{br} = PC + B_{\mathrm{imm}}
     \]
-    Branch Predictor 只负责方向预测，不保存分支目标地址，结构见（图~\ref{fig:Branch}）。当前实现采用 64 项 Tagged BHT，每个表项包含有效位、Tag 与 2-bit 饱和计数器。若当前指令确认为 Branch、目标表项有效且 Tag 匹配，则 BHT 命中，并使用计数器高位作为 Taken/Not Taken 预测结果；若 BHT 未命中，则采用 BTFNT 静态回退策略，即后向分支预测 Taken、前向分支预测 Not Taken。其方向预测可概括为：
+    Branch Predictor 只负责方向预测，不保存分支目标地址，结构见（图~\ref{fig:Branch}）。当前实现采用 64 项 Tagged BHT，每个表项包含有效位、Tag 与 2-bit 饱和计数器。若当前指令确认为 Branch、目标表项有效且 Tag 匹配，则 BHT 命中，并使用计数器高位作为 Taken / Not Taken 预测结果；若 BHT 未命中，则采用 BTFNT 静态回退策略，即后向分支预测 Taken、前向分支预测 Not Taken。其方向预测可概括为：
     \[
         pred_{br} =
         \begin{cases}
@@ -357,7 +362,7 @@
         \label{fig:Branch}
     \end{figure}
 \subparagraph{\texttt{JALR}跳转预测}
-    对于 \texttt{JALR} 指令，其目标地址依赖寄存器值，因此目标地址计算单元不直接由立即数生成目标，而是在 RAS 与 JTB 之间选择预测来源。返回类 \texttt{JALR} 满足 \texttt{rd=x0}、\texttt{rs1=x1/x5} 且立即数为 0；若当前 \texttt{JALR} 被识别为 Ret，则使用 RAS 当前栈顶作为预测目标；若为非 Ret，则在 JTB 命中时使用 JTB 给出的历史目标地址，未命中时不提前跳转，而是等待后端解析真实目标后进行重定向恢复。
+    对于 \texttt{JALR} 指令，其目标地址依赖寄存器值，因此目标地址计算单元不直接由立即数生成目标，而是在 RAS 与 JTB 之间选择预测来源。返回类 \texttt{JALR} 满足 \texttt{rd=x0}、\texttt{rs1=x1 / x5} 且立即数为 0；若当前 \texttt{JALR} 被识别为 Ret，则使用 RAS 当前栈顶作为预测目标；若为非 Ret，则在 JTB 命中时使用 JTB 给出的历史目标地址，未命中时不提前跳转，而是等待后端解析真实目标后进行重定向恢复。
     \begin{figure}[H]
         \centering
         \includegraphics[width=1\linewidth]{figures/return_address_stack.png}
@@ -374,7 +379,7 @@
     \[
         target_{ret} = ras\_top
     \]
-    在动态压缩前端机制下，前端可能同时观察 slot0 与 slot1 两个候选指令。为避免 slot1 的返回预测受 slot0 Call/Ret 影响，RAS 生成 shadow 形式的 slot1 栈顶结果，使 slot1 基于“slot0 生效后的前瞻栈状态”进行 Ret 目标预测。若 slot0 是 Call，则 slot1 看到的栈顶等价于压入 \texttt{slot0 PC+4} 后的结果；若 slot0 是 Ret，则 slot1 看到的栈顶等价于弹出一层后的结果。该 shadow 结果只用于前端预测，不提前修改真实 RAS 状态。\\
+    在动态压缩前端机制下，前端可能同时观察 slot0 与 slot1 两个候选指令。为避免 slot1 的返回预测受 slot0 Call / Ret 影响，RAS 生成 shadow 形式的 slot1 栈顶结果，使 slot1 基于“slot0 生效后的前瞻栈状态”进行 Ret 目标预测。若 slot0 是 Call，则 slot1 看到的栈顶等价于压入 \texttt{slot0 PC+4} 后的结果；若 slot0 是 Ret，则 slot1 看到的栈顶等价于弹出一层后的结果。该 shadow 结果只用于前端预测，不提前修改真实 RAS 状态。\par\indent
     对于非返回类 \texttt{JALR}，Jump Predictor 采用 8 项直接映射 JTB 实现，结构见（图~\ref{fig:JALR}），每个表项包含有效位、Tag 与目标地址。当前 \texttt{IMEM\_ADDR\_BITS=15}、\texttt{JTB\_INDEX\_BITS=3}，因此 JTB 的索引与标签由 \texttt{JALR} 指令 PC 的低 15 位生成：
     \[
         idx_{jtb} = PC[4:2] \qquad tag_{jtb} = PC[14:5]
@@ -386,7 +391,7 @@
     各预测结构均以后端真实执行结果为更新依据：条件分支更新 BHT，非返回类 \texttt{JALR} 更新 JTB，Call 与 Ret 更新 RAS。真实 RAS 更新只在后端确认路径执行，真实 Call 压栈，真实 Ret 弹栈。若 MEM 阶段存在更老的晚解析控制流结果，则优先使用 MEM 路径更新；否则，在不存在更老预测错误冲刷时使用 EX 路径更新。该“晚决策优先”策略用于避免错误路径或尚未确认路径污染 BHT、JTB 与 RAS 状态。
 
 \paragraph{小结}
-    总体而言，本设计没有使用单一复杂预测器覆盖所有控制流指令，而是依据目标地址来源进行分类处理：可直接计算的目标不进入目标缓存，条件分支仅使用BHT/BTFNT预测方向，函数返回使用 RAS，普通JALR跳转使用小容量 JTB，其他JAL直算跳转。该机制与动态压缩前端配合，在较低资源开销下减少控制流恢复代价，并降低大表结构对时序路径和片上资源的压力。
+    总体而言，本设计没有使用单一复杂预测器覆盖所有控制流指令，而是依据目标地址来源进行分类处理：可直接计算的目标不进入目标缓存，条件分支仅使用 BHT / BTFNT 预测方向，函数返回使用 RAS，普通 \texttt{JALR} 跳转使用小容量 JTB，其他 \texttt{JAL} 直算跳转。该机制与动态压缩前端配合，在较低资源开销下减少控制流恢复代价，并降低大表结构对时序路径和片上资源的压力。
     \begin{figure}[H]
         \centering
         \includegraphics[width=0.8\linewidth]{figures/branch_prediction_summary.png}
@@ -394,7 +399,7 @@
         \label{fig:JBPSummary}
     \end{figure}
 
-    为进一步验证上述分类预测机制的实际效果，本设计以 \texttt{ITERATIONS=1} 的 CoreMark 仿真运行窗口为样本，对不同控制流类型的方向预测与目标预测准确率进行了统计，结果见表~\ref{tab:branch_prediction_accuracy}。该统计不来自 \texttt{ITERATIONS=5000} 的上板 UART 性能输出，而是来自 testbench 在单次迭代仿真中的周期级事件计数。从统计结果可以看出，\texttt{JAL} 与 Branch 的目标地址由于均由 \texttt{PC+IMM} 直接计算，因此目标预测准确率达到 \texttt{100.00\%}；\texttt{JALR} 的目标预测主要由 RAS 与 JTB 提供，仍保持了较高准确率。总体而言，该预测结构在避免大容量 BTB 等复杂结构的前提下，实现了较好的控制流预测效果。
+    为进一步验证上述分类预测机制的实际效果，本设计以 \texttt{ITERATIONS=1} 的 CoreMark 仿真运行窗口为样本，对不同控制流类型的方向预测与目标预测准确率进行了统计，结果见表~\ref{tab:branch_prediction_accuracy}。该统计不来自 \texttt{ITERATIONS=5000} 的上板 UART 性能输出，而是来自 \texttt{testbench} 在单次迭代仿真中的周期级事件计数。从统计结果可以看出，\texttt{JAL} 与 Branch 的目标地址由于均由 \texttt{PC+IMM} 直接计算，因此目标预测准确率达到 \texttt{100.00\%}；\texttt{JALR} 的目标预测主要由 RAS 与 JTB 提供，仍保持了较高准确率。总体而言，该预测结构在避免大容量 BTB 等复杂结构的前提下，实现了较好的控制流预测效果。
     \begin{table}[H]
         \centering
         \caption{CoreMark 单次迭代仿真跳转分支预测准确率统计}
@@ -405,7 +410,7 @@
             \midrule
             \texttt{JAL} & \texttt{100.00\%} & \texttt{100.00\%} \\
             \texttt{JALR} & \texttt{100.00\%} & \texttt{99.91\%} \\
-            Branch & \texttt{87.06\%} & \texttt{100.00\%} \\
+            \texttt{Branch} & \texttt{87.06\%} & \texttt{100.00\%} \\
             \midrule
             总体 & \multicolumn{2}{c}{\texttt{88.43\%}} \\
             \bottomrule
@@ -502,7 +507,8 @@
     最终，本设计形成了一种仅针对 Branch 与 \texttt{JALR} 的 load-use 晚转发/晚解析机制：ID 级识别控制类 load-use 相关并取消普通停顿，MEM 级利用 load 返回数据完成真实控制流解析与必要重定向。该机制以少量标记位、比较逻辑和 \texttt{JALR} 目标加法为代价，减少了控制类 load-use 场景的无效阻塞，同时避免在 ID/EX 关键路径上叠加额外长组合逻辑，在性能收益、资源开销和时序压力之间取得了较好的折中。
 
 \subsection{乘法器、除法器与长延迟单元}
-    本设计支持 \texttt{RV32M} 乘除法扩展，其中乘法与除法均作为执行级长延迟单元接入。ID 阶段识别到乘法或除法类指令后，在不存在冲刷、短阻塞和长保持的条件下产生 \texttt{id\_mul\_preload} 或 \texttt{id\_div\_preload}，将操作数提前送入对应执行单元。这样可以使长延迟单元尽早开始工作，减少由译码到执行之间的额外等待。
+    本设计支持 \texttt{RV32M} 乘除法扩展，其中乘法与除法均作为执行级长延迟单元接入。ID 阶段识别到乘法或除法类指令后，在不存在冲刷、短阻塞和长保持的条件下产生 \texttt{id\_mul\_preload} 或 \texttt{id\_div\_preload}，将操作数提前送入对应执行单元。\par\indent
+    这样可以使长延迟单元尽早开始工作，减少由译码到执行之间的额外等待。
 
     对于 FPGA 平台上的乘法实现，标准方案通常是在指令进入 EX 阶段后再启动 DSP 乘法单元，随后等待 DSP 内部寄存与部分积组合逻辑给出结果。这种方式结构直观，但在单发射顺序流水线中会带来两个问题：其一，DSP 乘法本身具有固定多拍延迟，容易直接转化为 \texttt{pipeline\_hold}；其二，若等到 EX 阶段才装载乘法操作数，则乘法单元启动时机相对滞后，会额外放大长延迟单元对前后级的阻塞影响。因此，本设计没有把乘法器简单视为 EX 阶段内部的纯组合附属逻辑，而是将乘法操作数装载时机前移到 ID 阶段。
 
@@ -551,7 +557,7 @@
     \texttt{imem.mem} 是软件镜像进入硬件系统的直接载体。Benchmark 或裸机程序经 RISC-V 工具链编译、链接和格式转换后，生成按 32 位字排列的十六进制文本文件；仿真与 Vivado 初始化流程均通过该文件填充 IMEM。因此，更换测试程序时不需要修改 RTL，只需重新生成并替换 \texttt{imem.mem}。
 
 \subsection{模块划分说明}
-\begin{longtable}{p{0.34\textwidth}p{0.58\textwidth}}
+\begin{longtable}{>{\raggedright\arraybackslash}p{0.30\textwidth}>{\raggedright\arraybackslash}p{0.62\textwidth}}
     \caption{主要模块职责} \\
     \toprule
     模块 & 主要职责 \\
@@ -562,9 +568,9 @@
     \midrule
     \endhead
     \texttt{cpu.v} & CPU 顶层连接，组织前端、译码、执行、访存、写回、总线与外设接口，并完成全局冲刷、阻塞、保持和重定向信号仲裁 \\
-    \texttt{top.v} & FPGA 工程顶层封装，例化时钟 IP、CPU、LED/UART 输出与七段数码管显示模块 \\
+    \texttt{top.v} & FPGA 工程顶层封装，例化时钟 IP、CPU、LED / UART 输出与七段数码管显示模块 \\
     \texttt{pc.v} & PC 更新与前端重定向管理，根据预测跳转、错误恢复、阻塞保持等条件选择下一取指地址 \\
-    \texttt{frontend\_ctrl.v} & 前端控制整理，完成 IF/slot1 控制流轻量分类、Branch/\texttt{JAL} 目标预计算、RAS/JTB/BHT 结果仲裁，以及动态压缩前端的有效位与冲刷恢复控制 \\
+    \texttt{frontend\_ctrl.v} & 前端控制整理，完成 IF / slot1 控制流轻量分类、Branch / \texttt{JAL} 目标预计算、RAS / JTB / BHT 结果仲裁，以及动态压缩前端的有效位与冲刷恢复控制 \\
     \texttt{branch\_hash\_mix.v} & BHT 索引哈希生成模块，将 PC 片段与 B 型立即数低位混合，降低小容量 BHT 的别名冲突 \\
     \texttt{branch\_predictor.v} & B 型条件分支方向预测，维护小容量 Tagged BHT 与 2-bit 饱和计数器 \\
     \texttt{jump\_target\_buffer.v} & 非 Ret 类 \texttt{JALR} 目标缓存，保存近期间接跳转目标地址及对应 Tag \\
@@ -572,13 +578,13 @@
     \texttt{id.v / ex.v} & 译码与执行级主逻辑，完成指令译码、操作数生成、ALU 运算、跳转解析、访存控制与乘除法单元接入 \\
     \texttt{if\_id.v / id\_ex.v} & 前端到执行前级的流水寄存器，传递指令、PC、预测信息、控制信号与晚解析标记 \\
     \texttt{ex\_mem.v / mem\_wb.v} & 执行到写回阶段的流水寄存器，传递执行结果、访存控制、控制流解析信息与寄存器写回信息 \\
-    \texttt{ctrl\_late\_detect.v} & J/B load-use 晚解析检测，区分普通 load-use 阻塞与控制类指令晚转发路径 \\
+    \texttt{ctrl\_late\_detect.v} & J / B load-use 晚解析检测，区分普通 load-use 阻塞与控制类指令晚转发路径 \\
     \texttt{mem\_ctrl\_resolve.v} & MEM 级控制流晚解析，利用 load 返回数据重新计算 Branch 方向或 \texttt{JALR} 目标，并产生必要重定向 \\
     \texttt{forwarding.v} & ID 阶段源操作数前递选择，按 EX、MEM、WB 优先级解决普通 RAW 相关 \\
     \texttt{regs.v} & 32 个通用寄存器实现，支持双读单写，并保持 \texttt{x0} 恒为 0 \\
-    \texttt{mul\_unit.v / div\_unit.v} & RV32M 乘除法单元，分别实现 DSP 分块乘法与迭代式除法/取余 \\
+    \texttt{mul\_unit.v / div\_unit.v} & RV32M 乘除法单元，分别实现 DSP 分块乘法与迭代式除法 / 取余 \\
     \texttt{bus\_interconnect.v} & 数据访问总线互连，根据地址选择 IMEM、DMEM 或 MMIO 从设备，并返回对应读数据与应答 \\
-    \texttt{imem.v / dmem.v} & 指令存储器与数据存储器，均基于片上 BRAM 实现，分别承担程序加载、取指、数据读写与字节/半字扩展 \\
+    \texttt{imem.v / dmem.v} & 指令存储器与数据存储器，均基于片上 BRAM 实现，分别承担程序加载、取指、数据读写与字节 / 半字扩展 \\
     \texttt{mmio.v} & MMIO 外设寄存器接口，提供周期计数、\texttt{tohost}、LED、UART 发送与 UART 状态访问 \\
     \texttt{uart\_tx.v / seg7\_display.v} & 板级输出辅助模块，分别实现串口发送队列与七段数码管动态显示 \\
     \bottomrule
@@ -598,11 +604,11 @@
 \subsection{命名规范}
 本工程 RTL 以 Verilog 为主，命名遵循“按流水级归属前缀、按信号功能后缀”的原则，尽量使信号含义可以从名称中直接判断。
 \begin{itemize}
-    \item 模块名与文件名保持一致，采用小写下划线形式，例如 \texttt{branch\_predictor.v}、\texttt{mem\_ctrl\_resolve.v}。
+    \item 模块名与文件名保持一致，采用小写下划线形式，例如 \path|branch_predictor.v|、\path|mem_ctrl_resolve.v|。
     \item 流水级相关信号使用 \texttt{preif\_}、\texttt{if\_}、\texttt{id\_}、\texttt{ex\_}、\texttt{mem\_}、\texttt{wb\_} 前缀区分所属阶段。
     \item 控制信号按用途使用统一后缀，如 \texttt{\_valid}、\texttt{\_we}、\texttt{\_re}、\texttt{\_stall}、\texttt{\_flush}、\texttt{\_hold}。
     \item 地址、数据与寄存器编号分别使用 \texttt{\_addr}、\texttt{\_data}、\texttt{\_w\_addr} 等后缀，避免混淆数据值与索引值。
-    \item 全局参数和宏定义集中放在 \texttt{defines.v} 中，采用大写命名，如 \texttt{IMEM\_BASE\_ADDR}、\texttt{BR\_PRED\_INDEX\_BITS}。
+    \item 全局参数和宏定义集中放在 \texttt{defines.v} 中，采用大写命名，如 \texttt{IMEM\_\allowbreak{}BASE\_\allowbreak{}ADDR}、\texttt{BR\_\allowbreak{}PRED\_\allowbreak{}INDEX\_\allowbreak{}BITS}。
 \end{itemize}
 
 \subsection{时序逻辑规范}
@@ -618,7 +624,7 @@
 组合逻辑主要用于译码、数据选择、地址计算、预测仲裁和简单比较。简单布尔表达式优先使用 \texttt{assign}，多分支选择或复杂条件判断使用 \texttt{always @*}。
 \begin{itemize}
     \item \texttt{always @*} 中必须给输出或中间变量提供默认值，避免综合出锁存器。
-    \item 组合路径应避免同时包含大规模比较、加法、查表和多级选择；必要时通过流水级拆分。
+    \item 组合路径应避免同时包含大规模比较、加法、查表和多级选择；必要时采用流水级拆分。
     \item 关键路径上的选择逻辑应尽量保持单一职责，例如前端预测仲裁、MEM 级晚解析和写回数据选择分别处理。
     \item 对状态表查找结果应显式给出命中条件，例如 \texttt{valid} 与 \texttt{tag} 同时匹配后才认为预测有效。
 \end{itemize}
@@ -627,7 +633,7 @@
 \texttt{cpu.v} 作为顶层连接模块，只保留必要的数据通路连接与全局选择逻辑；复杂功能应拆分到独立模块中实现。
 \begin{itemize}
     \item 前端预测相关逻辑拆分为 BHT、JTB、RAS、哈希混合与前端控制模块，便于单独修改和验证。
-    \item 流水线控制类逻辑独立封装，例如 \texttt{ctrl\_late\_detect.v} 负责晚解析检测，\texttt{mem\_ctrl\_resolve.v} 负责 MEM 级控制流恢复。
+    \item 流水线控制类逻辑独立封装，例如 \path|ctrl_late_detect.v| 负责晚解析检测，\path|mem_ctrl_resolve.v| 负责 MEM 级控制流恢复。
     \item 存储与外设通过总线互连隔离，IMEM、DMEM、MMIO、UART 等模块职责清晰。
     \item 乘除法单元独立于普通 ALU 主路径，减少执行级主逻辑复杂度。
 \end{itemize}
@@ -665,10 +671,10 @@
         \midrule
         Benchmark 原始输出 & 上板运行实际 UART 输出，其中 CoreMark Score 使用 \texttt{ITERATIONS=5000} \\
         跳转分支预测准确率、IPC 等性能指标 & Vivado 仿真输出，其中 CoreMark 周期数、退役指令数、IPC 与预测统计使用 \texttt{ITERATIONS=1} \\
-        FPGA 资源占用 & \texttt{top\_utilization\_placed.rpt} \\
-        FPGA 时序结果 & \texttt{top\_timing\_summary\_postroute\_physopted.rpt} \\
-        FPGA 功耗结果 & \texttt{top\_power\_routed.rpt} \\
-        布线状态与 DRC & \texttt{top\_route\_status.rpt}、\texttt{top\_drc\_routed.rpt} \\
+        FPGA 资源占用 & \path|top_utilization_placed.rpt| \\
+        FPGA 时序结果 & \path|top_timing_summary_postroute_physopted.rpt| \\
+        FPGA 功耗结果 & \path|top_power_routed.rpt| \\
+        布线状态与 DRC & \path|top_route_status.rpt|、\path|top_drc_routed.rpt| \\
         \bottomrule
     \end{tabularx}
 \end{table}
@@ -684,8 +690,8 @@
         FPGA 器件 & \texttt{xc7a100tcsg324-1} \\
         目标频率 & \texttt{100 MHz} \\
         工具链 & \texttt{riscv64-unknown-elf-gcc} \\
-        testbench & \texttt{sim\_1/new/cpu\_tb.v} \\
-        指令测试 & \texttt{sources\_1/new/RISCV-TEST} \\
+        testbench & \path|sim_1/new/cpu_tb.v| \\
+        指令测试 & \path|sources_1/new/RISCV-TEST| \\
         CoreMark & Score 上板运行使用 \texttt{-march=rv32im -mabi=ilp32 -mstrict-align -O2}，\texttt{ITERATIONS=5000}；周期数、退役指令数、IPC 与预测统计仿真使用同一编译配置下的 \texttt{ITERATIONS=1} \\
         Dhrystone & \texttt{-march=rv32im -mabi=ilp32 -mstrict-align -O2 -std=gnu89}，\texttt{1800 runs}，\texttt{DHRY\_HZ=100000000} \\
         Embench-WikiSort & \texttt{-march=rv32im -mabi=ilp32 -mstrict-align -O2 -std=gnu11}，\texttt{GLOBAL\_SCALE\_FACTOR=1}，\texttt{WARMUP\_HEAT=1} \\
@@ -708,7 +714,7 @@
         整数运算 & 19 & 19 & \texttt{100\%} & R 型与 I 型整数算术、逻辑、移位、比较指令 \\
         控制转移 & 8 & 8 & \texttt{100\%} & \texttt{JAL, JALR} 与六类 B 型条件分支 \\
         Load/Store & 8 & 8 & \texttt{100\%} & 字节、半字、字粒度加载与存储 \\
-        M 扩展 & 8 & 8 & \texttt{100\%} & \texttt{MUL/MULH/MULHSU/MULHU/DIV/DIVU/REM/REMU} \\
+        M 扩展 & 8 & 8 & \texttt{100\%} & \texttt{MUL} / \texttt{MULH} / \texttt{MULHSU} / \texttt{MULHU} / \texttt{DIV} / \texttt{DIVU} / \texttt{REM} / \texttt{REMU} \\
         \midrule
         合计 & 45 & 45 & \texttt{100\%} & 当前裸机 \texttt{RV32IM} 目标功能全集 \\
         \bottomrule
@@ -756,10 +762,12 @@ Benchmark 汇总结果如表~\ref{tab:benchmark_summary} 所示。需要严格�
     \end{tabular}
 \end{table}
 
-其中，CoreMark Score 使用 \texttt{5000} 次上板迭代，运行时间为 \texttt{18.121068 s}，达到 \texttt{275.921925 Iter/s}，折合 \texttt{2.759219 CoreMark/MHz}；表中的 CoreMark IPC、周期数和退役指令数则来自 \texttt{1} 次迭代仿真，不用于反推 \texttt{5000} 次上板运行时间。Dhrystone 达到 \texttt{166000 Dhrystones/s}，按 \(\mathrm{DMIPS/MHz}=\mathrm{Dhrystones/s}/(1757\times f_{\mathrm{MHz}})\) 计算为 \texttt{0.945 DMIPS/MHz}；Embench-WikiSort 输出 \texttt{WS V=1 S=122.58}，说明排序 benchmark 结果校验通过。
+其中，CoreMark Score 使用 \texttt{5000} 次上板迭代，运行时间为 \texttt{18.121068 s}，达到 \texttt{275.921925 Iter/s}，折合 \texttt{2.759219 CoreMark / MHz}。表中的 CoreMark IPC、周期数和退役指令数则来自 \texttt{1} 次迭代仿真，不用于反推 \texttt{5000} 次上板运行时间。\par\indent
+Dhrystone 达到 \texttt{166000 Dhrystones/s}，按 \(\mathrm{DMIPS}/\mathrm{MHz}=\mathrm{Dhrystones/s}/(1757\times f_{\mathrm{MHz}})\) 计算为 \texttt{0.945 DMIPS / MHz}。Embench-WikiSort 输出 \texttt{WS V=1 S=122.58}，说明排序 benchmark 结果校验通过。
 
 \subsection{跳转分支预测统计}
-分支/跳转预测统计来自 \texttt{ITERATIONS=1} 的 CoreMark Vivado 仿真窗口，而不是 \texttt{ITERATIONS=5000} 的上板 UART 性能输出。采用该口径是为了在合理仿真时间内获得周期级控制流事件统计。方向准确率表示控制流方向预测正确比例；目标准确率表示预测 taken 或跳转目标时目标地址正确比例；总体准确率为综合方向与目标后的控制流预测正确比例。统计结果见表~\ref{tab:validation_branch_stats}。
+分支与跳转预测统计来自 \texttt{ITERATIONS=1} 的 CoreMark Vivado 仿真窗口，而不是 \texttt{ITERATIONS=5000} 的上板 UART 性能输出。采用该口径是为了在合理仿真时间内获得周期级控制流事件统计。\par\indent
+方向准确率表示控制流方向预测正确比例；目标准确率表示预测 taken 或跳转目标时目标地址正确比例；总体准确率为综合方向与目标后的控制流预测正确比例。统计结果见表~\ref{tab:validation_branch_stats}。
 
 \begin{table}[H]
     \centering
@@ -855,7 +863,7 @@ Benchmark 汇总结果如表~\ref{tab:benchmark_summary} 所示。需要严格�
     \end{tabularx}
 \end{table}
 
-程序运行前需要将目标测试程序或 benchmark 编译为 \texttt{imem.mem}，并放置在 \texttt{sources\_1/new} 目录下。综合和仿真时，IMEM 通过该文件初始化指令内容；DMEM 则用于运行时数据读写。当前 MMIO 地址空间用于输出运行状态、UART 结果和 benchmark 结束标志，便于在仿真和上板环境中复用同一套软件输出路径。
+程序运行前需要将目标测试程序或 benchmark 编译为 \texttt{imem.mem}，并放置在 \path|sources_1/new| 目录下。综合和仿真时，IMEM 通过该文件初始化指令内容；DMEM 则用于运行时数据读写。当前 MMIO 地址空间用于输出运行状态、UART 结果和 benchmark 结束标志，便于在仿真和上板环境中复用同一套软件输出路径。
 
 \subsection{资源与时序结果}
 当前版本已完成 Vivado placed/post-route 实现，并在 \texttt{100 MHz} 目标频率下满足所有用户指定时序约束。综合与实现结果如表~\ref{tab:fpga_impl_result} 所示。
@@ -885,7 +893,8 @@ FPGA 适配流程主要包括软件镜像生成、工程检查、综合实现和
 \begin{enumerate}
     \item 使用 RISC-V 交叉编译工具链生成目标程序，并转换得到 \texttt{imem.mem}；
     \item 将 \texttt{imem.mem} 放入 \texttt{sources\_1/new}，确认 Vivado 工程引用的是当前镜像文件；
-    \item 检查 RTL 源文件、时钟 IP、约束文件和顶层模块连接关系，确认目标器件为 \texttt{xc7a100tcsg324-1}；
+    \item 检查 RTL 源文件、时钟 IP、约束文件和顶层模块连接关系；
+    \item 确认目标器件为 \texttt{xc7a100tcsg324-1}；
     \item 运行 Synthesis，检查是否存在语法错误、未连接端口、锁存器推断或严重综合警告；
     \item 运行 Implementation，并检查 WNS、WHS、DRC 与 route status；
     \item 生成 bitstream，将开发板连接至主机并通过 Hardware Manager 下载；
