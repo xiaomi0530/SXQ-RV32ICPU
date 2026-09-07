@@ -1,4 +1,4 @@
-﻿# SXQ-RV32I-CPU
+﻿# SXQ-RV32IM-CPU
 Board: `xc7a100tcsg324-1` (Artix-7)
 
 ***Version 3.12*** || CoreMark = **000.0 Iterations / sec** || **100MHz** || WNS **0.894ns** WHS **0.105ns** \
