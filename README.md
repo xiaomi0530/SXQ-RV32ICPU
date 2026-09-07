@@ -59,7 +59,7 @@ xychart-beta
 
 ## Version 4.26 Summary
 ### CPU Architecture
-![4.26 CPU Architecture](docs/SXQCPU_Architecture.png)
+![4.26 CPU Architecture](docs/figures/SXQCPU_Architecture.png)
 ### Benchmark Summary
 
 Raw logs: `docs/benchmark_raw_results.md`
