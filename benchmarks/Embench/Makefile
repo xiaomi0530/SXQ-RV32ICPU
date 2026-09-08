@@ -2,8 +2,12 @@ TOOLCHAIN := riscv64-unknown-elf
 CC        := $(TOOLCHAIN)-gcc
 OBJDUMP   := $(TOOLCHAIN)-objdump
 SIZE      := $(TOOLCHAIN)-size
+ifeq ($(OS),Windows_NT)
 PYTHON    ?= python
-PS        := powershell -NoProfile -Command
+else
+PYTHON    ?= python3
+endif
+BENCHUTIL := ../common/benchutil.py
 
 .DEFAULT_GOAL := all
 
@@ -89,7 +93,7 @@ all: imem.mem
 
 imem.mem: $(TARGET).elf
 	$(PYTHON) gen_mem.py $< $@
-	@$(PS) "Copy-Item 'imem.mem' 'imem_$(BENCH).mem' -Force"
+	@$(PYTHON) $(BENCHUTIL) copy imem.mem imem_$(BENCH).mem
 	@echo ""
 	@echo "=============================================="
 	@echo "  Generated: imem.mem"
@@ -105,7 +109,7 @@ crt0.o: crt0.S
 	$(CC) $(ARCH_FLAGS) -c -o $@ $<
 
 $(OBJDIR)/%.o: %.c
-	@$(PS) "New-Item -ItemType Directory -Force -Path '$(dir $@)' | Out-Null"
+	@$(PYTHON) $(BENCHUTIL) mkdir $(dir $@)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 size: $(TARGET).elf
@@ -116,15 +120,15 @@ dump: $(TARGET).elf
 	$(OBJDUMP) -d -S $(TARGET).elf > $(TARGET).dump
 
 list:
-	@$(PS) "Write-Output 'Available Embench cases:'; Get-ChildItem '$(EMBENCH_ROOT)/src' -Directory | ForEach-Object { '  ' + $$_.Name }"
+	@echo "Available Embench cases:"
+	@$(PYTHON) $(BENCHUTIL) list-dirs $(EMBENCH_ROOT)/src
 
 install: imem.mem
-	@$(PS) "Copy-Item 'imem.mem' '$(INSTALL_IMEM)' -Force"
+	@$(PYTHON) $(BENCHUTIL) copy imem.mem $(INSTALL_IMEM)
 	@echo "Installed imem.mem -> $(INSTALL_IMEM)"
 
 clean:
-	@$(PS) "if (Test-Path 'build') { Remove-Item 'build' -Recurse -Force }"
-	@$(PS) "$$files = 'crt0.o','$(TARGET).elf','$(TARGET).map','$(TARGET).dump','imem.mem'; foreach ($$f in $$files) { if (Test-Path $$f) { Remove-Item $$f -Force } }; Get-ChildItem 'imem_*.mem' -ErrorAction SilentlyContinue | Remove-Item -Force"
+	$(PYTHON) $(BENCHUTIL) rm build crt0.o $(TARGET).elf $(TARGET).map $(TARGET).dump imem.mem imem_*.mem
 
 help:
 	@echo "  make BENCH=crc32            Build one Embench benchmark"

@@ -7,7 +7,12 @@ CC         := $(TOOLCHAIN)-gcc
 OBJCOPY    := $(TOOLCHAIN)-objcopy
 OBJDUMP    := $(TOOLCHAIN)-objdump
 SIZE       := $(TOOLCHAIN)-size
+ifeq ($(OS),Windows_NT)
+PYTHON     ?= python
+else
 PYTHON     ?= python3
+endif
+BENCHUTIL  := ../../common/benchutil.py
 
 .DEFAULT_GOAL := all
 
@@ -56,21 +61,10 @@ PORT_SRCS := core_portme.c
 ALL_SRCS  := $(COREMARK_SRCS) $(PORT_SRCS)
 OBJS      := $(ALL_SRCS:.c=.o) crt0.o
 
-# Ensure macro changes in this Makefile (e.g. HAS_FLOAT) trigger full rebuild
-# to avoid ABI-mismatched mixed objects.
+# Ensure macro changes in this Makefile trigger rebuilds.
 $(OBJS): Makefile
 
-CFLAGS_HASH  := $(shell echo '$(CFLAGS)' | md5sum | cut -c1-8)
-CFLAGS_STAMP := .cflags_$(CFLAGS_HASH)
-
-.PHONY: all fetch size dump clean help FORCE
-
-$(CFLAGS_STAMP): FORCE
-	@if [ ! -f $@ ]; then \
-	    echo "CFLAGS changed, removing stale objects..."; \
-	    rm -f $(OBJS) .cflags_*; \
-	    touch $@; \
-	fi
+.PHONY: all fetch size dump clean help
 
 # ===========================================================================
 all: imem.mem
@@ -86,9 +80,9 @@ imem.mem: $(TARGET).elf
 
 # Backward-compatible alias target
 $(TARGET).mem: imem.mem
-	@cp -f $< $@
+	@$(PYTHON) $(BENCHUTIL) copy $< $@
 
-$(TARGET).elf: $(CFLAGS_STAMP) $(OBJS) link.ld
+$(TARGET).elf: $(OBJS) link.ld
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) -lgcc
 	@echo "Linked: $@"
 	@$(MAKE) --no-print-directory size
@@ -110,28 +104,13 @@ dump: $(TARGET).elf
 	@echo "Disassembly: $(TARGET).dump"
 
 fetch:
-	@echo "Fetching CoreMark source from GitHub..."
-	@if [ -d coremark ] && [ -f coremark/coremark.h ]; then \
-	    echo "coremark/ already exists; skip. Remove it first to re-fetch."; \
-	else \
-	    git clone --depth=1 https://github.com/eembc/coremark.git _cm_tmp; \
-	    mkdir -p coremark; \
-	    cp _cm_tmp/core_list_join.c coremark/; \
-	    cp _cm_tmp/core_main.c      coremark/; \
-	    cp _cm_tmp/core_matrix.c    coremark/; \
-	    cp _cm_tmp/core_state.c     coremark/; \
-	    cp _cm_tmp/core_util.c      coremark/; \
-	    cp _cm_tmp/coremark.h       coremark/; \
-	    rm -rf _cm_tmp; \
-	    echo "CoreMark source extracted to coremark/"; \
-	fi
+	@echo "CoreMark source is already included; fetch is not required."
 
 clean:
-	rm -f $(OBJS) .cflags_*
-	rm -f $(TARGET).elf $(TARGET).map $(TARGET).dump imem.mem $(TARGET).mem
+	$(PYTHON) $(BENCHUTIL) rm $(OBJS) .cflags_* $(TARGET).elf $(TARGET).map $(TARGET).dump imem.mem $(TARGET).mem
 
 help:
-	@echo "  make fetch  Download official CoreMark source"
+	@echo "  make fetch  Note that CoreMark source is already included"
 	@echo "  make        Build and generate imem.mem"
 	@echo "  make size   Show section sizes"
 	@echo "  make dump   Generate disassembly"

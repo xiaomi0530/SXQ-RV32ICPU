@@ -14,7 +14,9 @@
 void debug_printf(const char* str, ...);
 void setStats(int enable);
 unsigned long long dhrystone_get_cycles64(void);
-#include <alloca.h>
+#ifndef alloca
+#define alloca __builtin_alloca
+#endif
 
 /* Global Variables: */
 

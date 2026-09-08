@@ -445,8 +445,16 @@ struct tms      time_info;
 
 /* General definitions: */
 
+#ifdef __riscv
+#include <stddef.h>
+int printf(const char *fmt, ...);
+int strcmp(const char *a, const char *b);
+char *strcpy(char *dst, const char *src);
+void *memcpy(void *dst, const void *src, size_t n);
+#else
 #include <stdio.h>
 #include <string.h>
+#endif
                 /* for strcpy, strcmp */
 
 #define Null 0 

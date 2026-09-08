@@ -2,15 +2,10 @@
 !/.gitignore
 !/.gitmodules
 !/README.md
-!/docs/
-!/docs/**
-/docs/*.aux
-/docs/*.toc
-/docs/*.out
-/docs/*.log
-/docs/*.fls
-/docs/*.fdb_latexmk
-/docs/*.synctex.gz
+
+/CICC1003857*/
+/CICC1003857*
+/docs/
 
 !/benchmarks/
 !/benchmarks/**
@@ -23,6 +18,10 @@
 /benchmarks/Embench/crt0.o
 /benchmarks/Embench/imem.mem
 /benchmarks/Embench/imem_*.mem
+
+/benchmarks/RISCV-TEST/rv32i_official/*.elf
+/benchmarks/RISCV-TEST/rv32i_official/*.bin
+/benchmarks/RISCV-TEST/rv32i_official/imem.mem
 
 !/sources_1/
 !/sources_1/**

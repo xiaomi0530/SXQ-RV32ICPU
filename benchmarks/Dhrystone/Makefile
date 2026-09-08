@@ -3,7 +3,12 @@ CC        := $(TOOLCHAIN)-gcc
 OBJCOPY   := $(TOOLCHAIN)-objcopy
 OBJDUMP   := $(TOOLCHAIN)-objdump
 SIZE      := $(TOOLCHAIN)-size
+ifeq ($(OS),Windows_NT)
 PYTHON    ?= python
+else
+PYTHON    ?= python3
+endif
+BENCHUTIL := ../common/benchutil.py
 
 .DEFAULT_GOAL := all
 
@@ -59,4 +64,4 @@ dump: $(TARGET).elf
 	$(OBJDUMP) -d -S $(TARGET).elf > $(TARGET).dump
 
 clean:
-	rm -f $(OBJS) $(TARGET).elf $(TARGET).map $(TARGET).dump imem.mem
+	$(PYTHON) $(BENCHUTIL) rm $(OBJS) $(TARGET).elf $(TARGET).map $(TARGET).dump imem.mem
