@@ -1,6 +1,47 @@
 ﻿# SXQ-RV32IM-CPU
 Board: `xc7a100tcsg324-1` (Artix-7)
 
+## Project Overview
+本项目面向 FPGA 平台实现一颗自研的 `RV32IM` 处理器，探索适用于真实场景中小型设备的前端、控制流处理和数据相关处理优化方法，形成一种在较低资源开销下实现更高性能的 CPU 设计方案。项目覆盖从微架构设计、Verilog 建模、仿真验证到 FPGA 落地实现的完整流程。
+
+当前版本是一颗工作在 `100MHz` 下的 `RV32IM` 单发射准六级流水线 CPU。上板 CoreMark 达到 `275.9 Iterations / sec`，LUT 消耗为 `3581`，动态功耗为 `0.231W`，热裕量达到 `58.5 degC`，基本实现了小面积、低功耗、高性能的设计目标。
+
+## Key Innovations
+- **动态压缩前端机制**：以 `PREIF-IF-ID-EX-MEM-WB` 准六级流水线为基础，利用双口 BRAM 特性实现前端在五级与六级形态之间的动态切换，在较小资源代价下支持 IF 阶段获得指令信息。
+- **低资源跳转分支预测机制**：在不引入复杂 ICache 或大容量 BTB 的前提下，将指令本身纳入预测输入，并按控制流类型拆分预测路径。
+- **针对分支跳转指令的 Load-Use 晚转发**：对依赖前一条 `LOAD` 的 Branch / `JALR` 指令定向后移解析，减少控制相关场景中的固定 stall 损失。
+- **IMEM 与 DMEM 访存前移**：针对 BRAM 同步读带来的一拍延迟，将 IMEM 访问前移到 PreIF，将 DMEM 访问前移到 EX，压缩访存等待周期。
+- **乘法器操作数前移**：采用 FPGA DSP 资源实现 `MUL` 相关指令，并将乘法操作数准备前移一拍，降低分周期乘法器对流水线的阻塞影响。
+
+| Control Flow Type | Direction Prediction | Target Prediction |
+| --- | --- | --- |
+| `JAL` | Always Taken | Direct `PC + IMM` |
+| `JALR` | Always Taken | JTB / RAS |
+| Branch | BHT (2BC) / BTFNT | Direct `PC + IMM` |
+
+## Current Key Metrics
+CoreMark 分数来自 `ITERATIONS=5000` 的实际上板 UART 输出；周期数、退役指令数、IPC 和跳转分支预测准确率来自 `ITERATIONS=1` 的 Vivado 仿真统计。
+
+| Category | Metric | Result |
+| --- | --- | --- |
+| Platform | FPGA Device | `xc7a100tcsg324-1` |
+| Platform | Clock | `100MHz` |
+| Resource | LUT / FF / BRAM / DSP | `3581 / 2741 / 16 / 4` |
+| Performance | CoreMark | `275.9 Iterations / sec` |
+| Performance | CoreMark / MHz | `2.759 Iterations / MHz` |
+| Performance | Dhrystone | `166000 Dhrystones / sec` |
+| Performance | DMIPS / MHz | `0.945` |
+| Performance | Embench-WikiSort | `121.84` |
+| IPC | CoreMark / Dhrystone / Embench | `0.851 / 0.907 / 0.790` |
+| Power | Total / Dynamic / Static | `0.329W / 0.231W / 0.099W` |
+| Thermal | Junction / Margin | `26.5 degC / 58.5 degC` |
+| Prediction | Overall Accuracy | `88.43%` |
+| Prediction | JAL Direction / Target | `100.00% / 100.00%` |
+| Prediction | JALR Direction / Target | `100.00% / 99.91%` |
+| Prediction | Branch Direction / Target | `87.06% / 100.00%` |
+
+## Version History
+
 ***Version 3.12*** || CoreMark = **000.0 Iterations / sec** || **100MHz** || WNS **0.894ns** WHS **0.105ns** \
 ***Version 3.17*** || CoreMark = **000.0 Iterations / sec** || **100MHz** || WNS **0.977ns** WHS **0.141ns** \
 ***Version 3.22*** || CoreMark = **091.1 Iterations / sec** || **100MHz** || WNS **1.015ns** WHS **0.310ns** || LUT: **1775**
